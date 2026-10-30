@@ -688,15 +688,22 @@ const go = h => { if (location.hash === h) render(); else location.hash = h; };
 
 const NAV = [
   {h:'#/dashboard', n:'dashboard', t:'Tổng quan', ic:'▦', roles:['SO','PD','QT']},
+  {g:'Phát tin cảnh báo', roles:['SO','PD','QT']},
   {h:'#/messages', n:'messages', t:'Bản tin cảnh báo', ic:'✉', roles:['SO','PD','QT'], also:['msg','compose']},
   {h:'#/approvals', n:'approvals', t:'Chờ phê duyệt', ic:'✓', roles:['PD'], cnt:true},
+  {g:'Theo dõi và báo cáo', roles:['SO','PD','QT']},
   {h:'#/reports', n:'reports', t:'Báo cáo chiến dịch', ic:'▤', roles:['SO','PD','QT']},
+  {g:'Quản lý danh mục', roles:['SO','PD','QT']},
   {h:'#/templates', n:'templates', t:'Thư viện mẫu tin', ic:'☰', roles:['SO','PD','QT']},
-  {g:'Quản trị', roles:['QT']},
-  {h:'#/catalog/priorities', n:'catalog', t:'Danh mục', ic:'⌖', roles:['QT']},
+  {h:'#/catalog/priorities', n:'catalog', tab:'priorities', t:'Mức độ ưu tiên (CMAS)', ic:'!', roles:['QT']},
+  {h:'#/catalog/areas', n:'catalog', tab:'areas', t:'Tỉnh/Xã', ic:'⌖', roles:['QT']},
+  {h:'#/catalog/cells', n:'catalog', tab:'cells', t:'Ánh xạ Xã – Cell ID', ic:'⇄', roles:['QT']},
   {h:'#/settings', n:'settings', t:'Tham số phát mặc định', ic:'⚙', roles:['QT']},
-  {h:'#/users', n:'users', t:'Người dùng & phân quyền', ic:'👤', roles:['QT']},
+  {g:'Quản trị người dùng', roles:['QT']},
+  {h:'#/users', n:'users', t:'Tài khoản & phân quyền', ic:'👤', roles:['QT']},
   {h:'#/logs', n:'logs', t:'Nhật ký hệ thống', ic:'≡', roles:['QT']}];
+const navOn = (i, r) => r.name===i.n ? (!i.tab || i.tab===r.tab) : (i.also||[]).includes(r.name);
+function crumb(r){ let g = ''; for (const i of NAV){ if (i.g) g = i.g; else if (navOn(i, r)) return g ? `<div class="small muted" style="margin-bottom:6px">${esc(g)} › ${esc(i.t)}</div>` : ''; } return ''; }
 
 const pendingCount = () => S.messages.filter(m => (m.status==='pending' && m.createdBy!==me.id) || (m.pendingAction && m.status==='broadcasting' && m.pendingAction.by!==me.id)).length;
 function renderNavCounts(){ const el = document.querySelector('[data-cnt]'); if (el){ const c = pendingCount(); el.textContent = c; el.style.display = c ? '' : 'none'; } }
@@ -704,7 +711,7 @@ function renderNavCounts(){ const el = document.querySelector('[data-cnt]'); if 
 function shell(inner){
   const r = route();
   const nav = NAV.filter(i => i.roles.includes(me.role)).map(i => i.g ? `<div class="grp">${i.g}</div>` :
-    `<a href="${i.h}" class="${(r.name===i.n || (i.also||[]).includes(r.name)) ? 'on':''}"><span>${i.ic}</span>${i.t}${i.cnt?`<span class="cnt" data-cnt>${pendingCount()}</span>`:''}</a>`).join('');
+    `<a href="${i.h}" class="${navOn(i, r) ? 'on':''}" style="padding-left:18px"><span>${i.ic}</span>${i.t}${i.cnt?`<span class="cnt" data-cnt>${pendingCount()}</span>`:''}</a>`).join('');
   const others = S.users.filter(u => u.status==='active' && u.role && u.id!==me.id);
   return `<div id="app">
     <aside class="side"><div class="brand"><b>CMS Cell Broadcast</b><span>VNPT · Cảnh báo khẩn cấp</span></div>
@@ -721,7 +728,7 @@ function shell(inner){
             <hr><button data-act="resetDemo">Đặt lại dữ liệu demo</button><button data-act="logout">Đăng xuất</button>
           </div></div>
       </header>
-      <main class="content">${inner}</main>
+      <main class="content">${crumb(r)}${inner}</main>
     </div></div>`;
 }
 
@@ -1343,7 +1350,7 @@ function tplSave(id){
    ========================================================================= */
 function viewCatalog(r){
   const tab = r.tab;
-  const tabs = `<div class="tabs"><a href="#/catalog/priorities" class="${tab==='priorities'?'on':''}">Mức ưu tiên</a><a href="#/catalog/areas" class="${tab==='areas'?'on':''}">Tỉnh/Xã</a><a href="#/catalog/cells" class="${tab==='cells'?'on':''}">Ánh xạ Xã – Cell ID</a></div>`;
+  const title = {priorities:'Mức độ ưu tiên (bảng CMAS)', areas:'Danh mục Tỉnh/Xã', cells:'Dữ liệu ánh xạ Xã – Cell ID'}[tab] || '';
   let body = '';
   if (tab==='areas'){
     body = `<div class="row mb"><div class="small muted" style="flex:1">Phân cấp 2 cấp Tỉnh – Xã theo mã hành chính. Dữ liệu trong demo là dữ liệu mẫu.</div><button class="btn" data-act="provEdit">+ Thêm tỉnh</button><button class="btn pri" data-act="xaEdit">+ Thêm xã</button></div>
@@ -1364,7 +1371,7 @@ function viewCatalog(r){
       ${S.priorities.map((p,i) => `<tr><td>${i+1}</td><td class="mono">${p.mi}</td><td>${esc(p.vi)}${p.mi==S.settings.priority?' <span class="badge b-role">Mặc định cho tin phòng chống thiên tai</span>':''}</td><td class="row" style="flex-wrap:nowrap;justify-content:flex-end"><button class="btn sm" data-act="priEdit" data-id="${p.mi}">Sửa</button><button class="btn sm danger" data-act="priDel" data-id="${p.mi}">Xoá</button></td></tr>`).join('')}
     </tbody></table></div>`;
   }
-  return `<div class="ph"><h1>Quản lý danh mục</h1></div>${tabs}${body}`;
+  return `<div class="ph"><h1>${title}</h1></div>${body}`;
 }
 function importCells(text){
   const lines = text.replace(/^﻿/,'').split(/\r?\n/).filter(l => l.trim());
@@ -1415,7 +1422,7 @@ function saveSettings(fd){
 }
 function viewUsers(){
   const st = u => u.status==='active' ? '<span class="badge b-broadcasting">Hoạt động</span>' : '<span class="badge b-rejected">Khoá</span>';
-  return `<div class="ph"><h1>Người dùng & phân quyền</h1><span class="sub">${S.users.length} tài khoản</span><div class="sp"></div><button class="btn pri" data-act="userEdit">+ Thêm tài khoản</button></div>
+  return `<div class="ph"><h1>Tài khoản & phân quyền</h1><span class="sub">${S.users.length} tài khoản</span><div class="sp"></div><button class="btn pri" data-act="userEdit">+ Thêm tài khoản</button></div>
   <div class="card mb"><table class="t"><thead><tr><th>STT</th><th>Tên đăng nhập</th><th>Họ tên</th><th>Đơn vị</th><th>Vai trò</th><th>Số điện thoại nhận OTP</th><th>Trạng thái</th><th>Ngày tạo</th><th></th></tr></thead><tbody>
   ${S.users.map((u,i) => `<tr><td>${i+1}</td><td class="mono small">${esc(u.username)}</td><td><b>${esc(u.name)}</b></td><td class="small">${esc(u.unit)}</td><td>${u.role?`<span class="badge b-role">${ROLE[u.role]}</span>`:'<span class="small muted">Chưa phân quyền</span>'}</td><td class="small">${esc(u.phone)}</td>
     <td>${st(u)}</td><td class="small">${fmtD(u.createdAt)}</td>
