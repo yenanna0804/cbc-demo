@@ -166,6 +166,7 @@ h3.sec{margin:2px 0 10px;font-size:13.5px;text-transform:uppercase;letter-spacin
 .stats b{display:block;font-size:16px}
 .stats span{font-size:11.5px;color:var(--muted)}
 .var{background:#fff3c4;border-radius:3px;padding:0 2px}
+.pvar{background:#fff3c4;color:#7a4b00;border-radius:3px;padding:0 2px;font-weight:600}.pvar.empty{background:#fde2e1;color:var(--err);font-weight:400}
 .diff{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .diff pre{white-space:pre-wrap;word-break:break-word;background:#f7f8fa;border:1px solid var(--line2);border-radius:6px;padding:10px;margin:4px 0 0;font:inherit;font-size:13px}
 .timeline{list-style:none;margin:0;padding:0}
@@ -893,6 +894,10 @@ function composeInit(id){
   return F;
 }
 const HEADERS = ['[CẢNH BÁO KHẨN CẤP QUỐC GIA]','[BAN CHỈ ĐẠO QUỐC GIA PCTT]','[CẢNH BÁO THIÊN TAI - UBND TỈNH/THÀNH PHỐ]','[TÌM KIẾM CỨU NẠN KHẨN CẤP]','[CỤC CẢNH SÁT PCCC]'];
+function composeHtml(){
+  const b = esc(F.body).replace(/\{([^{}]+)\}/g, (m,k) => { const v = (F.vars[k]||'').trim(); return v ? `<span class="pvar">${esc(v)}</span>` : `<span class="pvar empty">{${k}}</span>`; });
+  return [esc(F.header), b].filter(Boolean).join(' ');
+}
 function composeText(){ return F.mode==='template' ? [F.header, fill(F.body, F.vars)].filter(Boolean).join(' ') : [F.header, F.body].filter(Boolean).join(' '); }
 function viewCompose(r){
   if (!r.id && !can('create')) return `<div class="card"><div class="empty">Chỉ Người soạn thảo được tạo bản tin.</div></div>`;
@@ -904,8 +909,8 @@ function viewCompose(r){
   <div id="errBox"></div>
   <div class="compose"><div>
     <div class="card mb"><div class="hd"><span class="secno">1</span><h2>Thông tin chiến dịch</h2></div><div class="bd grid g2">
-      <div class="${e.campaign?'has-err':''}"><label class="f">Tên chiến dịch <span class="req">*</span></label><input type="text" data-f="campaign" value="${esc(F.campaign)}" maxlength="150" placeholder="VD: Bão số 7 – sơ tán ven biển">${er('campaign')}</div>
-      <div class="${e.docNo?'has-err':''}"><label class="f">Số văn bản yêu cầu <span class="req">*</span></label><input type="text" data-f="docNo" value="${esc(F.docNo)}" maxlength="60" placeholder="VD: 125/BCĐ-PCTT">${er('docNo')}<div class="hint">Số công văn của cơ quan chức năng yêu cầu phát tin.</div></div>
+      <div class="${e.campaign?'has-err':''}"><label class="f">Tên chiến dịch <span class="req">*</span></label><input type="text" autocomplete="off" data-f="campaign" value="${esc(F.campaign)}" maxlength="150" placeholder="VD: Bão số 7 – sơ tán ven biển">${er('campaign')}</div>
+      <div class="${e.docNo?'has-err':''}"><label class="f">Số văn bản yêu cầu <span class="req">*</span></label><input type="text" autocomplete="off" data-f="docNo" value="${esc(F.docNo)}" maxlength="60" placeholder="VD: 125/BCĐ-PCTT">${er('docNo')}<div class="hint">Số công văn của cơ quan chức năng yêu cầu phát tin.</div></div>
     </div></div>
     <div class="card mb"><div class="hd"><span class="secno">2</span><h2>Nội dung bản tin</h2></div><div class="ctabs">
         <label><input type="radio" name="mode" value="template" data-f="mode" ${F.mode==='template'?'checked':''}><span>Theo mẫu trong thư viện</span></label>
@@ -930,7 +935,7 @@ function viewCompose(r){
 function composeContent(){
   const e = F.errors, er = k => e[k] ? `<div class="ferr">${esc(e[k])}</div>` : '';
   const header = `<div class="mb ${e.header?'has-err':''}"><label class="f">Tiêu đề <span class="req">*</span></label>
-    <input type="text" list="hdrs" data-f="header" value="${esc(F.header)}" maxlength="60" placeholder="Chọn hoặc nhập theo cấp và cơ quan ra lệnh"><datalist id="hdrs">${HEADERS.map(h=>`<option value="${esc(h)}">`).join('')}</datalist>${er('header')}
+    <input type="text" autocomplete="off" list="hdrs" data-f="header" value="${esc(F.header)}" maxlength="60" placeholder="Chọn hoặc nhập theo cấp và cơ quan ra lệnh"><datalist id="hdrs">${HEADERS.map(h=>`<option value="${esc(h)}">`).join('')}</datalist>${er('header')}
     <div class="hint">VD: [CẢNH BÁO KHẨN CẤP QUỐC GIA], [CẢNH BÁO THIÊN TAI - UBND TỈNH/THÀNH PHỐ], [TÌM KIẾM CỨU NẠN KHẨN CẤP].</div></div>`;
   if (F.mode === 'template'){
     const groups = TPL_GROUPS.filter(g => S.templates.some(t => t.group===g));
@@ -941,7 +946,7 @@ function composeContent(){
       <div><label class="f">Nhóm tình huống</label><select data-f="group"><option value="">Tất cả nhóm</option>${groups.map(g=>`<option ${F.group===g?'selected':''}>${esc(g)}</option>`).join('')}</select></div>
       <div style="grid-column:span 2" class="${e.templateId?'has-err':''}"><label class="f">Mẫu tin <span class="req">*</span></label><select data-f="templateId"><option value="">— Chọn mẫu (${tl.length}) —</option>${tl.map(x=>`<option value="${x.id}" ${F.templateId===x.id?'selected':''}>${x.code} · ${esc(x.name)}</option>`).join('')}${t && !tl.includes(t)?`<option value="${t.id}" selected>${t.code} · ${esc(t.name)}</option>`:''}</select>${er('templateId')}</div>
     </div>
-    <div class="mb"><input type="text" data-f="tq" value="${esc(F.tq)}" placeholder="Tìm mẫu theo mã, tên, nội dung…"></div>
+    <div class="mb"><input type="text" autocomplete="off" data-f="tq" value="${esc(F.tq)}" placeholder="Tìm mẫu theo mã, tên, nội dung…"></div>
     ${t ? `${header}${bodyEditor()}`
     : `<div class="muted">Chọn một mẫu để nạp tiêu đề, mức ưu tiên và nội dung. Sau khi nạp vẫn sửa được tiêu đề và nội dung.</div>`}`;
   }
@@ -956,7 +961,7 @@ function bodyEditor(){
 }
 function varBox(){
   const e = F.errors, vs = vars(F.body);
-  return vs.length ? `<label class="f">Giá trị các biến (${vs.length})</label><div class="grid g2">${vs.map(v => `<div class="${e['var_'+v]?'has-err':''}"><label class="f small" style="font-weight:400">{${esc(v)}} <span class="req">*</span></label><input type="text" data-var="${esc(v)}" value="${esc(F.vars[v]||'')}" placeholder="${/link/i.test(v)?'https://…':''}">${e['var_'+v]?`<div class="ferr">${esc(e['var_'+v])}</div>`:''}</div>`).join('')}</div>` : '';
+  return vs.length ? `<label class="f">Giá trị các biến (${vs.length})</label><div class="grid g2">${vs.map(v => `<div class="${e['var_'+v]?'has-err':''}"><label class="f small" style="font-weight:400">{${esc(v)}} <span class="req">*</span></label><input type="text" autocomplete="off" data-var="${esc(v)}" value="${esc(F.vars[v]||'')}" placeholder="${/link/i.test(v)?'https://…':''}">${e['var_'+v]?`<div class="ferr">${esc(e['var_'+v])}</div>`:''}</div>`).join('')}</div>` : '';
 }
 function cntHtml(){
   const ms = measure(composeText()), over = ms.len > MAX_CHARS;
@@ -992,16 +997,16 @@ function areaResult(){
     : `<div class="alert err" style="margin:0 0 8px">Không xác định được cell nào trong vùng đã chọn. Chọn lại vùng phát.</div>`}
     ${s.empty.length ? `<div class="alert warn" style="margin:0">Chưa có dữ liệu cell: ${s.empty.map(a=>esc(XA(a).name)).join(', ')}. Các xã này sẽ không được phát.</div>`:''}`;
 }
-function previewHtml(text, mi){
+function previewHtml(text, mi, html){
   const ms = measure(text);
   return `<div class="phone"><div class="screen"><div class="alertbox"><div class="ttl">⚠ ${esc(PRI(mi).vi)}</div>
-    <div class="msg">${text ? esc(text) : '<span class="faint">Nội dung bản tin sẽ hiển thị ở đây.</span>'}</div><div class="okb">ĐÃ HIỂU</div></div></div></div>
+    <div class="msg">${text ? (html || esc(text)) : '<span class="faint">Nội dung bản tin sẽ hiển thị ở đây.</span>'}</div><div class="okb">ĐÃ HIỂU</div></div></div></div>
     <div class="stats"><div><b style="color:${ms.len>MAX_CHARS?'var(--err)':'inherit'}">${nf(ms.len)}/${nf(MAX_CHARS)}</b><span>ký tự</span></div><div><b>${ms.pages}</b><span>trang CB</span></div><div><b style="font-size:13px">${ms.per}</b><span>ký tự/trang</span></div></div>
     <div class="small muted" style="margin-top:8px">Bộ ký tự: ${ms.cs}. Hiển thị thực tế phụ thuộc thiết bị của người dân.${ms.len>MAX_CHARS?` <span style="color:var(--err)">Vượt ${nf(MAX_CHARS)} ký tự.</span>`:''}</div>`;
 }
 function composeRefresh(){
   if (!F) return;
-  const p = $('#preview'); if (p) p.innerHTML = previewHtml(composeText(), F.priority);
+  const p = $('#preview'); if (p) p.innerHTML = previewHtml(composeText(), F.priority, F.mode==='template' ? composeHtml() : '');
   const a = $('#areaRes'); if (a) a.innerHTML = areaResult();
   const d = $('#durHint'); if (d) d.textContent = `${dur(F.duration||0)} · 15 phút – 48 giờ`;
   const c = $('#cnt'); if (c) c.innerHTML = cntHtml();
@@ -1735,7 +1740,9 @@ document.addEventListener('submit', ev => {
   if (k==='logFilter'){ logFilter = Object.fromEntries(fd); return render(); }
   if (k==='settings') return saveSettings(fd);
 });
+document.addEventListener('compositionend', ev => ev.target.dispatchEvent(new Event('input', {bubbles:true})));
 document.addEventListener('input', ev => {
+  if (ev.isComposing) return;
   const t = ev.target;
   if (t.id === 'cellQ'){ window.__cellQ = t.value; repCellRefresh(); return; }
   if (!F || route().name !== 'compose') return;
