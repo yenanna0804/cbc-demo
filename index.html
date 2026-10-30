@@ -301,7 +301,18 @@ function measure(text){
 
 /* ---------- dữ liệu mẫu ---------- */
 const TPL_GROUPS = ['Bão & Gió giật','Lũ & Thủy điện','Sạt lở & Địa chất','Cháy nổ & Hóa chất','Cứu nạn & Dân sự'];
-const SOUND = ['Âm thanh cảnh báo khẩn cấp','Âm thanh thông báo thường'];
+/* Bảng cấu hình cảnh báo CMAS cho Việt Nam (Phụ lục tài liệu yêu cầu, mục 3.2.2) */
+const CMAS = [
+  {ui:'Not visible on UI', mi:4370, mi2:4383, vi:'Cảnh báo Khẩn cấp Quốc gia', en:'National Emergency Alert', ring:'Standard CMAS tone', vib:'Standard CMAS vibration', def:'YES', opt:'No', dnd:'YES'},
+  {ui:'Extreme Threats', mi:4371, mi2:4384, vi:'Cảnh báo cực kỳ Khẩn cấp', en:'Extreme Emergency Alert', ring:'Standard CMAS tone', vib:'Standard CMAS vibration', def:'YES', opt:'Yes', dnd:'YES'},
+  {ui:'Extreme Threats', mi:4372, mi2:4385, vi:'Cảnh báo Khẩn cấp', en:'Emergency Alert', ring:'Standard CMAS tone', vib:'Standard CMAS vibration', def:'YES', opt:'Yes', dnd:'NO'},
+  {ui:'Severe Threats', mi:4375, mi2:4388, vi:'Cảnh báo Khẩn cấp', en:'Emergency Alert', ring:'Single beep', vib:'Standard CMAS vibration', def:'YES', opt:'Yes', dnd:'NO'},
+  {ui:'Severe Threats', mi:4376, mi2:4389, vi:'Cảnh báo Khẩn cấp', en:'Emergency Alert', ring:'Silent', vib:'None', def:'YES', opt:'Yes', dnd:'NO'},
+  {ui:'Amber Alerts', mi:4379, mi2:4392, vi:'Cảnh báo Bắt cóc Trẻ em', en:'Child Abduction Alert', ring:'Single beep', vib:'Standard CMAS vibration', def:'YES', opt:'Yes', dnd:'NO'},
+  {ui:'Public Safety Alert', mi:4396, mi2:4397, vi:'Cảnh báo An ninh Công cộng', en:'Public Safety Alert', ring:'Single beep', vib:'Standard CMAS vibration', def:'YES', opt:'Yes', dnd:'NO'},
+  {ui:'Test Alerts', mi:4380, mi2:4393, vi:'Kiểm tra hệ thống cảnh báo', en:'Alert System Test', ring:'Standard CMAS tone', vib:'Standard CMAS vibration', def:'No', opt:'Yes', dnd:'NO'},
+  {ui:'Not visible on UI', mi:4382, mi2:4395, vi:'Thông báo khẩn cấp', en:'Emergency Notification', ring:'Single beep', vib:'Standard CMAS vibration', def:'YES', opt:'No', dnd:'NO'}];
+const soundOf = mi => { const p = PRI(mi); return p.ring ? `${p.ring} · ${p.vib==='None'?'không rung':p.vib}` : '–'; };
 /* 50 mẫu theo Phụ lục tài liệu yêu cầu: [mã, nhóm, tiêu đề, nội dung, Message ID] */
 const TEMPLATES_50 = [
   ["TMP-01","Bão & Gió giật","[BÃO CỰC KỲ NGUY HIỂM]","Bão số {Ten_Bao} dự kiến đổ bộ vào {Khu_vuc} sức gió cấp {Cap_Gio} vào {Time}. Toàn bộ người dân ở yên trong nhà kiên cố từ {Gio_Bat_Dau}. Hotline: 112."],
@@ -389,13 +400,8 @@ function seed(){
     {id:'U4', username:'pheduyet2', name:'Phạm Quốc Dũng', unit:'VNPT-VinaPhone', phone:'0912345104', email:'dung.pq@vnpt.vn', role:'PD', status:'active'},
     {id:'U5', username:'quantri', name:'Hoàng Thu Hà', unit:'VNPT-VinaPhone', phone:'0912345105', email:'ha.ht@vnpt.vn', role:'QT', status:'active'}];
   users.forEach(u => { u.password = 'Demo@123'; u.failLogin = 0; u.createdAt = now(); });
-  const priorities = [
-    {mi:4370, vi:'Cảnh báo Khẩn cấp Quốc gia', en:'Presidential Alert', active:true},
-    {mi:4371, vi:'Cảnh báo cực kỳ nghiêm trọng', en:'Extreme Alert', active:true},
-    {mi:4373, vi:'Cảnh báo nghiêm trọng', en:'Severe Alert', active:true},
-    {mi:4379, vi:'Tìm kiếm cứu nạn khẩn cấp', en:'Amber Alert', active:true},
-    {mi:4380, vi:'Bản tin thử nghiệm', en:'Test Alert', active:true}];
-  const T = (code, group, header, body, mi=4370) => ({id:code, code, name:header.replace(/[\[\]]/g,''), group, header, body, mi, sound: mi===4380 ? SOUND[1] : SOUND[0], active:true, createdAt:now()});
+  const priorities = CMAS.map(x => ({...x, active:true}));
+  const T = (code, group, header, body, mi=4370) => ({id:code, code, name:header.replace(/[\[\]]/g,''), group, header, body, mi, active:true, createdAt:now()});
     const templates = TEMPLATES_50.map(x => T(...x));
   const settings = {repetition:20, duration:120, priority:4370, maxPages:15, otpTtl:300, otpMaxFail:3, loginOtp:true,
     approveUpdateStop:true, successThreshold:99, retrySend:3, retryMax:3, simFail:2, logRetentionDays:365, sessionTimeout:30};
@@ -636,10 +642,11 @@ function tick(){
 }
 /* chuyển dữ liệu demo cũ (chưa có lượt gửi) sang cấu trúc mới */
 function migrate(){
+  if (!S.seedCmas){ S.seedCmas = 1; S.priorities = CMAS.map(x => ({...x, active:true})); S.templates.forEach(t => { delete t.sound; if (!S.priorities.some(p => p.mi===t.mi)) t.mi = 4370; }); }
   if (!S.seed33){ S.seed33 = 1;
     TEMPLATES_50.forEach(x => { if (!S.templates.some(t => t.id === x[0])) S.templates.push({id:x[0], code:x[0], name:x[2].replace(/[\[\]]/g,''), group:x[1], header:x[2], body:x[3], mi:x[4]||4370, active:true, createdAt:now()}); });
     S.templates.sort((a,b) => a.code.localeCompare(b.code));
-    S.templates.forEach(t => { t.active = true; if (!t.sound) t.sound = t.mi===4380 ? SOUND[1] : SOUND[0]; });
+    S.templates.forEach(t => { t.active = true; });
     S.priorities.forEach(p => p.active = true);
     if (!S.cells.some(c => c.tech==='5G')){ const r = rng(5); S.xas.filter(x => ['P01','P05'].includes(x.provinceId) && S.cells.some(c => c.xaId===x.id)).forEach(x => { gnbSeq = Math.max(gnbSeq, ...S.cells.map(c => c.enb)); add5G(S.cells, x.id, r); }); }
   }
@@ -1299,8 +1306,8 @@ function viewTemplates(){
   if (tplFilter.q){ const k = noAccent(tplFilter.q.toLowerCase()); list = list.filter(t => noAccent(`${t.code} ${t.header} ${t.body}`.toLowerCase()).includes(k)); }
   const groups = TPL_GROUPS.concat([...new Set(S.templates.map(t => t.group))].filter(g => !TPL_GROUPS.includes(g)));
   const sec = groups.map(g => { const ts = list.filter(t => t.group===g); if (!ts.length) return ''; return `<div class="card mb"><div class="hd"><h2>${esc(g)}</h2><span class="small muted">${ts.length} mẫu</span></div>
-    <table class="t"><thead><tr><th>STT</th><th>Mã mẫu</th><th>Tiêu đề</th><th style="width:42%">Nội dung</th><th>Mức ưu tiên</th><th>Mức âm thanh</th><th></th></tr></thead><tbody>
-    ${ts.map((t,i) => `<tr><td>${i+1}</td><td class="mono small">${esc(t.code)}</td><td class="small"><b>${esc(t.header)}</b></td><td class="small">${esc(t.body).replace(/\{([^{}]+)\}/g,'<span class="var">{$1}</span>')}</td><td class="small">${t.mi} – ${esc(PRI(t.mi).vi)}</td><td class="small">${esc(t.sound||'')}</td>
+    <table class="t"><thead><tr><th>STT</th><th>Mã mẫu</th><th>Tiêu đề</th><th style="width:42%">Nội dung</th><th>Mức ưu tiên</th><th>Âm thanh</th><th></th></tr></thead><tbody>
+    ${ts.map((t,i) => `<tr><td>${i+1}</td><td class="mono small">${esc(t.code)}</td><td class="small"><b>${esc(t.header)}</b></td><td class="small">${esc(t.body).replace(/\{([^{}]+)\}/g,'<span class="var">{$1}</span>')}</td><td class="small">${t.mi} – ${esc(PRI(t.mi).vi)}</td><td class="small">${esc(soundOf(t.mi))}</td>
       <td class="row" style="flex-wrap:nowrap;justify-content:flex-end"><button class="btn sm" data-act="tplView" data-id="${t.id}">Xem</button>${admin?`<button class="btn sm" data-act="tplEdit" data-id="${t.id}">Sửa</button><button class="btn sm danger" data-act="tplDel" data-id="${t.id}">Xoá</button>`:''}</td></tr>`).join('')}
     </tbody></table></div>`; }).join('');
   return `<div class="ph"><h1>Thư viện mẫu tin</h1><span class="sub">${list.length}/${S.templates.length} mẫu · ${TPL_GROUPS.length} nhóm tình huống</span><div class="sp"></div>${admin?`<button class="btn pri" data-act="tplEdit">+ Thêm mẫu</button>`:''}</div>
@@ -1314,23 +1321,24 @@ function tplViewModal(t){
   modal(`Mẫu tin ${esc(t.code)}`, `<div class="kv2">
     <div>Mã mẫu</div><div class="mono">${esc(t.code)}</div><div>Nhóm tình huống</div><div>${esc(t.group)}</div>
     <div>Tiêu đề</div><div><b>${esc(t.header)}</b></div><div>Mức ưu tiên</div><div>${t.mi} – ${esc(PRI(t.mi).vi)}</div>
-    <div>Mức âm thanh</div><div>${esc(t.sound||'')}</div><div>Trường biến</div><div>${vars(t.body).map(v => `<span class="var">{${esc(v)}}</span>`).join(' ') || '–'}</div>
+    <div>Âm thanh, rung</div><div>${esc(soundOf(t.mi))} <span class="small muted">(theo mức ưu tiên)</span></div><div>Trường biến</div><div>${vars(t.body).map(v => `<span class="var">{${esc(v)}}</span>`).join(' ') || '–'}</div>
     <div>Nội dung</div><div>${esc(t.body).replace(/\{([^{}]+)\}/g,'<span class="var">{$1}</span>')}</div></div>`,
     `<button class="btn" data-act="closeModal">Đóng</button>`, true);
 }
 function tplForm(t){
-  t = t || {code:'', group:TPL_GROUPS[0], header:'', body:'', mi:S.settings.priority, sound:SOUND[0]};
+  t = t || {code:'', group:TPL_GROUPS[0], header:'', body:'', mi:S.settings.priority};
   modal(t.id?`Sửa mẫu ${esc(t.code)}`:'Thêm mẫu tin', `<form novalidate id="tplF" class="grid g2">
     <div><label class="f">Mã mẫu <span class="req">*</span></label><input type="text" name="code" value="${esc(t.code)}" ${t.id?'readonly':''} placeholder="TMP-51"></div>
     <div><label class="f">Nhóm tình huống <span class="req">*</span></label><select name="group">${TPL_GROUPS.map(g=>`<option ${t.group===g?'selected':''}>${esc(g)}</option>`).join('')}</select></div>
     <div style="grid-column:1/-1"><label class="f">Tiêu đề <span class="req">*</span></label><input type="text" name="header" value="${esc(t.header)}" placeholder="[TIÊU ĐỀ]"></div>
     <div><label class="f">Mức ưu tiên <span class="req">*</span></label><select name="mi">${S.priorities.map(p=>`<option value="${p.mi}" ${t.mi==p.mi?'selected':''}>${p.mi} – ${esc(p.vi)}</option>`).join('')}</select></div>
-    <div><label class="f">Mức âm thanh <span class="req">*</span></label><select name="sound">${SOUND.map(x=>`<option ${t.sound===x?'selected':''}>${esc(x)}</option>`).join('')}</select><div class="hint" style="color:#c05000;font-style:italic">[Cần xác nhận] danh sách mức âm thanh: tài liệu yêu cầu chưa nêu giá trị.</div></div>
+    <div><label class="f">Âm thanh, rung</label><div id="tplSound" style="padding:7px 0">${esc(soundOf(t.mi))}</div><div class="hint">Theo mức ưu tiên (bảng CMAS); máy và hệ điều hành thực hiện.</div></div>
     <div style="grid-column:1/-1"><label class="f">Nội dung (trường biến dạng {Ten_bien}) <span class="req">*</span></label><textarea name="body" rows="5">${esc(t.body)}</textarea><div class="hint" id="tplVars"></div></div>
     <div style="grid-column:1/-1" id="tplErr"></div></form>`,
     `<button class="btn" data-act="closeModal">Huỷ</button><button class="btn pri" data-act="tplSave" data-id="${t.id||''}">Lưu</button>`, true);
   const upd = () => { const b = $('#tplF [name=body]').value; const v = vars(b); $('#tplVars').textContent = v.length ? `Trường biến: ${v.map(x=>'{'+x+'}').join(', ')}` : 'Chưa có trường biến.'; };
   $('#tplF [name=body]').addEventListener('input', upd); upd();
+  $('#tplF [name=mi]').addEventListener('change', e => $('#tplSound').textContent = soundOf(e.target.value));
 }
 function tplSave(id){
   const d = Object.fromEntries(new FormData($('#tplF'))); const errs = [];
@@ -1340,7 +1348,7 @@ function tplSave(id){
   const open = (d.body.match(/\{/g)||[]).length, close = (d.body.match(/\}/g)||[]).length;
   if (open !== close || /\{[^}]*\{|\{\s*\}/.test(d.body)) errs.push('Trường biến không hợp lệ: mỗi biến phải dạng {Ten_bien}.');
   if (errs.length){ $('#tplErr').innerHTML = `<div class="alert err"><ul>${errs.map(e=>`<li>${esc(e)}</li>`).join('')}</ul></div>`; return; }
-  const rec = {code:d.code, name:d.header.replace(/[\[\]]/g,''), group:d.group, header:d.header, body:d.body, mi:Number(d.mi), sound:d.sound};
+  const rec = {code:d.code, name:d.header.replace(/[\[\]]/g,''), group:d.group, header:d.header, body:d.body, mi:Number(d.mi)};
   if (id){ Object.assign(S.templates.find(t => t.id===id), rec); log('Mẫu tin','Sửa mẫu tin', d.code); }
   else { S.templates.push({...rec, id:d.code, active:true, createdAt:now()}); S.templates.sort((a,b) => a.code.localeCompare(b.code)); log('Mẫu tin','Thêm mẫu tin', d.code); }
   save(); closeModal(); toast('Đã lưu mẫu tin.', 'ok'); render();
@@ -1367,9 +1375,10 @@ function viewCatalog(r){
       ${rows.map((r,i) => `<tr><td>${i+1}</td><td class="small">${esc(PROV(r.x.provinceId).name)}</td><td>${esc(r.x.name)}</td><td class="mono small">${esc(r.x.code)}</td><td class="num">${nf(r.c4)}</td><td class="num">${nf(r.c5)}</td><td style="text-align:right">${r.n ? `<button class="btn sm" data-act="cellView" data-id="${r.x.id}">Xem Cell ID</button>` : '<span class="small" style="color:var(--err)">Chưa có dữ liệu</span>'}</td></tr>`).join('')}
     </tbody></table></div>`;
   } else {
-    body = `<div class="row mb"><div class="small muted" style="flex:1">Theo bảng CMAS (tài liệu yêu cầu mục 3.2.2). Mỗi mức ưu tiên ứng với 1 Message ID, không trùng. Tên mức trong demo là dữ liệu mẫu, cần đối chiếu bảng chính thức.</div><button class="btn pri" data-act="priEdit">+ Thêm mức</button></div>
-    <div class="card"><table class="t"><thead><tr><th>STT</th><th>Message ID</th><th>Mức ưu tiên</th><th></th></tr></thead><tbody>
-      ${S.priorities.map((p,i) => `<tr><td>${i+1}</td><td class="mono">${p.mi}</td><td>${esc(p.vi)}${p.mi==S.settings.priority?' <span class="badge b-role">Mặc định cho tin phòng chống thiên tai</span>':''}</td><td class="row" style="flex-wrap:nowrap;justify-content:flex-end"><button class="btn sm" data-act="priEdit" data-id="${p.mi}">Sửa</button><button class="btn sm danger" data-act="priDel" data-id="${p.mi}">Xoá</button></td></tr>`).join('')}
+    const yn = v => /^yes$/i.test(v) ? 'Có' : /^no$/i.test(v) ? 'Không' : esc(v||'–');
+    body = `<div class="row mb"><div class="small muted" style="flex:1">Theo Bảng cấu hình cảnh báo CMAS cho Việt Nam (Phụ lục, công văn CVT-PTHT). Mỗi mức ứng với 1 Message ID, không trùng. Âm thanh, rung do máy thực hiện theo Message ID.</div><button class="btn pri" data-act="priEdit">+ Thêm mức</button></div>
+    <div class="card" style="overflow-x:auto"><table class="t"><thead><tr><th>STT</th><th>UI Title</th><th>Tên tiếng Việt</th><th>Tên tiếng Anh</th><th>MSG ID chính (tiếng Việt)</th><th>MSG ID phụ (tiếng Anh)</th><th>Âm thanh</th><th>Rung</th><th>Bật mặc định</th><th>Người dùng tắt/bật được</th><th>Vượt chế độ Không làm phiền</th><th></th></tr></thead><tbody>
+      ${S.priorities.map((p,i) => `<tr><td>${i+1}</td><td class="small">${esc(p.ui||'')}</td><td>${esc(p.vi)}${p.mi==S.settings.priority?' <span class="badge b-role">Mặc định tin thiên tai</span>':''}</td><td class="small">${esc(p.en||'')}</td><td class="mono">${p.mi}</td><td class="mono">${p.mi2||'–'}</td><td class="small">${esc(p.ring||'–')}</td><td class="small">${esc(p.vib||'–')}</td><td>${yn(p.def)}</td><td>${yn(p.opt)}</td><td>${yn(p.dnd)}</td><td class="row" style="flex-wrap:nowrap;justify-content:flex-end"><button class="btn sm" data-act="priEdit" data-id="${p.mi}">Sửa</button><button class="btn sm danger" data-act="priDel" data-id="${p.mi}">Xoá</button></td></tr>`).join('')}
     </tbody></table></div>`;
   }
   return `<div class="ph"><h1>${title}</h1></div>${body}`;
@@ -1609,15 +1618,29 @@ const A = {
     if (!d.code || !d.name) return $('#xaErr').innerHTML = '<div class="ferr">Nhập đủ mã hành chính và tên.</div>';
     if (S.xas.some(x => x.code===d.code && x.id!==id) || S.provinces.some(p => p.code===d.code)) return $('#xaErr').innerHTML = '<div class="ferr">Mã hành chính đã tồn tại.</div>';
     if (id) Object.assign(XA(id), d); else S.xas.push({id:uid('X'), ...d}); log('Danh mục', id?'Sửa xã/phường':'Thêm xã/phường', d.name); save(); closeModal(); render(); },
-  priEdit(el){ const p = el.dataset.id ? PRI(el.dataset.id) : {mi:'', vi:''};
-    modal(el.dataset.id?'Sửa mức ưu tiên':'Thêm mức ưu tiên', `<form novalidate id="priF" class="grid g2"><div><label class="f">Message ID <span class="req">*</span></label><input type="number" name="mi" value="${p.mi}" ${el.dataset.id?'readonly':''}><div class="hint">Theo bảng CMAS, dải 4352–6399.</div></div>
-      <div><label class="f">Tên mức ưu tiên <span class="req">*</span></label><input type="text" name="vi" value="${esc(p.vi)}"></div><div id="priErr" style="grid-column:1/-1"></div></form>`,
-      `<button class="btn" data-act="closeModal">Huỷ</button><button class="btn pri" data-act="priSave" data-id="${el.dataset.id||''}">Lưu</button>`); },
-  priSave(el){ const d = Object.fromEntries(new FormData($('#priF'))); const id = el.dataset.id; const mi = Number(d.mi);
-    if (!(mi >= 4352 && mi <= 6399) || !d.vi.trim()) return $('#priErr').innerHTML = '<div class="ferr">Message ID phải trong dải 4352–6399 và nhập tên mức ưu tiên.</div>';
-    if (!id && S.priorities.some(p => p.mi===mi)) return $('#priErr').innerHTML = '<div class="ferr">Message ID đã tồn tại.</div>';
-    const rec = {mi, vi:d.vi.trim(), en:'', active:true};
-    if (id) Object.assign(PRI(id), {vi:rec.vi}); else S.priorities.push(rec); S.priorities.sort((a,b)=>a.mi-b.mi); log('Danh mục', id?'Sửa mức ưu tiên':'Thêm mức ưu tiên', `${mi} – ${rec.vi}`); save(); closeModal(); render(); },
+  priEdit(el){ const p = el.dataset.id ? PRI(el.dataset.id) : {mi:'', mi2:'', ui:'', vi:'', en:'', ring:'Standard CMAS tone', vib:'Standard CMAS vibration', def:'YES', opt:'Yes', dnd:'NO'};
+    const sel = (n, opts, v) => `<select name="${n}">${opts.map(o => `<option ${String(v).toLowerCase()===o.toLowerCase()?'selected':''}>${o}</option>`).join('')}</select>`;
+    modal(el.dataset.id?'Sửa mức ưu tiên':'Thêm mức ưu tiên', `<form novalidate id="priF" class="grid g2">
+      <div><label class="f">MSG ID chính (tiếng Việt) <span class="req">*</span></label><input type="number" name="mi" value="${p.mi}" ${el.dataset.id?'readonly':''}></div>
+      <div><label class="f">MSG ID phụ (tiếng Anh) <span class="req">*</span></label><input type="number" name="mi2" value="${p.mi2||''}"></div>
+      <div><label class="f">Tên tiếng Việt <span class="req">*</span></label><input type="text" name="vi" value="${esc(p.vi)}"></div>
+      <div><label class="f">Tên tiếng Anh <span class="req">*</span></label><input type="text" name="en" value="${esc(p.en||'')}"></div>
+      <div><label class="f">UI Title <span class="req">*</span></label><input type="text" name="ui" value="${esc(p.ui||'')}"></div>
+      <div><label class="f">Âm thanh <span class="req">*</span></label>${sel('ring',['Standard CMAS tone','Single beep','Silent'],p.ring)}</div>
+      <div><label class="f">Rung <span class="req">*</span></label>${sel('vib',['Standard CMAS vibration','None'],p.vib)}</div>
+      <div><label class="f">Bật mặc định <span class="req">*</span></label>${sel('def',['YES','No'],p.def)}</div>
+      <div><label class="f">Người dùng tắt/bật được <span class="req">*</span></label>${sel('opt',['Yes','No'],p.opt)}</div>
+      <div><label class="f">Vượt chế độ Không làm phiền <span class="req">*</span></label>${sel('dnd',['YES','NO'],p.dnd)}</div>
+      <div id="priErr" style="grid-column:1/-1"></div></form>`,
+      `<button class="btn" data-act="closeModal">Huỷ</button><button class="btn pri" data-act="priSave" data-id="${el.dataset.id||''}">Lưu</button>`, true); },
+  priSave(el){ const d = Object.fromEntries(new FormData($('#priF'))); const id = el.dataset.id; const mi = Number(d.mi), mi2 = Number(d.mi2); const e = [];
+    if (!(mi >= 4352 && mi <= 6399)) e.push('MSG ID chính phải trong dải 4352–6399.'); if (!(mi2 >= 4352 && mi2 <= 6399)) e.push('MSG ID phụ phải trong dải 4352–6399.');
+    if (mi === mi2) e.push('MSG ID chính và phụ phải khác nhau.');
+    const ids = S.priorities.filter(p => p.mi != id).flatMap(p => [p.mi, p.mi2]); if (ids.includes(mi) || ids.includes(mi2)) e.push('Message ID đã tồn tại.');
+    ['vi','en','ui'].forEach(k => d[k] = (d[k]||'').trim()); if (!d.vi || !d.en || !d.ui) e.push('Nhập đủ tên tiếng Việt, tiếng Anh và UI Title.');
+    if (e.length) return $('#priErr').innerHTML = `<div class="alert err"><ul>${e.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`;
+    const rec = {mi, mi2, ui:d.ui, vi:d.vi, en:d.en, ring:d.ring, vib:d.vib, def:d.def, opt:d.opt, dnd:d.dnd, active:true};
+    if (id) Object.assign(PRI(id), rec); else S.priorities.push(rec); S.priorities.sort((a,b)=>a.mi-b.mi); log('Danh mục', id?'Sửa mức ưu tiên':'Thêm mức ưu tiên', `${mi} – ${rec.vi}`); save(); closeModal(); render(); },
   cellTemplate(){ const rows = [['cell_id','enodeb_gnodeb','ma_xa','cong_nghe']]; S.cells.filter(c => c.xaId===S.xas[0].id).slice(0,3).forEach(c => rows.push([c.id, c.enb, S.xas[0].code, c.tech])); download('mau-du-lieu-xa-cell.csv', csv(rows).replace(/"/g,'')); },
   userEdit(el){ userForm(el.dataset.id ? S.users.find(u => u.id===el.dataset.id) : null); },
   userSave(el){ userSave(el.dataset.id); },
