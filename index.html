@@ -1312,17 +1312,14 @@ function viewReport(m){
     ${tileP('Tỷ lệ click tham chiếu (CTR)', lk ? ctr + '%' : '–', 'Lượt click / thuê bao hiện diện ước tính; không phải tỷ lệ người nhận đã click.', lk ? '' : 'na', pill('Ước tính','p-net'))}
     ${tileP('Cuộc gọi 112 / 114', nf(e.calls), `Từ vùng phát sau thời điểm phát · cùng khung giờ ngày thường: ${nf(e.base)}`, '', pill('VNPT Net','p-net'))}
   </div>
-  <div class="two" style="margin-top:14px">
+  <div style="margin-top:14px">
     <div class="card"><div class="bd"><div class="row"><div><h2>Link trong bản tin</h2><div class="small muted">Chỉ có số liệu khi bản tin chứa link rút gọn được theo dõi</div></div><div class="sp"></div>${pill('Ngoài CBC','p-ext')}</div>
       ${lk ? `<div class="kv2">${kvh('Mẫu bản tin', m.mode==='template' ? esc(m.templateId) : 'Soạn tự do')}${kvh('Link', `<span class="mono" style="font-weight:600">${esc(lk)}</span>`)}${kvh('Lượt click', nf(e.clicks))}${kvh('Nguồn', 'Dịch vụ rút gọn link của VNPT')}</div>
         <div class="formula"><b>CTR tham chiếu = ${nf(e.clicks)} / ${nf(e.reach)} = ${ctr}%.</b> Đây là tỷ lệ lượt click trên số thuê bao hiện diện ước tính. Link được chia sẻ hoặc một người bấm nhiều lần vẫn làm tăng tử số.</div>
         <div class="small" style="margin:14px 0 6px"><b>Phân bổ click theo thời gian</b></div>
         ${e.buckets.length ? e.buckets.map(b => `<div class="hb"><span class="mono">${hm(b.from)}–${hm(b.to)}${b.rest?' (còn lại)':''}</span><span class="bar"><i style="width:${b.n/mx*100}%"></i></span><span>${nf(b.n)} <span class="muted">(${e.clicks?Math.round(b.n/e.clicks*100):0}%)</span></span></div>`).join('') : '<div class="small muted">Chưa có lượt click.</div>'}`
       : `<div class="empty">Bản tin không chứa link nên không có số liệu click.</div>`}</div></div>
-    <div class="card"><div class="bd"><div class="row"><div><h2>Cách hiểu số liệu</h2><div class="small muted">Điều kiện để đưa vào báo cáo</div></div><div class="sp"></div>${pill('Cần chốt nguồn','p-net')}</div>
-      <div class="note" style="margin-top:12px"><b>Thuê bao hiện diện ước tính:</b> số thuê bao đang bám các cell được chọn tại thời điểm phát, nếu VNPT Net cung cấp dữ liệu. Đây là số tiếp cận tiềm năng.</div>
-      <div class="note" style="margin-top:10px"><b>CTR tham chiếu:</b> lượt click link rút gọn / thuê bao hiện diện ước tính. Lượt click có thể lặp hoặc đến từ link được chia sẻ, nên không phải tỷ lệ người nhận đã click.</div>
-      <div class="note" style="margin-top:10px"><b>Cuộc gọi 112/114:</b> lấy từ dữ liệu cước của VNPT Net theo cell và thời gian.</div></div></div>
+
   </div>`;
 }
 function csv(rows){ return '﻿' + rows.map(r => r.map(v => `"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\r\n'); }
