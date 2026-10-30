@@ -166,7 +166,7 @@ h3.sec{margin:2px 0 10px;font-size:13.5px;text-transform:uppercase;letter-spacin
 .stats b{display:block;font-size:16px}
 .stats span{font-size:11.5px;color:var(--muted)}
 .var{background:#fff3c4;border-radius:3px;padding:0 2px}
-.pvar{color:var(--err);font-weight:700}
+.pvar{color:var(--err);font-weight:700}.plink{color:#551a8b;text-decoration:underline;word-break:break-all}
 .diff{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .diff pre{white-space:pre-wrap;word-break:break-word;background:#f7f8fa;border:1px solid var(--line2);border-radius:6px;padding:10px;margin:4px 0 0;font:inherit;font-size:13px}
 .timeline{list-style:none;margin:0;padding:0}
@@ -997,10 +997,11 @@ function areaResult(){
     : `<div class="alert err" style="margin:0 0 8px">Không xác định được cell nào trong vùng đã chọn. Chọn lại vùng phát.</div>`}
     ${s.empty.length ? `<div class="alert warn" style="margin:0">Chưa có dữ liệu cell: ${s.empty.map(a=>esc(XA(a).name)).join(', ')}. Các xã này sẽ không được phát.</div>`:''}`;
 }
+const linkify = h => h.replace(/https?:\/\/[^\s<]*[^\s<.,;:!?)]/g, u => `<span class="plink">${u}</span>`);
 function previewHtml(text, mi, html){
   const ms = measure(text);
   return `<div class="phone"><div class="screen"><div class="alertbox"><div class="ttl">⚠ ${esc(PRI(mi).vi)}</div>
-    <div class="msg">${text ? (html || esc(text)) : '<span class="faint">Nội dung bản tin sẽ hiển thị ở đây.</span>'}</div><div class="okb">ĐÃ HIỂU</div></div></div></div>
+    <div class="msg">${text ? linkify(html || esc(text)) : '<span class="faint">Nội dung bản tin sẽ hiển thị ở đây.</span>'}</div><div class="okb">ĐÃ HIỂU</div></div></div></div>
     <div class="stats"><div><b style="color:${ms.len>MAX_CHARS?'var(--err)':'inherit'}">${nf(ms.len)}/${nf(MAX_CHARS)}</b><span>ký tự</span></div><div><b>${ms.pages}</b><span>trang CB</span></div><div><b style="font-size:13px">${ms.per}</b><span>ký tự/trang</span></div></div>
     <div class="small muted" style="margin-top:8px">Bộ ký tự: ${ms.cs}. Hiển thị thực tế phụ thuộc thiết bị của người dân.${ms.len>MAX_CHARS?` <span style="color:var(--err)">Vượt ${nf(MAX_CHARS)} ký tự.</span>`:''}</div>`;
 }
