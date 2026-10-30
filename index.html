@@ -1606,9 +1606,8 @@ const A = {
     reasonModal(`Huỷ bản tin ${m.code}`, 'Lý do huỷ', 'Huỷ bản tin', 'dangerfill', r => { m.status='cancelled'; m.updatedAt=now(); m.history.push({at:now(), by:me.id, act:'Huỷ bản tin', note:r}); log('Bản tin','Huỷ bản tin', m.code); save(); toast('Đã huỷ bản tin.'); render(); }); },
   rebroadcastMsg(el){ const m = S.messages.find(x => x.id===el.dataset.id); if (!can('rebroadcast', m)) return;
     otpModal('Phát lại bản tin', `<div class="kv small"><div>Bản tin</div><div class="mono">${m.code}</div><div>Chiến dịch</div><div>${esc(m.campaign)}</div><div>Vùng phát</div><div>${esc(areaText(m.areas,5))} · ${nf(m.cells.length)} cell</div><div>Thời hạn</div><div>${dur(m.duration)}, tính lại từ lúc phát</div></div>
-      <label class="f" style="margin-top:12px">Lý do phát lại <span class="req">*</span></label><input type="text" id="rbReason" maxlength="200" autocomplete="off"><div id="rbErr"></div>
       <div class="alert warn" style="margin:12px 0 0">Bản tin được phát lại với Serial mới để máy đã nhận trước đó vẫn hiển thị lại.</div>`,
-      () => { rebroadcast(m, me.id, window.__rbReason); save(); toast(`Đã gửi lệnh phát lại ${m.code} tới ${nf(m.cells.length)} cell.`, 'ok'); render(); }); },
+      () => { rebroadcast(m, me.id, ''); save(); toast(`Đã gửi lệnh phát lại ${m.code} tới ${nf(m.cells.length)} cell.`, 'ok'); render(); }); },
   approve(el){ const m = S.messages.find(x => x.id===el.dataset.id); const s = areaStats(m.areas);
     otpModal('Duyệt và phát bản tin', `<div class="kv small"><div>Bản tin</div><div class="mono">${m.code}</div><div>Chiến dịch</div><div>${esc(m.campaign)}</div><div>Mức ưu tiên</div><div>${m.priority} – ${esc(PRI(m.priority).vi)}</div><div>Vùng phát</div><div>${esc(areaText(m.areas,5))} · ${nf(s.cells)} cell</div><div>Thời hạn</div><div>${dur(m.duration)}</div></div>
       <div class="alert warn" style="margin:12px 0 0">Sau khi xác nhận, lệnh phát được gửi ngay xuống mạng.</div>`,
@@ -1662,7 +1661,7 @@ const A = {
   exportOne(el){ exportOne(S.messages.find(x => x.id===el.dataset.id)); },
   reasonOk(){ const v = $('#reasonIn').value.trim(); if (!v){ $('#reasonErr').innerHTML = '<div class="ferr">Nhập lý do.</div>'; return; } const f = window.__reasonOk; closeModal(); f(v); },
   otpResend(){ otpStart(me, (window.__otpTitle||'').toLowerCase()); $('#otpErr').innerHTML = '<div class="alert info">Đã gửi lại mã OTP mới.</div>'; },
-  otpConfirm(){ const rb = $('#rbReason'); if (rb){ if (!rb.value.trim()) return $('#rbErr').innerHTML = '<div class="ferr">Nhập lý do phát lại.</div>'; window.__rbReason = rb.value.trim(); } const r = otpCheck($('#otpIn').value);
+  otpConfirm(){ const r = otpCheck($('#otpIn').value);
     if (r.ok){ const f = window.__otpOk; closeModal(); f(); return; }
     if (r.locked){ log('Phê duyệt','Nhập sai OTP quá số lần cho phép', window.__otpTitle||'', 'Cảnh báo'); save(); closeModal(); toast(r.msg, 'err'); return; }
     $('#otpErr').innerHTML = `<div class="alert err">${esc(r.msg)}</div>`; $('#otpIn').select(); },
