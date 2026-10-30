@@ -1331,7 +1331,7 @@ function tplForm(t){
     <div><label class="f">Mã mẫu <span class="req">*</span></label><input type="text" name="code" value="${esc(t.code)}" ${t.id?'readonly':''} placeholder="TMP-51"></div>
     <div><label class="f">Nhóm tình huống <span class="req">*</span></label><select name="group">${TPL_GROUPS.map(g=>`<option ${t.group===g?'selected':''}>${esc(g)}</option>`).join('')}</select></div>
     <div style="grid-column:1/-1"><label class="f">Tiêu đề <span class="req">*</span></label><input type="text" name="header" value="${esc(t.header)}" placeholder="[TIÊU ĐỀ]"></div>
-    <div><label class="f">Mức ưu tiên <span class="req">*</span></label><select name="mi">${S.priorities.map(p=>`<option value="${p.mi}" ${t.mi==p.mi?'selected':''}>${p.mi} – ${esc(p.vi)}</option>`).join('')}</select></div>
+    <div><label class="f">Mức ưu tiên <span class="req">*</span></label><select name="mi">${S.priorities.filter(p=>p.active||p.mi==t.mi).map(p=>`<option value="${p.mi}" ${t.mi==p.mi?'selected':''}>${p.mi} – ${esc(p.vi)}</option>`).join('')}</select></div>
     <div><label class="f">Âm thanh, rung</label><div id="tplSound" style="padding:7px 0">${esc(soundOf(t.mi))}</div><div class="hint">Theo mức ưu tiên (bảng CMAS); máy và hệ điều hành thực hiện.</div></div>
     <div style="grid-column:1/-1"><label class="f">Nội dung (trường biến dạng {Ten_bien}) <span class="req">*</span></label><textarea name="body" rows="5">${esc(t.body)}</textarea><div class="hint" id="tplVars"></div></div>
     <div style="grid-column:1/-1" id="tplErr"></div></form>`,
@@ -1376,9 +1376,9 @@ function viewCatalog(r){
     </tbody></table></div>`;
   } else {
     const yn = v => /^yes$/i.test(v) ? 'Có' : /^no$/i.test(v) ? 'Không' : esc(v||'–');
-    body = `<div class="row mb"><div class="small muted" style="flex:1">Theo Bảng cấu hình cảnh báo CMAS cho Việt Nam (Phụ lục, công văn CVT-PTHT). Mỗi mức ứng với 1 Message ID, không trùng. Âm thanh, rung do máy thực hiện theo Message ID.</div><button class="btn pri" data-act="priEdit">+ Thêm mức</button></div>
-    <div class="card" style="overflow-x:auto"><table class="t"><thead><tr><th>STT</th><th>UI Title</th><th>Tên tiếng Việt</th><th>Tên tiếng Anh</th><th>MSG ID chính (tiếng Việt)</th><th>MSG ID phụ (tiếng Anh)</th><th>Âm thanh</th><th>Rung</th><th>Bật mặc định</th><th>Người dùng tắt/bật được</th><th>Vượt chế độ Không làm phiền</th><th></th></tr></thead><tbody>
-      ${S.priorities.map((p,i) => `<tr><td>${i+1}</td><td class="small">${esc(p.ui||'')}</td><td>${esc(p.vi)}${p.mi==S.settings.priority?' <span class="badge b-role">Mặc định tin thiên tai</span>':''}</td><td class="small">${esc(p.en||'')}</td><td class="mono">${p.mi}</td><td class="mono">${p.mi2||'–'}</td><td class="small">${esc(p.ring||'–')}</td><td class="small">${esc(p.vib||'–')}</td><td>${yn(p.def)}</td><td>${yn(p.opt)}</td><td>${yn(p.dnd)}</td><td class="row" style="flex-wrap:nowrap;justify-content:flex-end"><button class="btn sm" data-act="priEdit" data-id="${p.mi}">Sửa</button><button class="btn sm danger" data-act="priDel" data-id="${p.mi}">Xoá</button></td></tr>`).join('')}
+    body = `<div class="alert info mb">Danh mục khởi tạo sẵn theo Bảng cấu hình cảnh báo CMAS cho Việt Nam (Phụ lục, công văn CVT-PTHT), không thêm, không xoá mức. Âm thanh, rung và cách hiển thị do máy và hệ điều hành thực hiện theo Message ID, nên chỉ để xem. Quản trị hệ thống chỉ sửa tên hiển thị trên CMS và chọn mức được sử dụng.</div>
+    <div class="card" style="overflow-x:auto"><table class="t"><thead><tr><th>STT</th><th>UI Title</th><th>Tên hiển thị trên CMS</th><th>Tên tiếng Anh</th><th>MSG ID chính (tiếng Việt)</th><th>MSG ID phụ (tiếng Anh)</th><th>Âm thanh</th><th>Rung</th><th>Bật mặc định</th><th>Người dùng tắt/bật được</th><th>Vượt chế độ Không làm phiền</th><th>Sử dụng</th><th></th></tr></thead><tbody>
+      ${S.priorities.map((p,i) => `<tr><td>${i+1}</td><td class="small">${esc(p.ui||'')}</td><td>${esc(p.vi)}${p.mi==S.settings.priority?' <span class="badge b-role">Mặc định tin thiên tai</span>':''}</td><td class="small">${esc(p.en||'')}</td><td class="mono">${p.mi}</td><td class="mono">${p.mi2||'–'}</td><td class="small">${esc(p.ring||'–')}</td><td class="small">${esc(p.vib||'–')}</td><td>${yn(p.def)}</td><td>${yn(p.opt)}</td><td>${yn(p.dnd)}</td><td>${p.active?'<span class="badge b-broadcasting">Đang dùng</span>':'<span class="badge b-cancelled">Không dùng</span>'}</td><td style="text-align:right"><button class="btn sm" data-act="priEdit" data-id="${p.mi}">Sửa</button></td></tr>`).join('')}
     </tbody></table></div>`;
   }
   return `<div class="ph"><h1>${title}</h1></div>${body}`;
@@ -1597,10 +1597,6 @@ const A = {
   xaDel(el){ const x = XA(el.dataset.id); const n = S.cells.filter(c => c.xaId===x.id).length;
     if (!confirm(`Xoá ${x.name}?${n ? `\nDữ liệu ánh xạ ${n} Cell ID của xã này cũng bị xoá.` : ''}`)) return;
     S.xas = S.xas.filter(y => y !== x); S.cells = S.cells.filter(c => c.xaId !== x.id); log('Danh mục','Xoá xã', `${x.name}${n?` · ${n} cell`:''}`); save(); render(); },
-  priDel(el){ const mi = Number(el.dataset.id), p = PRI(mi);
-    if (mi === S.settings.priority) return toast('Không xoá được mức mặc định cho tin phòng chống thiên tai.', 'err');
-    const used = S.templates.filter(t => t.mi === mi).length; if (used) return toast(`Không xoá được: ${used} mẫu tin đang dùng mức ${mi}.`, 'err');
-    if (!confirm(`Xoá mức ${mi} – ${p.vi}?`)) return; S.priorities = S.priorities.filter(x => x !== p); log('Danh mục','Xoá mức ưu tiên', `${mi} – ${p.vi}`); save(); render(); },
   tplToggle(el){ const t = S.templates.find(x => x.id===el.dataset.id); t.active = !t.active; log('Mẫu tin', t.active?'Dùng lại mẫu':'Ngừng sử dụng mẫu', t.code); save(); render(); },
   tplDel(el){ const t = S.templates.find(x => x.id===el.dataset.id); if (!confirm(`Xoá mẫu ${t.code}? Bản tin đã tạo từ mẫu này không bị ảnh hưởng.`)) return; S.templates = S.templates.filter(x => x !== t); log('Mẫu tin','Xoá mẫu', t.code); save(); render(); },
   provEdit(el){ const p = el.dataset.id ? PROV(el.dataset.id) : {code:'', name:''};
@@ -1618,29 +1614,20 @@ const A = {
     if (!d.code || !d.name) return $('#xaErr').innerHTML = '<div class="ferr">Nhập đủ mã hành chính và tên.</div>';
     if (S.xas.some(x => x.code===d.code && x.id!==id) || S.provinces.some(p => p.code===d.code)) return $('#xaErr').innerHTML = '<div class="ferr">Mã hành chính đã tồn tại.</div>';
     if (id) Object.assign(XA(id), d); else S.xas.push({id:uid('X'), ...d}); log('Danh mục', id?'Sửa xã/phường':'Thêm xã/phường', d.name); save(); closeModal(); render(); },
-  priEdit(el){ const p = el.dataset.id ? PRI(el.dataset.id) : {mi:'', mi2:'', ui:'', vi:'', en:'', ring:'Standard CMAS tone', vib:'Standard CMAS vibration', def:'YES', opt:'Yes', dnd:'NO'};
-    const sel = (n, opts, v) => `<select name="${n}">${opts.map(o => `<option ${String(v).toLowerCase()===o.toLowerCase()?'selected':''}>${o}</option>`).join('')}</select>`;
-    modal(el.dataset.id?'Sửa mức ưu tiên':'Thêm mức ưu tiên', `<form novalidate id="priF" class="grid g2">
-      <div><label class="f">MSG ID chính (tiếng Việt) <span class="req">*</span></label><input type="number" name="mi" value="${p.mi}" ${el.dataset.id?'readonly':''}></div>
-      <div><label class="f">MSG ID phụ (tiếng Anh) <span class="req">*</span></label><input type="number" name="mi2" value="${p.mi2||''}"></div>
-      <div><label class="f">Tên tiếng Việt <span class="req">*</span></label><input type="text" name="vi" value="${esc(p.vi)}"></div>
-      <div><label class="f">Tên tiếng Anh <span class="req">*</span></label><input type="text" name="en" value="${esc(p.en||'')}"></div>
-      <div><label class="f">UI Title <span class="req">*</span></label><input type="text" name="ui" value="${esc(p.ui||'')}"></div>
-      <div><label class="f">Âm thanh <span class="req">*</span></label>${sel('ring',['Standard CMAS tone','Single beep','Silent'],p.ring)}</div>
-      <div><label class="f">Rung <span class="req">*</span></label>${sel('vib',['Standard CMAS vibration','None'],p.vib)}</div>
-      <div><label class="f">Bật mặc định <span class="req">*</span></label>${sel('def',['YES','No'],p.def)}</div>
-      <div><label class="f">Người dùng tắt/bật được <span class="req">*</span></label>${sel('opt',['Yes','No'],p.opt)}</div>
-      <div><label class="f">Vượt chế độ Không làm phiền <span class="req">*</span></label>${sel('dnd',['YES','NO'],p.dnd)}</div>
-      <div id="priErr" style="grid-column:1/-1"></div></form>`,
-      `<button class="btn" data-act="closeModal">Huỷ</button><button class="btn pri" data-act="priSave" data-id="${el.dataset.id||''}">Lưu</button>`, true); },
-  priSave(el){ const d = Object.fromEntries(new FormData($('#priF'))); const id = el.dataset.id; const mi = Number(d.mi), mi2 = Number(d.mi2); const e = [];
-    if (!(mi >= 4352 && mi <= 6399)) e.push('MSG ID chính phải trong dải 4352–6399.'); if (!(mi2 >= 4352 && mi2 <= 6399)) e.push('MSG ID phụ phải trong dải 4352–6399.');
-    if (mi === mi2) e.push('MSG ID chính và phụ phải khác nhau.');
-    const ids = S.priorities.filter(p => p.mi != id).flatMap(p => [p.mi, p.mi2]); if (ids.includes(mi) || ids.includes(mi2)) e.push('Message ID đã tồn tại.');
-    ['vi','en','ui'].forEach(k => d[k] = (d[k]||'').trim()); if (!d.vi || !d.en || !d.ui) e.push('Nhập đủ tên tiếng Việt, tiếng Anh và UI Title.');
-    if (e.length) return $('#priErr').innerHTML = `<div class="alert err"><ul>${e.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`;
-    const rec = {mi, mi2, ui:d.ui, vi:d.vi, en:d.en, ring:d.ring, vib:d.vib, def:d.def, opt:d.opt, dnd:d.dnd, active:true};
-    if (id) Object.assign(PRI(id), rec); else S.priorities.push(rec); S.priorities.sort((a,b)=>a.mi-b.mi); log('Danh mục', id?'Sửa mức ưu tiên':'Thêm mức ưu tiên', `${mi} – ${rec.vi}`); save(); closeModal(); render(); },
+  priEdit(el){ const p = PRI(el.dataset.id); const def = p.mi==S.settings.priority;
+    modal(`Sửa mức ưu tiên ${p.mi}`, `<form novalidate id="priF" class="grid g2">
+      <div><label class="f">MSG ID chính / phụ</label><div class="mono" style="padding:7px 0">${p.mi} / ${p.mi2}</div></div>
+      <div><label class="f">Âm thanh, rung</label><div style="padding:7px 0">${esc(soundOf(p.mi))}</div></div>
+      <div><label class="f">Tên hiển thị trên CMS <span class="req">*</span></label><input type="text" name="vi" value="${esc(p.vi)}" maxlength="100"></div>
+      <div><label class="f">Sử dụng <span class="req">*</span></label><select name="active" ${def?'disabled':''}><option value="1" ${p.active?'selected':''}>Đang dùng</option><option value="0" ${!p.active?'selected':''}>Không dùng</option></select>${def?'<div class="hint">Mức mặc định cho tin phòng chống thiên tai, luôn được dùng.</div>':''}</div>
+      <div class="hint" style="grid-column:1/-1">Các thuộc tính khác theo bảng CMAS, chỉ xem.</div><div id="priErr" style="grid-column:1/-1"></div></form>`,
+      `<button class="btn" data-act="closeModal">Huỷ</button><button class="btn pri" data-act="priSave" data-id="${p.mi}">Lưu</button>`, true); },
+  priSave(el){ const p = PRI(el.dataset.id); const d = Object.fromEntries(new FormData($('#priF'))); const vi = (d.vi||'').trim();
+    if (!vi) return $('#priErr').innerHTML = '<div class="alert err">Nhập tên hiển thị.</div>';
+    const act = p.mi==S.settings.priority ? true : d.active==='1';
+    if (!act && S.templates.some(t => t.mi===p.mi)) return $('#priErr').innerHTML = `<div class="alert err">Không đặt "Không dùng" được: ${S.templates.filter(t => t.mi===p.mi).length} mẫu tin đang dùng mức ${p.mi}.</div>`;
+    const ch = []; if (p.vi!==vi) ch.push(`tên: ${p.vi} → ${vi}`); if (p.active!==act) ch.push(act?'Đang dùng':'Không dùng');
+    p.vi = vi; p.active = act; log('Danh mục','Sửa mức ưu tiên', `${p.mi} · ${ch.join('; ')||'không thay đổi'}`); save(); closeModal(); render(); },
   cellTemplate(){ const rows = [['cell_id','enodeb_gnodeb','ma_xa','cong_nghe']]; S.cells.filter(c => c.xaId===S.xas[0].id).slice(0,3).forEach(c => rows.push([c.id, c.enb, S.xas[0].code, c.tech])); download('mau-du-lieu-xa-cell.csv', csv(rows).replace(/"/g,'')); },
   userEdit(el){ userForm(el.dataset.id ? S.users.find(u => u.id===el.dataset.id) : null); },
   userSave(el){ userSave(el.dataset.id); },
