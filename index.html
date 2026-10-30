@@ -1306,13 +1306,11 @@ function viewReport(m){
       <input type="text" id="cellQ" autocomplete="off" placeholder="Tìm Cell ID, trạm, xã…" value="${esc(window.__cellQ||'')}" style="width:220px"></div>
     <div style="max-height:400px;overflow:auto"><table class="t"><thead><tr><th class="num">STT</th><th>Cell ID</th><th>Trạm (eNodeB)</th><th>Xã/Phường</th><th>Thời điểm phản hồi</th><th>Trạng thái</th></tr></thead><tbody id="cellTb">${cr.rows}</tbody></table></div></div>
   <div class="sec-h"><h2>02 · Tiếp cận và tương tác</h2><div class="sub">Các chỉ số này cần nguồn đo riêng ngoài CBC; phân biệt số ước tính với số thực sự quan sát được.</div></div>
-  <div class="tiles t3">
+  <div class="tiles">
     ${tileP('Thuê bao hiện diện ước tính', nf(e.reach), `Đang bám cell lúc phát (${fmt(m.startAt).slice(0,16)}); không phải số đã nhận tin.`, 'c-pri', pill('VNPT Net','p-net'))}
-    ${tileP('Thiết bị nhận thành công', 'Không có số liệu', 'Thiết bị không gửi xác nhận đã nhận tin.', 'na', pill('Không đo qua CBC','p-no'))}
     ${tileP('Lượt click link', lk ? nf(e.clicks) : 'Không có link', lk ? 'Lượt mở link rút gọn; có thể lặp hoặc từ người được chia sẻ.' : 'Bản tin không chứa link nên không có số click.', lk ? '' : 'na', pill('Link rút gọn VNPT','p-ext'))}
     ${tileP('Tỷ lệ click tham chiếu (CTR)', lk ? ctr + '%' : '–', 'Lượt click / thuê bao hiện diện ước tính; không phải tỷ lệ người nhận đã click.', lk ? '' : 'na', pill('Ước tính','p-net'))}
     ${tileP('Cuộc gọi 112 / 114', nf(e.calls), `Từ vùng phát sau thời điểm phát · cùng khung giờ ngày thường: ${nf(e.base)}`, '', pill('VNPT Net','p-net'))}
-    ${tileP('Tin lưu SMS Inbox · lượt mở tin', 'Không có số liệu', 'Điện thoại tự xử lý, không gửi gì về mạng.', 'na', pill('Không đo qua CBC','p-no'))}
   </div>
   <div class="two" style="margin-top:14px">
     <div class="card"><div class="bd"><div class="row"><div><h2>Link trong bản tin</h2><div class="small muted">Chỉ có số liệu khi bản tin chứa link rút gọn được theo dõi</div></div><div class="sp"></div>${pill('Ngoài CBC','p-ext')}</div>
@@ -1322,8 +1320,7 @@ function viewReport(m){
         ${e.buckets.length ? e.buckets.map(b => `<div class="hb"><span class="mono">${hm(b.from)}–${hm(b.to)}${b.rest?' (còn lại)':''}</span><span class="bar"><i style="width:${b.n/mx*100}%"></i></span><span>${nf(b.n)} <span class="muted">(${e.clicks?Math.round(b.n/e.clicks*100):0}%)</span></span></div>`).join('') : '<div class="small muted">Chưa có lượt click.</div>'}`
       : `<div class="empty">Bản tin không chứa link nên không có số liệu click.</div>`}</div></div>
     <div class="card"><div class="bd"><div class="row"><div><h2>Cách hiểu số liệu</h2><div class="small muted">Điều kiện để đưa vào báo cáo</div></div><div class="sp"></div>${pill('Cần chốt nguồn','p-net')}</div>
-      <div class="note" style="margin-top:12px"><b>Thiết bị nhận thành công:</b> không thống kê được vì điện thoại không gửi xác nhận đã nhận bản tin.</div>
-      <div class="note" style="margin-top:10px"><b>Thuê bao hiện diện ước tính:</b> số thuê bao đang bám các cell được chọn tại thời điểm phát, nếu VNPT Net cung cấp dữ liệu. Đây là số tiếp cận tiềm năng.</div>
+      <div class="note" style="margin-top:12px"><b>Thuê bao hiện diện ước tính:</b> số thuê bao đang bám các cell được chọn tại thời điểm phát, nếu VNPT Net cung cấp dữ liệu. Đây là số tiếp cận tiềm năng.</div>
       <div class="note" style="margin-top:10px"><b>CTR tham chiếu:</b> lượt click link rút gọn / thuê bao hiện diện ước tính. Lượt click có thể lặp hoặc đến từ link được chia sẻ, nên không phải tỷ lệ người nhận đã click.</div>
       <div class="note" style="margin-top:10px"><b>Cuộc gọi 112/114:</b> lấy từ dữ liệu cước của VNPT Net theo cell và thời gian.</div></div></div>
   </div>`;
@@ -1335,9 +1332,8 @@ function download(name, content){
 }
 function engageRows(m){
   const e = simEngage(m), lk = linkOf(m), ctr = e.reach ? (e.clicks/e.reach*100).toFixed(2).replace('.', ',') : '';
-  return [['Chỉ số','Giá trị','Nguồn'],['Thuê bao hiện diện ước tính', e.reach, 'VNPT Net (ước tính)'],['Thiết bị nhận thành công','Không có số liệu','Không đo qua CBC'],
-    ['Link trong bản tin', lk || 'Không có link', ''],['Lượt click link', lk ? e.clicks : '', 'Link rút gọn VNPT'],['CTR tham chiếu (%)', lk ? ctr : '', 'Ước tính'],
-    ['Cuộc gọi 112/114 từ vùng phát sau thời điểm phát', e.calls, 'VNPT Net'],['Tin lưu SMS Inbox / lượt mở tin','Không có số liệu','Không đo qua CBC']];
+  return [['Chỉ số','Giá trị','Nguồn'],['Thuê bao hiện diện ước tính', e.reach, 'VNPT Net (ước tính)'],['Link trong bản tin', lk || 'Không có link', ''],['Lượt click link', lk ? e.clicks : '', 'Link rút gọn VNPT'],['CTR tham chiếu (%)', lk ? ctr : '', 'Ước tính'],
+    ['Cuộc gọi 112/114 từ vùng phát sau thời điểm phát', e.calls, 'VNPT Net']];
 }
 function exportOne(m){
   const d = repData(m), s = d.s;
