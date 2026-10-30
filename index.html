@@ -549,6 +549,7 @@ function can(act, m){
     case 'approveAction': return me.role==='PD' && m.pendingAction && m.pendingAction.by !== me.id && m.status==='broadcasting';
     case 'cancelAction': return m.pendingAction && m.pendingAction.by === me.id;
     case 'retry': return me.role==='SO' && m.status==='broadcasting' && !roundPending(m) && retryable(m).length > 0;
+    case 'rebroadcast': return me.role==='SO' && m.status==='stopped' && !roundPending(m);
     case 'retryKill': return me.role==='SO' && ['stopped','expired'].includes(m.status) && !roundPending(m) && killRetryable(m).length > 0;
     case 'admin': return me.role==='QT';
   }
@@ -558,7 +559,7 @@ function can(act, m){
 /* ---------- mô phỏng mạng: phát / cập nhật / phát lại / dừng / hết hạn ----------
    Mỗi lần CBC gửi lệnh xuống mạng là một "lượt gửi" (m.rounds). Trạng thái hiện tại của từng cell ở m.results,
    thông tin tích luỹ theo cell ở m.cinfo: số lần gửi lệnh, lần gửi gần nhất, lúc phát thành công, số lần phát lại. */
-const RTYPE = {initial:'Lệnh phát', update:'Lệnh cập nhật nội dung', retry:'Phát lại cell lỗi', kill:'Lệnh huỷ phát (dừng thủ công)', expire:'Lệnh huỷ phát (hết thời hạn)', killretry:'Gửi lại lệnh huỷ cho cell lỗi'};
+const RTYPE = {initial:'Lệnh phát', update:'Lệnh cập nhật nội dung', retry:'Thử lại cell lỗi', rebroadcast:'Phát lại bản tin (sau khi dừng)', kill:'Lệnh huỷ phát (dừng thủ công)', expire:'Lệnh huỷ phát (hết thời hạn)', killretry:'Gửi lại lệnh huỷ cho cell lỗi'};
 const isKill = t => t==='kill' || t==='expire' || t==='killretry';
 function sendRound(m, type, cells, by, note){
   const at = now() + 300 + Math.floor(Math.random()*600);
@@ -570,6 +571,7 @@ function sendRound(m, type, cells, by, note){
     r.res[c] = 'pending'; m.results[c] = 'pending'; ci.sends++; ci.lastAt = at;
     if (type==='retry') ci.retries++;
     if (type==='update') ci.okAt = null;
+    if (type==='rebroadcast'){ ci.okAt = null; ci.count = null; ci.retries = 0; if (m.kres) delete m.kres[c]; }
   });
   m.rounds.push(r); m.doneAt = isKill(type) ? m.doneAt : null;
   return r;
@@ -602,6 +604,16 @@ function applyUpdate(m, a, approver){
   m.history.push({at:now(), by:approver ? approver.id : a.by, act: approver ? 'Duyệt cập nhật (OTP hợp lệ)' : 'Cập nhật bản tin'});
   m.history.push({at:r.at, by:'SYS', act:'Gửi bản tin cập nhật tới MME', note:`Serial ${m.serial} (lần cập nhật ${m.updateNo}) · lý do: ${a.reason}`});
   log('Phát tin','Gửi bản tin cập nhật', `${m.code} – Serial ${m.serial}`, 'Quan trọng', 'SYS');
+}
+/* Phát lại sau khi dừng: tăng số cập nhật (Serial mới) để máy đã nhận vẫn hiển thị lại; thời hạn tính lại từ lúc gửi lệnh */
+function rebroadcast(m, by, reason){
+  m.versions.push({at:now(), updateNo:m.updateNo, body:m.body, header:m.header});
+  m.updateNo++; m.serial = serial(m); m.status = 'broadcasting'; m.endedAt = null; m.stopReason = null; m.pendingAction = null;
+  const r = sendRound(m, 'rebroadcast', m.cells, by, reason);
+  m.startAt = r.at; m.endAt = r.at + m.duration*60e3; m.updatedAt = now();
+  m.history.push({at:now(), by, act:'Phát lại bản tin (OTP hợp lệ)', note:reason});
+  m.history.push({at:r.at, by:'SYS', act:'Gửi lệnh phát lại (Write-Replace Warning Request) tới MME', note:`${m.cells.length} cell · Serial ${m.serial}`});
+  log('Phát tin','Phát lại bản tin sau khi dừng', `${m.code} – Serial ${m.serial}`, 'Quan trọng');
 }
 function endBroadcast(m, type, by, note){
   m.cells.forEach(c => { if (m.results[c]==='pending') m.results[c]='fail'; });
@@ -1081,6 +1093,7 @@ function viewMsg(r){
   if (can('approve',m)) acts.push(`<button class="btn danger" data-act="reject" data-id="${m.id}">Từ chối</button><button class="btn ok" data-act="approve" data-id="${m.id}">Duyệt và phát</button>`);
   if (can('update',m)) acts.push(`<button class="btn" data-act="updateMsg" data-id="${m.id}">Cập nhật nội dung</button>`);
   if (can('stop',m)) acts.push(`<button class="btn dangerfill" data-act="stopMsg" data-id="${m.id}">Dừng phát</button>`);
+  if (can('rebroadcast',m)) acts.push(`<button class="btn pri" data-act="rebroadcastMsg" data-id="${m.id}">Phát lại</button>`);
   if (['broadcasting','stopped','expired'].includes(m.status)) acts.push(`<a class="btn" href="#/reports?id=${m.id}">Xem báo cáo</a>`);
   const pa = m.pendingAction;
   return `<div class="ph"><a href="#/messages" class="btn sm">← Danh sách</a><h1 class="mono">${m.code}</h1>${badge(m.status)}<div class="sp"></div>${acts.join('')}</div>
@@ -1124,9 +1137,9 @@ function resultCard(m, s){
     : `<b>Đã kết thúc</b> · ${nf(m.cells.filter(c => (m.kres||{})[c]==='ok').length)} cell dừng thành công${kfail.length?` · <span style="color:var(--err)">${nf(kfail.length)} cell huỷ lỗi (có thể vẫn đang phát)</span>`:''}`;
   const cmd = r => {
     const v = Object.values(r.res), ok = v.filter(x => x==='ok').length, fl = v.filter(x => x==='fail').length, pd = v.filter(x => x==='pending').length, k = isKill(r.type);
-    const prev = r.type==='update' ? rounds.filter(x => x.no < r.no && !isKill(x.type)).slice(-1)[0] : null;
-    const serialTxt = r.type==='update' && prev ? `Serial ${esc(prev.serial)} → <b>${esc(r.serial)}</b> (tăng số cập nhật, máy sẽ hiển thị bản tin mới)` : r.type==='retry' ? `Serial ${esc(r.serial)} giữ nguyên (máy đã nhận sẽ bỏ qua, không bị trùng)` : `Serial ${esc(r.serial)}`;
-    const okTxt = k ? 'cell dừng phát thành công' : r.type==='update' ? 'cell đã chuyển sang nội dung mới' : 'cell bắt đầu phát';
+    const prev = (r.type==='update' || r.type==='rebroadcast') ? rounds.filter(x => x.no < r.no && !isKill(x.type)).slice(-1)[0] : null;
+    const serialTxt = (r.type==='update' || r.type==='rebroadcast') && prev ? `Serial ${esc(prev.serial)} → <b>${esc(r.serial)}</b> (tăng số cập nhật, máy sẽ hiển thị bản tin mới)` : r.type==='retry' ? `Serial ${esc(r.serial)} giữ nguyên (máy đã nhận sẽ bỏ qua, không bị trùng)` : `Serial ${esc(r.serial)}`;
+    const okTxt = k ? 'cell dừng phát thành công' : r.type==='rebroadcast' ? 'cell phát lại' : r.type==='update' ? 'cell đã chuyển sang nội dung mới' : 'cell bắt đầu phát';
     return `<div class="cmd ${k?'kill':''}"><div class="row"><span class="no">${r.no}</span><b>${RTYPE[r.type]}</b><span class="small muted mono">${k?'Kill Request':'Write-Replace Warning Request'}</span><div class="sp"></div><span class="small muted">${fmt(r.at)} · ${esc(U(r.by).name)}</span></div>
       <div class="small" style="margin:4px 0 6px">${r.note?`Lý do: ${esc(r.note)} · `:''}${k ? (r.type==='killretry' ? `Gửi lại tới ${nf(r.cells.length)} cell chưa huỷ được` : `Gửi tới ${nf(r.cells.length)} cell đang phát`) : `Gửi tới ${nf(r.cells.length)} cell · ${serialTxt}`}</div>
       ${progBar({total:r.cells.length, ok, fail:fl, pending:pd})}
@@ -1137,19 +1150,19 @@ function resultCard(m, s){
     <div class="howto small">CBC gửi <b>một lệnh</b> xuống mạng; sau đó trạm <b>tự phát lặp lại mỗi ${m.repetition} giây</b> trong suốt thời hạn ${dur(m.duration)} (khoảng ${nf(per)} lần mỗi cell), không cần CBC gửi thêm. Mạng chỉ trả kết quả thành công/lỗi cho <b>từng lệnh</b>, không trả kết quả cho từng lần lặp. Mỗi lần phát lại, cập nhật hay huỷ là một lệnh mới, được liệt kê bên dưới theo thứ tự.</div>
     <div class="row" style="margin:12px 0"><div>${stateTxt}</div><div class="sp"></div>
       ${okCells.length ? `<span class="small muted">${live?'Đến giờ':'Tổng cộng'} mỗi cell đã phát trên sóng khoảng <b>${nf(done1)}</b>/${nf(per)} lần${live?` · còn ${left(m.endAt-t)}`:''}</span>` : ''}</div>
-    ${live && fails.length ? `<div class="alert warn" style="margin:0 0 12px"><div class="row"><b>${fails.length} cell phát lỗi</b><div class="sp"></div>${can('retry',m)?`<button class="btn sm" data-act="retryFail" data-id="${m.id}">Phát lại ${rt.length} cell lỗi</button>`:''}</div>${busy?'<div class="small">Đang chờ kết quả lệnh trước.</div>':(!rt.length?`<div class="small">Các cell lỗi đã được phát lại tối đa ${max} lần.</div>`:'')}</div>` : ''}
+    ${live && fails.length ? `<div class="alert warn" style="margin:0 0 12px"><div class="row"><b>${fails.length} cell phát lỗi</b><div class="sp"></div>${can('retry',m)?`<button class="btn sm" data-act="retryFail" data-id="${m.id}">Thử lại ${rt.length} cell lỗi</button>`:''}</div>${busy?'<div class="small">Đang chờ kết quả lệnh trước.</div>':(!rt.length?`<div class="small">Các cell lỗi đã được phát lại tối đa ${max} lần.</div>`:'')}</div>` : ''}
     ${!live && kfail.length ? `<div class="alert err" style="margin:0 0 12px"><div class="row"><b>${kfail.length} cell chưa nhận lệnh huỷ</b><div class="sp"></div>${can('retryKill',m)?`<button class="btn sm" data-act="retryKill" data-id="${m.id}">Gửi lại lệnh huỷ</button>`:''}</div><div class="small">Các cell này có thể vẫn đang phát bản tin. ${busy?'Đang chờ kết quả lệnh trước.':''}</div></div>` : ''}
     <div class="cmds">${rounds.map(cmd).join('')}</div>
-    <details id="cellDet" style="margin-top:14px" ${window.__detOpen?'open':''}><summary style="cursor:pointer"><b>Trạng thái từng cell</b> <span class="small muted">(${nf(s.total)} cell)</span></summary>
+    <details id="cellDet" style="margin-top:14px" ${(window.__detOpen ?? (live && fails.length > 0))?'open':''}><summary style="cursor:pointer"><b>Trạng thái từng cell</b> <span class="small muted">(${nf(s.total)} cell)</span></summary>
       <div class="row small" style="margin:8px 0"><label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" data-act="onlyFail" ${window.__onlyFail?'checked':''}> Chỉ hiện cell có lỗi</label></div>
       <div style="max-height:320px;overflow:auto"><table class="t"><thead><tr><th>Cell ID</th><th>eNodeB</th><th>Xã/Phường</th><th>Trạng thái</th><th class="num">Số lệnh đã nhận</th><th class="num">Số lần đã phát trên sóng</th><th></th></tr></thead><tbody>
-      ${m.cells.filter(c => !window.__onlyFail || m.results[c]==='fail' || (m.kres||{})[c]==='fail').map(c => { const cc = S.cells.find(x=>x.id===c) || {}; const v = m.results[c], kv = (m.kres||{})[c]; const ci = (m.cinfo||{})[c] || {}; const n = airCount(m, c);
+      ${m.cells.filter(c => !window.__onlyFail || m.results[c]==='fail' || (m.kres||{})[c]==='fail').sort((x,y) => (m.results[y]==='fail') - (m.results[x]==='fail')).map(c => { const cc = S.cells.find(x=>x.id===c) || {}; const v = m.results[c], kv = (m.kres||{})[c]; const ci = (m.cinfo||{})[c] || {}; const n = airCount(m, c);
         const st = kv==='ok' ? ['Đã dừng','var(--muted)'] : kv==='fail' ? ['Huỷ lỗi','var(--err)'] : kv==='pending' ? ['Chờ kết quả huỷ','var(--muted)'] : v==='ok' ? [live?'Đang phát':'Đã phát','var(--ok)'] : v==='fail' ? ['Phát lỗi','var(--err)'] : ['Chờ phản hồi','var(--muted)'];
         const canOne = can('retry', m) && v==='fail' && (ci.retries||0) < max;
         return `<tr><td class="mono small">${c}</td><td class="small">${cc.enb||'–'}</td><td class="small">${esc((XA(cc.xaId)||{}).name||'–')}</td>
           <td class="small" style="color:${st[1]}">${st[0]}</td><td class="num small">${(ci.sends||0)+(ci.kills||0)}${ci.retries?` <span class="muted">(phát lại ${ci.retries})</span>`:''}</td>
           <td class="num small">${n==null?'–':(ci.count!=null?nf(n):'~'+nf(n))}</td>
-          <td style="text-align:right">${canOne?`<button class="btn sm" data-act="retryCell" data-id="${m.id}" data-c="${c}">Phát lại</button>`:''}</td></tr>`; }).join('')}
+          <td style="text-align:right">${canOne?`<button class="btn sm" data-act="retryCell" data-id="${m.id}" data-c="${c}">Thử lại</button>`:''}</td></tr>`; }).join('')}
       </tbody></table></div>
       <div class="small muted" style="margin-top:6px">"Số lần đã phát trên sóng": khi đang phát là số ước tính theo chu kỳ ${m.repetition} giây (dấu ~); khi đã dừng là số mạng trả về trong kết quả lệnh huỷ.</div></details>
   </div></div>`;
@@ -1591,6 +1604,11 @@ const A = {
     saveCompose(true); },
   cancelMsg(el){ const m = S.messages.find(x => x.id===el.dataset.id);
     reasonModal(`Huỷ bản tin ${m.code}`, 'Lý do huỷ', 'Huỷ bản tin', 'dangerfill', r => { m.status='cancelled'; m.updatedAt=now(); m.history.push({at:now(), by:me.id, act:'Huỷ bản tin', note:r}); log('Bản tin','Huỷ bản tin', m.code); save(); toast('Đã huỷ bản tin.'); render(); }); },
+  rebroadcastMsg(el){ const m = S.messages.find(x => x.id===el.dataset.id); if (!can('rebroadcast', m)) return;
+    otpModal('Phát lại bản tin', `<div class="kv small"><div>Bản tin</div><div class="mono">${m.code}</div><div>Chiến dịch</div><div>${esc(m.campaign)}</div><div>Vùng phát</div><div>${esc(areaText(m.areas,5))} · ${nf(m.cells.length)} cell</div><div>Thời hạn</div><div>${dur(m.duration)}, tính lại từ lúc phát</div></div>
+      <label class="f" style="margin-top:12px">Lý do phát lại <span class="req">*</span></label><input type="text" id="rbReason" maxlength="200" autocomplete="off"><div id="rbErr"></div>
+      <div class="alert warn" style="margin:12px 0 0">Bản tin được phát lại với Serial mới để máy đã nhận trước đó vẫn hiển thị lại.</div>`,
+      () => { rebroadcast(m, me.id, window.__rbReason); save(); toast(`Đã gửi lệnh phát lại ${m.code} tới ${nf(m.cells.length)} cell.`, 'ok'); render(); }); },
   approve(el){ const m = S.messages.find(x => x.id===el.dataset.id); const s = areaStats(m.areas);
     otpModal('Duyệt và phát bản tin', `<div class="kv small"><div>Bản tin</div><div class="mono">${m.code}</div><div>Chiến dịch</div><div>${esc(m.campaign)}</div><div>Mức ưu tiên</div><div>${m.priority} – ${esc(PRI(m.priority).vi)}</div><div>Vùng phát</div><div>${esc(areaText(m.areas,5))} · ${nf(s.cells)} cell</div><div>Thời hạn</div><div>${dur(m.duration)}</div></div>
       <div class="alert warn" style="margin:12px 0 0">Sau khi xác nhận, lệnh phát được gửi ngay xuống mạng.</div>`,
@@ -1644,7 +1662,7 @@ const A = {
   exportOne(el){ exportOne(S.messages.find(x => x.id===el.dataset.id)); },
   reasonOk(){ const v = $('#reasonIn').value.trim(); if (!v){ $('#reasonErr').innerHTML = '<div class="ferr">Nhập lý do.</div>'; return; } const f = window.__reasonOk; closeModal(); f(v); },
   otpResend(){ otpStart(me, (window.__otpTitle||'').toLowerCase()); $('#otpErr').innerHTML = '<div class="alert info">Đã gửi lại mã OTP mới.</div>'; },
-  otpConfirm(){ const r = otpCheck($('#otpIn').value);
+  otpConfirm(){ const rb = $('#rbReason'); if (rb){ if (!rb.value.trim()) return $('#rbErr').innerHTML = '<div class="ferr">Nhập lý do phát lại.</div>'; window.__rbReason = rb.value.trim(); } const r = otpCheck($('#otpIn').value);
     if (r.ok){ const f = window.__otpOk; closeModal(); f(); return; }
     if (r.locked){ log('Phê duyệt','Nhập sai OTP quá số lần cho phép', window.__otpTitle||'', 'Cảnh báo'); save(); closeModal(); toast(r.msg, 'err'); return; }
     $('#otpErr').innerHTML = `<div class="alert err">${esc(r.msg)}</div>`; $('#otpIn').select(); },
