@@ -287,6 +287,7 @@ function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
 function save(){ lsSet(LS_KEY, JSON.stringify(S)); }
 
 /* Đếm ký tự & số trang CB: 1 trang = 82 octet → 93 ký tự GSM 7-bit hoặc 41 ký tự UCS-2 */
+const MAX_CHARS = 650; /* URD 3.1 chức năng 5: tối đa 2 trang CB (650 ký tự) */
 function measure(text){
   text = text || '';
   let gsm = true, septets = 0;
@@ -405,7 +406,7 @@ function seed(){
   const T = (code, group, header, body, mi=4370) => ({id:code, code, name:header.replace(/[\[\]]/g,''), group, header, body, mi, active:true, createdAt:now()});
     const templates = TEMPLATES_50.map(x => T(...x));
   const settings = {repetition:20, duration:120, priority:4370, maxPages:15, otpTtl:300, otpMaxFail:3, loginOtp:true,
-    approveUpdateStop:true, successThreshold:99, retrySend:3, retryMax:3, simFail:2, logRetentionDays:365, sessionTimeout:30};
+    approveUpdateStop:false, successThreshold:99, retrySend:3, retryMax:3, simFail:2, logRetentionDays:365, sessionTimeout:30};
   S = {v:1, provinces, xas, cells, users, priorities, templates, settings, messages:[], logs:[], seq:{}, cellsUpdatedAt:now()};
   seedMessages();
   log('Hệ thống','Khởi tạo dữ liệu demo','','Thông tin','SYS');
@@ -643,6 +644,7 @@ function tick(){
 }
 /* chuyển dữ liệu demo cũ (chưa có lượt gửi) sang cấu trúc mới */
 function migrate(){
+  if (!S.seed31){ S.seed31 = 1; S.settings.approveUpdateStop = false; }
   if (!S.seedCmas){ S.seedCmas = 1; S.priorities = CMAS.map(x => ({...x, active:true})); S.templates.forEach(t => { delete t.sound; if (!S.priorities.some(p => p.mi===t.mi)) t.mi = 4370; }); }
   if (!S.seed33){ S.seed33 = 1;
     TEMPLATES_50.forEach(x => { if (!S.templates.some(t => t.id === x[0])) S.templates.push({id:x[0], code:x[0], name:x[2].replace(/[\[\]]/g,''), group:x[1], header:x[2], body:x[3], mi:x[4]||4370, active:true, createdAt:now()}); });
@@ -698,8 +700,7 @@ const go = h => { if (location.hash === h) render(); else location.hash = h; };
 const NAV = [
   {h:'#/dashboard', n:'dashboard', t:'Tổng quan', ic:'▦', roles:['SO','PD','QT']},
   {g:'Phát tin cảnh báo', roles:['SO','PD','QT']},
-  {h:'#/messages', n:'messages', t:'Bản tin cảnh báo', ic:'✉', roles:['SO','PD','QT'], also:['msg','compose']},
-  {h:'#/approvals', n:'approvals', t:'Chờ phê duyệt', ic:'✓', roles:['PD'], cnt:true},
+  {h:'#/messages', n:'messages', t:'Bản tin cảnh báo', ic:'✉', roles:['SO','PD','QT'], also:['msg','compose','approvals'], cnt:true},
   {g:'Theo dõi và báo cáo', roles:['SO','PD','QT']},
   {h:'#/reports', n:'reports', t:'Báo cáo chiến dịch', ic:'▤', roles:['SO','PD','QT']},
   {g:'Quản lý danh mục', roles:['SO','PD','QT']},
@@ -720,7 +721,7 @@ function renderNavCounts(){ const el = document.querySelector('[data-cnt]'); if 
 function shell(inner){
   const r = route();
   const nav = NAV.filter(i => i.roles.includes(me.role)).map(i => i.g ? `<div class="grp">${i.g}</div>` :
-    `<a href="${i.h}" class="${navOn(i, r) ? 'on':''}" style="padding-left:18px"><span>${i.ic}</span>${i.t}${i.cnt?`<span class="cnt" data-cnt>${pendingCount()}</span>`:''}</a>`).join('');
+    `<a href="${i.h}" class="${navOn(i, r) ? 'on':''}" style="padding-left:18px"><span>${i.ic}</span>${i.t}${i.cnt && isRole('PD')?`<span class="cnt" data-cnt>${pendingCount()}</span>`:''}</a>`).join('');
   const others = S.users.filter(u => u.status==='active' && u.role && u.id!==me.id);
   return `<div id="app">
     <aside class="side"><div class="brand"><b>CMS Cell Broadcast</b><span>VNPT · Cảnh báo khẩn cấp</span></div>
@@ -744,7 +745,7 @@ function shell(inner){
 function render(){
   if (!me){ $('#root').innerHTML = viewLogin(); return; }
   const r = route();
-  const views = {dashboard:viewDashboard, messages:viewMessages, compose:viewCompose, msg:viewMsg, approvals:viewApprovals, reports:viewReports,
+  const views = {dashboard:viewDashboard, messages:viewMessages, compose:viewCompose, msg:viewMsg, approvals:() => { setTimeout(() => go('#/messages?st=pending'), 0); return ''; }, reports:viewReports,
     templates:viewTemplates, catalog:viewCatalog, settings:viewSettings, users:viewUsers, logs:viewLogs};
   const allowed = NAV.find(n => n.n===r.name || (n.also||[]).includes(r.name));
   let html;
@@ -811,9 +812,9 @@ function viewDashboard(){
   const d24 = ms.filter(m => ['expired','stopped'].includes(m.status) && m.endedAt > t-864e5);
   const kpi = (v,l,h) => `<a class="card kpi" href="${h}" style="color:inherit;text-decoration:none"><div class="v">${v}</div><div class="l">${l}</div></a>`;
   return `<div class="ph"><h1>Tổng quan</h1><span class="sub">${fmt(t)}</span></div>
-  <div class="kpis">${kpi(live.length,'Bản tin đang phát','#/messages?st=broadcasting')}${kpi(pend.length,'Bản tin chờ duyệt', isRole('PD')?'#/approvals':'#/messages?st=pending')}
+  <div class="kpis">${kpi(live.length,'Bản tin đang phát','#/messages?st=broadcasting')}${kpi(pend.length,'Bản tin chờ duyệt', '#/messages?st=pending')}
     ${kpi(mine.length,'Nháp / bị từ chối của tôi','#/messages?mine=1')}${kpi(d24.length,'Kết thúc trong 24 giờ','#/reports')}</div>
-  ${pend.length && isRole('PD') ? `<div class="alert warn">Có <b>${pendingCount()}</b> yêu cầu đang chờ bạn phê duyệt. <a href="#/approvals">Xem ngay</a></div>`:''}
+  ${pend.length && isRole('PD') ? `<div class="alert warn">Có <b>${pendingCount()}</b> yêu cầu đang chờ bạn phê duyệt. <a href="#/messages?st=pending">Xem ngay</a></div>`:''}
   <div class="card mb"><div class="hd"><h2>Bản tin đang phát</h2></div>
   ${live.length ? `<table class="t"><thead><tr><th>Mã</th><th>Chiến dịch / tiêu đề</th><th>Vùng phát</th><th style="width:220px">Kết quả phát</th><th>Còn lại</th></tr></thead><tbody>
     ${live.map(m => { const s = resStats(m); return `<tr class="click" data-act="open" data-id="${m.id}"><td class="mono">${m.code}</td><td><b>${esc(m.campaign)}</b><div class="small muted">${esc(m.header||'')}</div>${m.pendingAction?`<span class="badge b-pending">Có yêu cầu ${m.pendingAction.type==='update'?'cập nhật':'dừng'} chờ duyệt</span>`:''}</td>
@@ -843,24 +844,25 @@ let msgFilter = {st:'', q:'', mi:'', by:'', from:'', to:''};
 function viewMessages(){
   const q = qs(); if (q.st !== undefined) msgFilter.st = q.st; if (q.mine) msgFilter.by = me.id;
   const f = msgFilter;
-  let list = S.messages.slice().sort((a,b) => b.updatedAt - a.updatedAt);
-  if (f.st) list = list.filter(m => m.status===f.st);
-  if (f.mi) list = list.filter(m => String(m.priority)===f.mi);
-  if (f.by) list = list.filter(m => m.createdBy===f.by);
-  if (dayFrom(f.from)) list = list.filter(m => m.createdAt >= dayFrom(f.from));
-  if (dayTo(f.to)) list = list.filter(m => m.createdAt <= dayTo(f.to));
-  if (f.q){ const k = noAccent(f.q.toLowerCase()); list = list.filter(m => noAccent(`${m.code} ${m.campaign} ${m.docNo} ${m.header} ${m.body} ${areaText(m.areas,99)}`.toLowerCase()).includes(k)); }
+  let base = S.messages.slice().sort((a,b) => b.updatedAt - a.updatedAt);
+  if (f.mi) base = base.filter(m => String(m.priority)===f.mi);
+  if (f.by) base = base.filter(m => m.createdBy===f.by);
+  if (dayFrom(f.from)) base = base.filter(m => m.createdAt >= dayFrom(f.from));
+  if (dayTo(f.to)) base = base.filter(m => m.createdAt <= dayTo(f.to));
+  if (f.q){ const k = noAccent(f.q.toLowerCase()); base = base.filter(m => noAccent(`${m.code} ${m.campaign} ${m.docNo} ${m.header} ${m.body} ${areaText(m.areas,99)}`.toLowerCase()).includes(k)); }
+  const TABS = [['','Tất cả',()=>true],['draft','Nháp',m=>['draft','rejected'].includes(m.status)],['pending','Chờ duyệt',m=>m.status==='pending'],['broadcasting','Đang phát',m=>m.status==='broadcasting'],['ended','Đã kết thúc',m=>['stopped','expired','cancelled'].includes(m.status)]];
+  const tab = TABS.find(t => t[0]===f.st) || TABS[0]; const list = base.filter(tab[2]);
   const creators = S.users.filter(u => u.role==='SO');
-  return `<div class="ph"><h1>Bản tin cảnh báo</h1><span class="sub">${list.length} bản tin</span><div class="sp"></div>${isRole('SO')?`<a class="btn pri" href="#/messages/new">+ Tạo bản tin</a>`:''}</div>
-  <div class="card"><div class="bd" style="padding-bottom:0"><form novalidate class="filters" data-form="msgFilter">
+  return `<div class="ph"><h1>Bản tin cảnh báo</h1><span class="sub">${list.length} bản tin</span></div>
+  <div class="tabs">${TABS.map(t => { const n = base.filter(t[2]).length; return `<a href="#/messages?st=${t[0]}" class="${t===tab?'on':''}">${t[1]} <span class="small muted">(${n})</span></a>`; }).join('')}</div>
+  <div class="card"><div class="bd" style="padding-bottom:0"><form novalidate class="filters" data-form="msgFilter"><input type="hidden" name="st" value="${esc(f.st)}">
     <div style="flex:2;min-width:220px"><label class="f">Tìm kiếm</label><input type="text" name="q" value="${esc(f.q)}" placeholder="Mã, tên chiến dịch, số văn bản, nội dung, vùng phát"></div>
-    <div><label class="f">Trạng thái</label><select name="st"><option value="">Tất cả</option>${Object.entries(ST).map(([k,v])=>`<option value="${k}" ${f.st===k?'selected':''}>${v}</option>`).join('')}</select></div>
-    <div><label class="f">Mức ưu tiên</label><select name="mi"><option value="">Tất cả</option>${S.priorities.map(p=>`<option value="${p.mi}" ${f.mi==p.mi?'selected':''}>${p.mi} – ${esc(p.vi)}</option>`).join('')}</select></div>
-    <div><label class="f">Người tạo</label><select name="by"><option value="">Tất cả</option>${creators.map(u=>`<option value="${u.id}" ${f.by===u.id?'selected':''}>${esc(u.name)}</option>`).join('')}</select></div>
-    <div><label class="f">Từ ngày</label>${dateIn('from', f.from)}</div><div><label class="f">Đến ngày</label>${dateIn('to', f.to)}</div>
-    <div style="min-width:auto"><button class="btn pri">Lọc</button> <button class="btn" type="button" data-act="clearFilter">Xoá lọc</button></div>
+    <div style="min-width:170px"><label class="f">Mức ưu tiên</label><select name="mi"><option value="">Tất cả</option>${S.priorities.map(p=>`<option value="${p.mi}" ${f.mi==p.mi?'selected':''}>${p.mi} – ${esc(p.vi)}</option>`).join('')}</select></div>
+    <div style="min-width:150px"><label class="f">Người soạn</label><select name="by"><option value="">Tất cả</option>${creators.map(u=>`<option value="${u.id}" ${f.by===u.id?'selected':''}>${esc(u.name)}</option>`).join('')}</select></div>
+    <div style="min-width:120px;flex:0 0 120px"><label class="f">Từ ngày</label>${dateIn('from', f.from)}</div><div style="min-width:120px;flex:0 0 120px"><label class="f">Đến ngày</label>${dateIn('to', f.to)}</div>
+    <div style="min-width:auto;flex:0 0 auto"><button class="btn pri">Lọc</button> <button class="btn" type="button" data-act="clearFilter">Xoá lọc</button></div>
   </form></div>
-  ${list.length ? `<div style="overflow:auto"><table class="t"><thead><tr><th>Mã</th><th>Tên chiến dịch</th><th>Tiêu đề</th><th>Mức ưu tiên</th><th>Vùng phát</th><th>Trạng thái</th><th>Người tạo</th><th>Cập nhật</th><th></th></tr></thead><tbody>
+  ${list.length ? `<div style="overflow:auto"><table class="t"><thead><tr><th>Mã</th><th>Tên chiến dịch</th><th>Tiêu đề</th><th>Mức ưu tiên</th><th>Vùng phát</th><th>Trạng thái</th><th>Người soạn</th><th>Cập nhật</th><th></th></tr></thead><tbody>
   ${list.map(m => `<tr class="click" data-act="open" data-id="${m.id}"><td class="mono small">${m.code}</td><td><b>${esc(m.campaign)}</b><div class="small muted">${esc(m.docNo||'')}</div></td><td class="small">${esc(m.header||'')}</td>
     <td class="small">${m.priority}<div class="muted">${esc(PRI(m.priority).vi)}</div></td><td class="small">${esc(areaText(m.areas,2))}</td><td>${badge(m.status)}${m.pendingAction?`<div class="small" style="color:var(--warn)">${m.pendingAction.type==='update'?'Cập nhật':'Dừng'} chờ duyệt</div>`:''}</td>
     <td class="small">${esc(U(m.createdBy).name)}</td><td class="small muted">${fmt(m.updatedAt)}</td>
@@ -879,7 +881,7 @@ function composeInit(id){
     F = {id:m.id, campaign:m.campaign, docNo:m.docNo, mode:m.mode, templateId:m.templateId, vars:{...m.vars}, header:m.header, body:m.body,
       areas:[...m.areas], priority:m.priority, repetition:m.repetition, duration:m.duration, prov:(XA(m.areas[0])||{}).provinceId || S.provinces[0].id,
       group:'', tq:'', errors:{}, touched:false};
-    if (m.mode==='template'){ const t = S.templates.find(x => x.id===m.templateId); if (t){ F.body = t.body; F.header = t.header; } }
+    if (m.mode==='template'){ const t = S.templates.find(x => x.id===m.templateId); if (t) F.body = t.body; }
   } else {
     F = {id:null, campaign:'', docNo:'', mode:'template', templateId:'', vars:{}, header:'', body:'', areas:[], priority:st.priority,
       repetition:st.repetition, duration:st.duration, prov:S.provinces[0].id, group:'', tq:'', errors:{}, touched:false};
@@ -900,15 +902,14 @@ function viewCompose(r){
     <div class="card mb"><div class="hd"><span class="secno">1</span><h2>Thông tin chiến dịch</h2></div><div class="bd grid g2">
       <div class="${e.campaign?'has-err':''}"><label class="f">Tên chiến dịch <span class="req">*</span></label><input type="text" data-f="campaign" value="${esc(F.campaign)}" maxlength="150" placeholder="VD: Bão số 7 – sơ tán ven biển">${er('campaign')}</div>
       <div class="${e.docNo?'has-err':''}"><label class="f">Số văn bản yêu cầu <span class="req">*</span></label><input type="text" data-f="docNo" value="${esc(F.docNo)}" maxlength="60" placeholder="VD: 125/BCĐ-PCTT">${er('docNo')}<div class="hint">Số công văn của cơ quan chức năng yêu cầu phát tin.</div></div>
-      <div style="grid-column:1/-1"><label class="f">Cách soạn nội dung</label><div class="seg">
-        <label><input type="radio" name="mode" value="template" data-f="mode" ${F.mode==='template'?'checked':''}><span>Theo mẫu trong thư viện</span></label>
-        <label><input type="radio" name="mode" value="free" data-f="mode" ${F.mode==='free'?'checked':''}><span>Soạn tự do</span></label></div></div>
     </div></div>
-    <div class="card mb"><div class="hd"><span class="secno">2</span><h2>Nội dung bản tin</h2></div><div class="bd" id="secContent">${composeContent()}</div></div>
+    <div class="card mb"><div class="hd"><span class="secno">2</span><h2>Nội dung bản tin</h2><div class="sp"></div><div class="seg">
+        <label><input type="radio" name="mode" value="template" data-f="mode" ${F.mode==='template'?'checked':''}><span>Theo mẫu</span></label>
+        <label><input type="radio" name="mode" value="free" data-f="mode" ${F.mode==='free'?'checked':''}><span>Soạn tự do</span></label></div></div><div class="bd" id="secContent">${composeContent()}</div></div>
     <div class="card mb"><div class="hd"><span class="secno">3</span><h2>Vùng phát</h2></div><div class="bd" id="secArea">${composeArea()}</div></div>
     <div class="card mb"><div class="hd"><span class="secno">4</span><h2>Mức ưu tiên và tham số phát</h2></div><div class="bd grid g3">
-      <div class="${e.priority?'has-err':''}"><label class="f">Mức ưu tiên (Message ID) <span class="req">*</span></label><select data-f="priority">${S.priorities.filter(p=>p.active||p.mi==F.priority).map(p=>`<option value="${p.mi}" ${F.priority==p.mi?'selected':''}>${p.mi} – ${esc(p.vi)}</option>`).join('')}</select>${er('priority')}<div class="hint">Cách hiển thị trên máy (âm thanh, pop-up) do mức ưu tiên và hệ điều hành quyết định.</div></div>
-      <div class="${e.repetition?'has-err':''}"><label class="f">Chu kỳ lặp lại (giây) <span class="req">*</span></label><input type="number" min="5" max="300" data-f="repetition" value="${F.repetition}">${er('repetition')}<div class="hint">5–300 giây, khuyến nghị 15–20 giây.</div></div>
+      <div class="${e.priority?'has-err':''}"><label class="f">Mức ưu tiên (bảng CMAS) <span class="req">*</span></label><select data-f="priority">${S.priorities.filter(p=>p.active||p.mi==F.priority).map(p=>`<option value="${p.mi}" ${F.priority==p.mi?'selected':''}>${p.mi} – ${esc(p.vi)}</option>`).join('')}</select>${er('priority')}<div class="hint" id="priHint">Âm thanh, rung: ${esc(soundOf(F.priority))}</div></div>
+      <div class="${e.repetition?'has-err':''}"><label class="f">Chu kỳ lặp (giây) <span class="req">*</span></label><input type="number" min="5" max="300" data-f="repetition" value="${F.repetition}">${er('repetition')}<div class="hint">5–300 giây, khuyến nghị 15–20.</div></div>
       <div class="${e.duration?'has-err':''}"><label class="f">Thời hạn phát (phút) <span class="req">*</span></label><input type="number" min="15" max="2880" data-f="duration" value="${F.duration}">${er('duration')}
         <div class="hint" id="durHint">${dur(F.duration||0)} · 15 phút – 48 giờ</div>
         <div class="row" style="gap:4px;margin-top:4px">${[30,60,120,360,720,1440,2880].map(v=>`<button class="btn sm" type="button" data-act="setDur" data-v="${v}">${dur(v)}</button>`).join('')}</div></div>
@@ -917,15 +918,18 @@ function viewCompose(r){
   <div class="sticky">
     <div class="card mb"><div class="hd"><h2>Xem trước</h2><span class="small muted">mô phỏng gần đúng</span></div><div class="bd" id="preview"></div></div>
     <div class="card"><div class="bd">
-      <div class="small muted mb">Người soạn: <b>${esc(me.name)}</b>. Sau khi gửi duyệt, bản tin cần Người phê duyệt khác duyệt và xác thực OTP mới được phát.</div>
+      <div class="small muted mb">Sau khi gửi duyệt, Người phê duyệt (khác người soạn) duyệt và nhập OTP thì hệ thống mới phát.</div>
       <div class="row"><a class="btn" href="${r.id?`#/messages/${r.id}`:'#/messages'}">Huỷ</a><div class="sp"></div><button class="btn" data-act="saveDraft">Lưu nháp</button><button class="btn pri" data-act="submitMsg">Gửi duyệt</button></div>
     </div></div>
   </div></div>`;
 }
 function composeContent(){
   const e = F.errors, er = k => e[k] ? `<div class="ferr">${esc(e[k])}</div>` : '';
+  const header = `<div class="mb ${e.header?'has-err':''}"><label class="f">Tiêu đề <span class="req">*</span></label>
+    <input type="text" list="hdrs" data-f="header" value="${esc(F.header)}" maxlength="60" placeholder="Chọn hoặc nhập theo cấp và cơ quan ra lệnh"><datalist id="hdrs">${HEADERS.map(h=>`<option value="${esc(h)}">`).join('')}</datalist>${er('header')}
+    <div class="hint">VD: [CẢNH BÁO KHẨN CẤP QUỐC GIA], [CẢNH BÁO THIÊN TAI - UBND TỈNH/THÀNH PHỐ], [TÌM KIẾM CỨU NẠN KHẨN CẤP].</div></div>`;
   if (F.mode === 'template'){
-    const groups = [...new Set(S.templates.filter(t=>t.active).map(t => t.group))];
+    const groups = TPL_GROUPS.filter(g => S.templates.some(t => t.group===g));
     let tl = S.templates.filter(t => t.active && (!F.group || t.group===F.group));
     if (F.tq){ const k = noAccent(F.tq.toLowerCase()); tl = tl.filter(t => noAccent(`${t.code} ${t.name} ${t.body}`.toLowerCase()).includes(k)); }
     const t = S.templates.find(x => x.id===F.templateId);
@@ -935,15 +939,19 @@ function composeContent(){
       <div style="grid-column:span 2" class="${e.templateId?'has-err':''}"><label class="f">Mẫu tin <span class="req">*</span></label><select data-f="templateId"><option value="">— Chọn mẫu (${tl.length}) —</option>${tl.map(x=>`<option value="${x.id}" ${F.templateId===x.id?'selected':''}>${x.code} · ${esc(x.name)}</option>`).join('')}${t && !tl.includes(t)?`<option value="${t.id}" selected>${t.code} · ${esc(t.name)}</option>`:''}</select>${er('templateId')}</div>
     </div>
     <div class="mb"><input type="text" data-f="tq" value="${esc(F.tq)}" placeholder="Tìm mẫu theo mã, tên, nội dung…"></div>
-    ${t ? `<div class="alert info"><div class="small muted">Tiêu đề và mức ưu tiên nạp từ mẫu (mức ưu tiên mẫu: ${t.mi} – ${esc(PRI(t.mi).vi)})</div><b>${esc(t.header)}</b><div style="margin-top:4px">${esc(t.body).replace(/\{([^{}]+)\}/g,'<span class="var">{$1}</span>')}</div></div>
-      ${vs.length ? `<div class="small muted" style="margin-bottom:6px">Nhập giá trị cho ${vs.length} biến:</div><div class="grid g2">${vs.map(v => `<div class="${e['var_'+v]?'has-err':''}"><label class="f">{${esc(v)}} <span class="req">*</span></label><input type="text" data-var="${esc(v)}" value="${esc(F.vars[v]||'')}">${er('var_'+v)}</div>`).join('')}</div>` : `<div class="muted">Mẫu này không có biến.</div>`}`
+    ${t ? `${header}
+      <div class="mb"><label class="f">Nội dung mẫu</label><div class="alert info" style="margin:0">${esc(t.body).replace(/\{([^{}]+)\}/g,'<span class="var">{$1}</span>')}</div></div>
+      ${vs.length ? `<label class="f">Giá trị các biến (${vs.length})</label><div class="grid g2">${vs.map(v => `<div class="${e['var_'+v]?'has-err':''}"><label class="f small" style="font-weight:400">{${esc(v)}} <span class="req">*</span></label><input type="text" data-var="${esc(v)}" value="${esc(F.vars[v]||'')}" placeholder="${/link/i.test(v)?'https://…':''}">${er('var_'+v)}</div>`).join('')}</div>` : `<div class="muted small">Mẫu này không có biến.</div>`}
+      <div id="cnt" style="margin-top:10px"></div>`
     : `<div class="muted">Chọn một mẫu để nạp tiêu đề, mức ưu tiên và nội dung.</div>`}`;
   }
-  return `<div class="mb ${e.header?'has-err':''}"><label class="f">Tiêu đề <span class="req">*</span></label>
-    <input type="text" list="hdrs" data-f="header" value="${esc(F.header)}" maxlength="60" placeholder="Chọn hoặc nhập, VD [BAN CHỈ ĐẠO QUỐC GIA PCTT]"><datalist id="hdrs">${HEADERS.map(h=>`<option value="${esc(h)}">`).join('')}</datalist>${er('header')}
-    <div class="hint">Theo cấp độ khẩn cấp và cơ quan phát lệnh.</div></div>
-    <div class="${e.body?'has-err':''}"><label class="f">Nội dung <span class="req">*</span></label><textarea data-f="body" rows="6" placeholder="Nhập nội dung cảnh báo, có thể kèm số hotline hoặc đường dẫn https://…">${esc(F.body)}</textarea>${er('body')}
-    <div class="row" style="margin-top:6px"><button class="btn sm" type="button" data-act="toNoAccent">Chuyển sang không dấu</button><span class="hint">Không dấu: 93 ký tự/trang, tương thích mọi máy. Có dấu: 41 ký tự/trang.</span></div></div>`;
+  return `${header}
+    <div class="${e.body?'has-err':''}"><label class="f">Nội dung <span class="req">*</span></label><textarea data-f="body" rows="6" placeholder="Nhập nội dung cảnh báo, có thể kèm số hotline hoặc đường link https://…">${esc(F.body)}</textarea>${er('body')}
+    <div class="row" style="margin-top:6px;gap:6px"><button class="btn sm" type="button" data-act="insLink">Chèn link</button><button class="btn sm" type="button" data-act="toNoAccent">Chuyển sang không dấu</button><div class="sp"></div><span id="cnt"></span></div></div>`;
+}
+function cntHtml(){
+  const ms = measure(composeText()), over = ms.len > MAX_CHARS;
+  return `<span class="small" style="color:${over?'var(--err)':'var(--muted)'}"><b>${nf(ms.len)}</b>/${nf(MAX_CHARS)} ký tự · <b>${ms.pages}</b> trang CB · ${ms.cs}</span>`;
 }
 function composeArea(){
   const p = F.prov; const xs = S.xas.filter(x => x.provinceId===p);
@@ -976,17 +984,19 @@ function areaResult(){
     ${s.empty.length ? `<div class="alert warn" style="margin:0">Chưa có dữ liệu cell: ${s.empty.map(a=>esc(XA(a).name)).join(', ')}. Các xã này sẽ không được phát.</div>`:''}`;
 }
 function previewHtml(text, mi){
-  const ms = measure(text), max = S.settings.maxPages;
+  const ms = measure(text);
   return `<div class="phone"><div class="screen"><div class="alertbox"><div class="ttl">⚠ ${esc(PRI(mi).vi)}</div>
     <div class="msg">${text ? esc(text) : '<span class="faint">Nội dung bản tin sẽ hiển thị ở đây.</span>'}</div><div class="okb">ĐÃ HIỂU</div></div></div></div>
-    <div class="stats"><div><b>${nf(ms.len)}</b><span>ký tự</span></div><div><b style="color:${ms.pages>max?'var(--err)':'inherit'}">${ms.pages}/${max}</b><span>trang CB</span></div><div><b style="font-size:13px">${ms.per}</b><span>ký tự/trang</span></div></div>
-    <div class="small muted" style="margin-top:8px">Bộ ký tự: ${ms.cs}. ${ms.pages>max?`<span style="color:var(--err)">Vượt số trang tối đa.</span>`:''}</div>`;
+    <div class="stats"><div><b style="color:${ms.len>MAX_CHARS?'var(--err)':'inherit'}">${nf(ms.len)}/${nf(MAX_CHARS)}</b><span>ký tự</span></div><div><b>${ms.pages}</b><span>trang CB</span></div><div><b style="font-size:13px">${ms.per}</b><span>ký tự/trang</span></div></div>
+    <div class="small muted" style="margin-top:8px">Bộ ký tự: ${ms.cs}. Hiển thị thực tế phụ thuộc thiết bị của người dân.${ms.len>MAX_CHARS?` <span style="color:var(--err)">Vượt ${nf(MAX_CHARS)} ký tự.</span>`:''}</div>`;
 }
 function composeRefresh(){
   if (!F) return;
   const p = $('#preview'); if (p) p.innerHTML = previewHtml(composeText(), F.priority);
   const a = $('#areaRes'); if (a) a.innerHTML = areaResult();
   const d = $('#durHint'); if (d) d.textContent = `${dur(F.duration||0)} · 15 phút – 48 giờ`;
+  const c = $('#cnt'); if (c) c.innerHTML = cntHtml();
+  const ph = $('#priHint'); if (ph) ph.textContent = `Âm thanh, rung: ${soundOf(F.priority)}`;
 }
 function errBoxHtml(){ const v = Object.values(F.errors); return v.length ? `<div class="alert err"><b>Chưa gửi được, còn ${v.length} lỗi:</b><ul>${v.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>` : ''; }
 function clearErr(key, el){
@@ -1003,12 +1013,15 @@ function validate(forSubmit){
       const t = S.templates.find(x => x.id===F.templateId);
       if (!t) e.templateId = 'Chọn mẫu tin.';
       else vars(t.body).forEach(v => { if (!(F.vars[v]||'').trim()) e['var_'+v] = 'Nhập giá trị biến.'; });
+      if (!F.header.trim()) e.header = 'Nhập tiêu đề.';
+      Object.entries(F.vars).forEach(([k,v]) => { if (/link/i.test(k) && v.trim() && !/^https:\/\/\S+\.\S+/.test(v.trim())) e['var_'+k] = 'Link phải dạng https://…'; });
     } else {
       if (!F.header.trim()) e.header = 'Nhập tiêu đề.';
       if (!F.body.trim()) e.body = 'Nhập nội dung.';
+      else if ((F.body.match(/\bhttps?:\/\/\S*/g)||[]).some(u => !/^https:\/\/\S+\.\S+/.test(u))) e.body = 'Link trong nội dung phải dạng https://…';
       else if (vars(F.body).length) e.body = 'Nội dung còn biến {…} chưa thay giá trị.';
     }
-    if (measure(composeText()).pages > S.settings.maxPages) e[F.mode==='template'?'templateId':'body'] = `Nội dung vượt ${S.settings.maxPages} trang.`;
+    if (measure(composeText()).len > MAX_CHARS) e[F.mode==='template'?'templateId':'body'] = `Nội dung vượt ${MAX_CHARS} ký tự (tối đa 2 trang CB).`;
     if (!F.areas.length) e.areas = 'Chọn ít nhất một xã/phường.';
     else if (!areaStats(F.areas).cells) e.areas = 'Vùng đã chọn không có cell nào.';
     if (!PRI(F.priority).active) e.priority = 'Chọn mức ưu tiên.';
@@ -1027,7 +1040,7 @@ function saveCompose(submit){
   }
   const t = S.templates.find(x => x.id===F.templateId);
   const data = {campaign:F.campaign.trim(), docNo:F.docNo.trim(), mode:F.mode, templateId:F.mode==='template'?F.templateId:null,
-    vars:F.mode==='template'?{...F.vars}:{}, header:F.mode==='template'&&t?t.header:F.header.trim(), body:F.mode==='template'&&t?fill(t.body,F.vars):F.body.trim(),
+    vars:F.mode==='template'?{...F.vars}:{}, header:F.header.trim(), body:F.mode==='template'&&t?fill(t.body,F.vars):F.body.trim(),
     areas:[...F.areas], priority:Number(F.priority), repetition:Number(F.repetition), duration:Number(F.duration)};
   let m;
   if (F.id){ m = S.messages.find(x => x.id===F.id); Object.assign(m, data); m.updatedAt = now(); m.history.push({at:now(), by:me.id, act:'Sửa bản tin'}); if (!submit) m.status = 'draft'; }
@@ -1545,8 +1558,12 @@ const A = {
   logout(){ log('Đăng nhập','Đăng xuất', me.username); save(); setSession(null); F = null; location.hash = ''; render(); },
   resetDemo(){ if (!confirm('Xoá toàn bộ dữ liệu demo và khởi tạo lại?')) return; lsDel(LS_KEY); lsDel(LS_SES); seed(); save(); me = null; F = null; location.hash = ''; render(); toast('Đã khởi tạo lại dữ liệu demo.', 'ok'); },
   open(el){ go(`#/messages/${el.dataset.id}`); },
-  clearFilter(){ msgFilter = {st:'', q:'', mi:'', by:'', from:'', to:''}; go('#/messages'); },
+  clearFilter(){ msgFilter = {st:msgFilter.st, q:'', mi:'', by:'', from:'', to:''}; render(); },
   setDur(el){ F.duration = Number(el.dataset.v); const i = document.querySelector('[data-f=duration]'); if (i) i.value = F.duration; composeRefresh(); },
+  insLink(){ modal('Chèn link', `<label class="f">Đường link <span class="req">*</span></label><input type="text" id="lnkIn" placeholder="https://…"><div class="hint">Link tới trang chỉ đạo điều hành, bản đồ cứu hộ của Chính phủ, CQQLNN, UB PCCN. Link được tính vào số ký tự.</div><div id="lnkErr"></div>`,
+    `<button class="btn" data-act="closeModal">Huỷ</button><button class="btn pri" data-act="insLinkOk">Chèn</button>`); },
+  insLinkOk(){ const v = $('#lnkIn').value.trim(); if (!/^https:\/\/\S+\.\S+$/.test(v)) return $('#lnkErr').innerHTML = '<div class="ferr">Link phải đúng định dạng https://…</div>';
+    const ta = document.querySelector('[data-f=body]'); const p = ta ? ta.selectionStart : F.body.length; F.body = F.body.slice(0,p) + (p && !/\s$/.test(F.body.slice(0,p)) ? ' ' : '') + v + ' ' + F.body.slice(p); closeModal(); $('#secContent').innerHTML = composeContent(); composeRefresh(); },
   toNoAccent(){ F.header = noAccent(F.header); F.body = noAccent(F.body); $('#secContent').innerHTML = composeContent(); composeRefresh(); },
   selAllXa(){ const xs = S.xas.filter(x => x.provinceId===F.prov).map(x => x.id); const all = xs.every(x => F.areas.includes(x)); F.areas = all ? F.areas.filter(a => !xs.includes(a)) : [...new Set([...F.areas, ...xs])]; clearErr('areas'); areaSoftRefresh(); },
   rmXa(el){ F.areas = F.areas.filter(a => a !== el.dataset.id); areaSoftRefresh(); },
@@ -1572,7 +1589,7 @@ const A = {
     $('#updBody').addEventListener('input', cnt); cnt(); },
   updateOk(el){ const m = S.messages.find(x => x.id===el.dataset.id); const body = $('#updBody').value.trim(), reason = $('#updReason').value.trim(); const e = [];
     if (!body) e.push('Nhập nội dung mới.'); else if (body === m.body) e.push('Nội dung mới chưa thay đổi.'); if (vars(body).length) e.push('Nội dung còn biến {…} chưa thay.');
-    if (measure([m.header, body].join(' ')).pages > S.settings.maxPages) e.push(`Nội dung vượt ${S.settings.maxPages} trang.`); if (!reason) e.push('Nhập lý do cập nhật.');
+    if (measure([m.header, body].join(' ')).len > MAX_CHARS) e.push(`Nội dung vượt ${MAX_CHARS} ký tự.`); if (!reason) e.push('Nhập lý do cập nhật.');
     if (e.length){ $('#updErr').innerHTML = `<div class="alert err" style="margin-top:10px"><ul>${e.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`; return; }
     const a = {type:'update', body, reason, by:me.id, at:now()};
     if (S.settings.approveUpdateStop){ m.pendingAction = a; m.history.push({at:now(), by:me.id, act:'Gửi duyệt yêu cầu cập nhật', note:reason}); log('Bản tin','Gửi duyệt cập nhật', m.code); toast('Đã gửi yêu cầu cập nhật cho Người phê duyệt.', 'ok'); }
@@ -1701,7 +1718,7 @@ document.addEventListener('submit', ev => {
   if (k==='login') return doLogin(fd);
   if (k==='loginOtp'){ const r = otpCheck(fd.get('otp')||''); if (r.ok) return finishLogin(loginStep.u);
     loginStep.err = r.msg; if (r.locked){ log('Đăng nhập','Nhập sai OTP quá số lần', loginStep.u.username, 'Cảnh báo', loginStep.u.id); save(); loginStep = {u:null, err:r.msg + ' Đăng nhập lại.'}; } return render(); }
-  if (k==='msgFilter'){ msgFilter = Object.fromEntries(fd); return go('#/messages'); }
+  if (k==='msgFilter'){ msgFilter = Object.fromEntries(fd); return go('#/messages?st=' + (msgFilter.st||'')); }
   if (k==='repFilter'){ repFilter = Object.fromEntries(fd); return render(); }
   if (k==='tplFilter'){ tplFilter = Object.fromEntries(fd); if (!isRole('QT')) tplFilter.st = 'active'; return render(); }
   if (k==='logFilter'){ logFilter = Object.fromEntries(fd); return render(); }
