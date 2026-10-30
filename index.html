@@ -1,0 +1,1648 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CMS Cell Broadcast VNPT – Demo</title>
+<style>
+:root{
+  --bg:#f4f6f9; --panel:#fff; --line:#dfe3ea; --line2:#eef1f5; --text:#1b2330; --muted:#5d6878; --faint:#8a94a3;
+  --pri:#1f5fae; --pri-d:#174a88; --pri-l:#e8f0fb;
+  --ok:#1e7b46; --ok-l:#e6f4ec; --warn:#a15c00; --warn-l:#fff4e0; --err:#b4321f; --err-l:#fdecea; --info-l:#eef3f9;
+  --r:8px; --sh:0 1px 2px rgba(20,30,50,.06),0 2px 8px rgba(20,30,50,.05);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font:14px/1.5 "Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color:var(--text);background:var(--bg)}
+a{color:var(--pri);text-decoration:none} a:hover{text-decoration:underline}
+h1{font-size:20px;margin:0} h2{font-size:16px;margin:0} h3{font-size:14px;margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;border-radius:6px;padding:7px 14px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:#f7f9fc}
+.btn.pri{background:var(--pri);border-color:var(--pri);color:#fff} .btn.pri:hover{background:var(--pri-d)}
+.btn.danger{color:var(--err);border-color:#efc2bb} .btn.danger:hover{background:var(--err-l)}
+.btn.dangerfill{background:var(--err);border-color:var(--err);color:#fff}
+.btn.ok{background:var(--ok);border-color:var(--ok);color:#fff}
+.btn.sm{padding:4px 10px;font-size:13px}
+.btn.link{border:0;background:none;color:var(--pri);padding:4px 6px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+input[type=text],input[type=password],input[type=number],input[type=date],input[type=email],input[type=tel],select,textarea{
+  width:100%;border:1px solid var(--line);border-radius:6px;padding:7px 10px;background:#fff}
+textarea{resize:vertical;min-height:90px}
+input:focus,select:focus,textarea:focus{outline:2px solid #bcd3f2;border-color:var(--pri)}
+input[readonly],textarea[readonly]{background:#f7f8fa}
+label.f{display:block;font-weight:600;margin:0 0 4px;font-size:13px}
+.req{color:var(--err)}
+.hint{color:var(--muted);font-size:12.5px;margin-top:3px}
+.ferr{color:var(--err);font-size:12.5px;margin-top:3px}
+.has-err input,.has-err select,.has-err textarea{border-color:var(--err)}
+.grid{display:grid;gap:14px} .g2{grid-template-columns:1fr 1fr} .g3{grid-template-columns:repeat(3,1fr)} .g4{grid-template-columns:repeat(4,1fr)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.sp{flex:1}
+.muted{color:var(--muted)} .faint{color:var(--faint)} .small{font-size:12.5px} .mono{font-family:Consolas,"SFMono-Regular",monospace}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh)}
+.card>.hd{padding:12px 16px;border-bottom:1px solid var(--line2);display:flex;align-items:center;gap:10px}
+.card>.bd{padding:16px}
+.mb{margin-bottom:14px}
+.badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+.b-draft{background:#eef0f3;color:#4a5565}.b-pending{background:var(--warn-l);color:var(--warn)}.b-rejected{background:var(--err-l);color:var(--err)}
+.b-cancelled{background:#f1f1f1;color:#777}.b-broadcasting{background:var(--ok-l);color:var(--ok)}.b-stopped{background:#ece9f7;color:#5b45a6}.b-expired{background:#e9eef4;color:#41546b}
+.b-role{background:var(--pri-l);color:var(--pri)}
+.alert{padding:10px 14px;border-radius:6px;margin-bottom:14px;border:1px solid}
+.alert.err{background:var(--err-l);border-color:#f2c6bf;color:#7d2215}
+.alert.warn{background:var(--warn-l);border-color:#f0d9a8;color:#6d4300}
+.alert.info{background:var(--info-l);border-color:#d6e2f1;color:#24405f}
+.alert.ok{background:var(--ok-l);border-color:#bfe2cd;color:#14532f}
+.alert ul{margin:4px 0 0 18px;padding:0}
+table.t{width:100%;border-collapse:collapse}
+.t th,.t td{padding:9px 10px;border-bottom:1px solid var(--line2);text-align:left;vertical-align:top}
+.t th{font-size:12.5px;color:var(--muted);font-weight:600;background:#fafbfc;position:sticky;top:0}
+.t tr.click{cursor:pointer} .t tr.click:hover td{background:#f7faff}
+.t td.num,.t th.num{text-align:right}
+.t td.mono{white-space:nowrap}
+.hamb{display:none}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+.kv{display:grid;grid-template-columns:170px 1fr;gap:6px 12px}
+.kv>div:nth-child(odd){color:var(--muted)}
+.chip{display:inline-flex;align-items:center;gap:4px;background:var(--pri-l);color:var(--pri);border-radius:999px;padding:2px 4px 2px 10px;font-size:12.5px;margin:2px 4px 2px 0}
+.chip button{border:0;background:none;color:inherit;cursor:pointer;font-size:14px;line-height:1;padding:0 4px}
+.prog{height:8px;background:#e9edf3;border-radius:99px;overflow:hidden;display:flex}
+.prog i{display:block;height:100%}
+.dk{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.dt{border:1px solid var(--line2);border-radius:6px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.dt .v{font-size:20px;font-weight:700;line-height:1.3} .dt .v small{font-size:13px;font-weight:600;color:var(--muted)}
+.dt .tag{margin-top:auto;padding-top:6px}
+.tag span{display:inline-block;font-size:11.5px;padding:1px 8px;border-radius:999px;font-weight:600}
+.t-ok{background:var(--ok-l);color:var(--ok)} .t-cond{background:var(--warn-l);color:var(--warn)} .t-no{background:#eef0f3;color:#4a5565}
+h3.sec{margin:2px 0 10px;font-size:13.5px;text-transform:uppercase;letter-spacing:.02em;color:var(--muted)}
+.compose>div{min-width:0}
+.sec-h{margin:24px 0 12px} .sec-h h2{font-size:18px} .sec-h .sub{color:var(--muted);font-size:12.5px;margin-top:2px}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px} .tiles.t3{grid-template-columns:repeat(3,1fr)}
+.tile{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--sh)}
+.tile .l{font-weight:600;font-size:13px;color:#3a4556;display:flex;gap:8px;align-items:center;flex-wrap:wrap} .tile .v{font-size:28px;font-weight:700;margin:10px 0 2px;line-height:1.2}
+.tile .v.na{color:#8a94a3;font-size:22px} .tile .s{font-size:12.5px;color:var(--muted)}
+.c-ok{color:#1f8a6b} .c-pri{color:#2457d6} .c-warn{color:#b26a00} .c-err{color:var(--err)}
+.pill{font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;white-space:nowrap} .p-net{background:#fff1d6;color:#9a5b00} .p-no{background:#eef0f3;color:#4a5565} .p-ext{background:#e8ebfb;color:#3d4ab0} .p-cms{background:#e3f4ea;color:#1e7b46}
+.two{display:grid;grid-template-columns:1.3fr 1fr;gap:14px} .two .card,.tiles .tile{min-width:0}
+.kv2{display:grid;grid-template-columns:1fr 1fr;column-gap:28px;margin-top:10px} .kv2>div{padding:10px 0;border-bottom:1px solid var(--line2);min-width:0}
+.kv2 .k{font-size:12px;color:var(--muted)} .kv2 .v{font-weight:700;margin-top:2px;overflow-wrap:anywhere}
+.big{font-size:34px;font-weight:700;color:#1f8a6b;line-height:1}
+.bar2{height:10px;border-radius:99px;background:#e9edf3;overflow:hidden;display:flex} .bar2 i{display:block;height:100%}
+.legend{display:flex;gap:14px;margin:8px 0 14px;color:var(--muted)} .legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.trow{display:grid;grid-template-columns:60px 1fr 170px;gap:10px;align-items:center;font-size:12.5px;margin:8px 0} .trow>:last-child{text-align:right}
+.note{background:#f6f8fb;border:1px solid var(--line2);border-radius:8px;padding:10px 12px;font-size:12.5px;color:#33415a}
+.formula{border-left:3px solid #4f7be8;background:#f6f8fb;padding:10px 14px;font-size:12.5px;margin-top:14px}
+.sb{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px} .sb-ok{background:var(--ok-l);color:var(--ok)} .sb-fail{background:var(--err-l);color:var(--err)} .sb-pend{background:var(--warn-l);color:var(--warn)}
+.t tr.sel td{background:#eef4fd}
+.howto{background:var(--info-l);border:1px solid #d6e2f1;border-radius:6px;padding:10px 12px;color:#24405f}
+.cmds{display:flex;flex-direction:column;gap:10px}
+.cmd{border:1px solid var(--line2);border-left:3px solid var(--pri);border-radius:6px;padding:10px 12px}
+.cmd.kill{border-left-color:#5b45a6}
+.cmd .no{display:inline-flex;width:22px;height:22px;border-radius:50%;background:var(--pri-l);color:var(--pri);font-size:12px;font-weight:700;align-items:center;justify-content:center}
+.hb{display:grid;grid-template-columns:150px 1fr 110px;gap:10px;align-items:center;font-size:12.5px;margin:3px 0}
+.hb .bar{height:12px;background:#e9edf3;border-radius:3px;overflow:hidden} .hb .bar i{display:block;height:100%;background:var(--pri)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.tabs a{padding:8px 12px;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs a.on{color:var(--pri);border-color:var(--pri);font-weight:600} .tabs a:hover{text-decoration:none;color:var(--text)}
+
+/* layout */
+#app{display:flex;min-height:100vh}
+.side{width:236px;background:#14243a;color:#c9d3e0;flex:none;display:flex;flex-direction:column}
+.brand{padding:16px 18px;border-bottom:1px solid #22344d}
+.brand b{display:block;color:#fff;font-size:15px}
+.brand span{font-size:12px;color:#8fa1b8}
+.nav{padding:10px 8px;flex:1;overflow:auto}
+.nav .grp{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#7f93ad;padding:12px 10px 4px}
+.nav a{display:flex;align-items:center;gap:8px;color:#c9d3e0;padding:8px 10px;border-radius:6px}
+.nav a:hover{background:#1c3150;text-decoration:none}
+.nav a.on{background:var(--pri);color:#fff}
+.nav .cnt{margin-left:auto;background:#d9822b;color:#fff;border-radius:99px;font-size:11px;padding:0 7px;font-weight:700}
+.side .foot{padding:10px 18px;font-size:11.5px;color:#7f93ad;border-top:1px solid #22344d}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.top{height:56px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 20px;gap:12px;position:sticky;top:0;z-index:5}
+.who{display:flex;align-items:center;gap:10px;cursor:pointer;position:relative;padding:6px 8px;border-radius:6px}
+.who:hover{background:#f4f6f9}
+.av{width:32px;height:32px;border-radius:50%;background:var(--pri);color:#fff;display:grid;place-items:center;font-weight:700;font-size:13px}
+.menu{position:absolute;right:0;top:46px;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(20,30,50,.14);min-width:250px;padding:6px;display:none}
+.menu.open{display:block}
+.menu button{display:block;width:100%;text-align:left;border:0;background:none;padding:8px 10px;border-radius:6px;cursor:pointer}
+.menu button:hover{background:#f4f6f9}
+.menu hr{border:0;border-top:1px solid var(--line2);margin:6px 0}
+.content{padding:20px 24px 40px;max-width:1400px;width:100%}
+.ph{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.ph .sub{color:var(--muted);font-size:13px}
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px}
+.filters>div{min-width:150px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+.kpi{padding:14px 16px}
+.kpi .v{font-size:26px;font-weight:700}
+.kpi .l{color:var(--muted);font-size:13px}
+
+/* compose */
+.compose{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px;align-items:start}
+.sticky{position:sticky;top:72px}
+.secno{width:24px;height:24px;border-radius:50%;background:var(--pri);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;flex:none}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg label{padding:7px 14px;cursor:pointer;border-right:1px solid var(--line);user-select:none}
+.seg label:last-child{border-right:0}
+.seg input{display:none}
+.seg input:checked+span{color:var(--pri);font-weight:600}
+.seg label:has(input:checked){background:var(--pri-l)}
+.xalist{max-height:230px;overflow:auto;border:1px solid var(--line);border-radius:6px;padding:6px 10px}
+.xalist label{display:flex;gap:8px;align-items:center;padding:4px 0;cursor:pointer}
+.xalist label .faint{margin-left:auto}
+.phone{background:#1d232c;border-radius:26px;padding:14px 12px 18px;margin:0 auto;max-width:300px}
+.screen{background:#eef1f5;border-radius:16px;min-height:300px;padding:16px 12px;display:flex;align-items:center}
+.alertbox{background:#fff;border-radius:12px;padding:14px;width:100%;box-shadow:0 4px 16px rgba(0,0,0,.15)}
+.alertbox .ttl{font-weight:700;color:#b4321f;font-size:13px;margin-bottom:6px;display:flex;gap:6px;align-items:center}
+.alertbox .msg{font-size:13px;white-space:pre-wrap;word-break:break-word}
+.alertbox .okb{margin-top:12px;text-align:center;color:var(--pri);font-weight:600;border-top:1px solid #eee;padding-top:8px;font-size:13px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.stats div{background:#f6f8fb;border-radius:6px;padding:8px;text-align:center}
+.stats b{display:block;font-size:16px}
+.stats span{font-size:11.5px;color:var(--muted)}
+.var{background:#fff3c4;border-radius:3px;padding:0 2px}
+.diff{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.diff pre{white-space:pre-wrap;word-break:break-word;background:#f7f8fa;border:1px solid var(--line2);border-radius:6px;padding:10px;margin:4px 0 0;font:inherit;font-size:13px}
+.timeline{list-style:none;margin:0;padding:0}
+.timeline li{position:relative;padding:0 0 12px 18px;border-left:2px solid var(--line2);margin-left:6px}
+.timeline li:before{content:"";position:absolute;left:-6px;top:4px;width:10px;height:10px;border-radius:50%;background:var(--pri)}
+.timeline li:last-child{border-color:transparent}
+
+/* modal, toast, sms */
+.ov{position:fixed;inset:0;background:rgba(15,25,40,.45);display:grid;place-items:center;z-index:50;padding:16px}
+.modal{background:#fff;border-radius:10px;width:100%;max-width:520px;box-shadow:0 20px 60px rgba(0,0,0,.25);max-height:92vh;display:flex;flex-direction:column}
+.modal.wide{max-width:760px}
+.modal .hd{padding:14px 18px;border-bottom:1px solid var(--line2);display:flex;align-items:center}
+.modal .bd{padding:18px;overflow:auto}
+.modal .ft{padding:12px 18px;border-top:1px solid var(--line2);display:flex;justify-content:flex-end;gap:8px}
+.x{border:0;background:none;font-size:20px;cursor:pointer;margin-left:auto;color:var(--muted)}
+.otp{letter-spacing:.5em;font-size:22px;text-align:center;font-family:Consolas,monospace}
+#toasts{position:fixed;right:18px;top:68px;z-index:60;display:flex;flex-direction:column;gap:8px}
+.toast{background:#1b2330;color:#fff;padding:10px 14px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.2);max-width:380px;font-size:13.5px}
+.toast.ok{background:var(--ok)} .toast.err{background:var(--err)} .toast.warn{background:#a15c00}
+#sms{position:fixed;left:18px;bottom:18px;z-index:70;width:330px;display:none}
+#sms .card{border-color:#c9d8ec}
+#sms .hd{background:#eef4fb}
+
+/* login */
+.login{min-height:100vh;display:grid;grid-template-columns:1fr 1fr}
+.login .l{background:linear-gradient(160deg,#14243a,#1f5fae);color:#dfe8f4;padding:48px;display:flex;flex-direction:column;justify-content:center}
+.login .l h1{color:#fff;font-size:28px;margin-bottom:10px}
+.login .r{display:grid;place-items:center;padding:24px}
+.login .box{width:100%;max-width:380px}
+.demo-acc{margin-top:18px}
+.demo-acc button{display:flex;width:100%;text-align:left;gap:8px;border:1px solid var(--line);background:#fff;border-radius:6px;padding:8px 10px;margin-bottom:6px;cursor:pointer}
+.demo-acc button:hover{background:#f7f9fc}
+/* ===== giao diện chuẩn: Arial 12px, nhãn đậm, viền xám 1px bo nhẹ, nút #5879B9 ===== */
+:root{--bg:#fff;--panel:#fff;--line:#d5d9df;--line2:#e8eaee;--text:#333;--muted:#666;--faint:#8c8c8c;
+  --pri:#5879B9;--pri-d:#4767a4;--pri-l:#eef2f9;--head:#f5f6f8;--focus:#9db7e3;--r:3px;--sh:none}
+body,button,input,select,textarea{font-family:Arial,Helvetica,sans-serif}
+body{font-size:12px;line-height:1.5;color:var(--text);background:#fff}
+h1{font-size:16px} h2{font-size:14px} h3{font-size:12px} .sec-h h2{font-size:15px}
+.small,.hint,.ferr,.ph .sub,.sec-h .sub,.tile .s,.note,.formula,.howto,.trow,.hb,.chip,.kv2 .k{font-size:11.5px}
+label.f,.kv>div:nth-child(odd),.kv2 .k,.tile .l,.t th,.legend{font-weight:700;color:var(--text)}
+.kv2 .v{font-weight:400}
+.kpi .l{font-weight:700;color:var(--text);font-size:12px}
+input[type=text],input[type=password],input[type=number],input[type=date],input[type=email],input[type=tel],select,textarea{
+  border:1px solid var(--line);border-radius:2px;padding:5px 8px;font-size:12px;background:#fff}
+input:focus,select:focus,textarea:focus{outline:0;border-color:var(--focus);box-shadow:0 0 0 2px #e6eefa}
+.btn{border-radius:2px;padding:5px 12px;font-size:12px;border-color:var(--line)}
+.btn.sm{padding:3px 9px;font-size:11.5px}
+.btn.pri{background:var(--pri);border-color:var(--pri)} .btn.pri:hover{background:var(--pri-d)}
+.card,.tile,.modal,.menu,.dt,.cmd,.note,.howto,.xalist,.seg,.diff pre,.alert,.toast,.demo-acc button,.stats div,.formula{border-radius:var(--r)}
+.card,.tile{box-shadow:none;border-color:var(--line)}
+.card>.hd,.modal .hd,.t th,#sms .hd{background:var(--head)}
+.top{background:var(--head)}
+.badge,.sb,.pill,.chip,.nav .cnt{border-radius:2px}
+.tile{padding:12px 14px} .tile .v{font-size:22px;margin:6px 0 2px} .tile .v.na{font-size:18px}
+.kpi .v{font-size:22px} .big{font-size:28px} .dt .v{font-size:18px}
+.c-pri{color:var(--pri)} .formula{border-left-color:var(--pri)}
+.t th,.t td{padding:7px 9px} .t th{font-size:11.5px}
+.card>.hd{padding:10px 14px} .card>.bd{padding:14px}
+/* thanh điều hướng nền sáng */
+.side{background:var(--head);color:var(--text);border-right:1px solid var(--line)}
+.brand{border-bottom:1px solid var(--line)} .brand b{color:var(--text);font-size:14px} .brand span{color:var(--muted);font-size:11px}
+.nav .grp{color:var(--muted);font-weight:700}
+.nav a{color:var(--text);border-radius:2px} .nav a:hover{background:#e9ecf1}
+.nav a.on{background:var(--pri);color:#fff}
+.side .foot{color:var(--muted);border-top:1px solid var(--line)}
+.login .l{background:var(--pri)}
+.otp{font-size:18px}
+.toast,.diff pre{font-size:12px} .dt .v small{font-size:12px}
+.seg label{padding:5px 12px} .xalist{border-color:var(--line)}
+@media (max-width:1100px){.compose{grid-template-columns:1fr}.sticky{position:static}.kpis{grid-template-columns:repeat(2,1fr)}.dk,.tiles,.tiles.t3{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}}
+@media (max-width:800px){.side{display:none;position:fixed;top:0;bottom:0;left:0;z-index:40;box-shadow:0 0 40px rgba(0,0,0,.4)}.side.open{display:flex}.hamb{display:inline-flex}.top{padding:0 12px}.login{grid-template-columns:1fr}.login .l{display:none}.g2,.g3,.g4,.dk,.tiles,.tiles.t3,.kv2{grid-template-columns:1fr}.trow{grid-template-columns:54px 1fr 120px}#cellQ{width:100%!important}.hb{grid-template-columns:118px 1fr 84px}.hb .mono{font-size:11.5px}.content{padding:16px}.kv{grid-template-columns:1fr}.diff{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div id="toasts"></div>
+<div id="sms"></div>
+<div id="modal"></div>
+
+<script>
+'use strict';
+/* =========================================================================
+   CMS Cell Broadcast VNPT – bản demo theo URD GĐ1 (YC001–YC031)
+   Dữ liệu lưu trên trình duyệt (localStorage). Kết nối mạng (MME/AMF) và SMS OTP là mô phỏng.
+   ========================================================================= */
+
+const LS_KEY = 'cbc_demo_data_v1', LS_SES = 'cbc_demo_session_v1';
+const ST = {draft:'Nháp',pending:'Chờ duyệt',rejected:'Bị từ chối',cancelled:'Đã huỷ',broadcasting:'Đang phát',stopped:'Đã dừng',expired:'Hết hạn'};
+const ROLE = {SO:'Người soạn thảo',PD:'Người phê duyệt',QT:'Quản trị hệ thống'};
+const GSM = "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà";
+const GSM_EXT = "^{}\\[~]|€";
+
+let S = null;            // dữ liệu
+let me = null;           // người dùng đang đăng nhập
+let F = null;            // form soạn bản tin đang mở
+let otpCtx = null;       // phiên OTP đang chờ
+let lastRoute = '';
+
+/* ---------- tiện ích ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2,'0');
+const fmt = t => { if(!t) return '–'; const d=new Date(t); return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; };
+const parseD = v => { const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec((v||'').trim()); if (!m) return null; const d = new Date(+m[3], +m[2]-1, +m[1]); return d.getDate()===+m[1] && d.getMonth()===+m[2]-1 ? d : null; };
+const dayFrom = v => { const d = parseD(v); return d ? d.setHours(0,0,0,0) : null; }, dayTo = v => { const d = parseD(v); return d ? d.setHours(23,59,59,999) : null; };
+const dateIn = (name, v) => `<input type="text" name="${name}" value="${esc(v||'')}" placeholder="DD/MM/YYYY" maxlength="10" inputmode="numeric">`;
+const fmtD = t => { if(!t) return '–'; const d=new Date(t); return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`; };
+const nf = n => Number(n||0).toLocaleString('vi-VN');
+const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+const now = () => Date.now();
+const dur = min => { min=Math.round(min); const h=Math.floor(min/60), m=min%60; return h? (m? `${h} giờ ${m} phút`:`${h} giờ`) : `${m} phút`; };
+const left = ms => { if(ms<=0) return '0 phút'; const s=Math.floor(ms/1000), h=Math.floor(s/3600), m=Math.floor(s%3600/60), ss=s%60; return h? `${h} giờ ${m} phút` : (m? `${m} phút ${ss} giây` : `${ss} giây`); };
+const noAccent = s => s.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D');
+const vars = s => [...new Set([...(s||'').matchAll(/\{([^{}]+)\}/g)].map(m=>m[1]))];
+const fill = (body, v) => (body||'').replace(/\{([^{}]+)\}/g, (m,k)=> (v && v[k]) ? v[k] : m);
+function rng(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){ toast('Không lưu được dữ liệu vào trình duyệt (localStorage bị chặn).','err'); } }
+function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
+function save(){ lsSet(LS_KEY, JSON.stringify(S)); }
+
+/* Đếm ký tự & số trang CB: 1 trang = 82 octet → 93 ký tự GSM 7-bit hoặc 41 ký tự UCS-2 */
+function measure(text){
+  text = text || '';
+  let gsm = true, septets = 0;
+  for (const ch of text){
+    if (GSM.includes(ch)) septets += 1;
+    else if (GSM_EXT.includes(ch)) septets += 2;
+    else { gsm = false; break; }
+  }
+  if (gsm) return {cs:'Không dấu (GSM 7-bit)', len:septets, per:93, pages: Math.max(1, Math.ceil(septets/93))};
+  const len = text.length;
+  return {cs:'Có dấu (UCS-2)', len, per:41, pages: Math.max(1, Math.ceil(len/41))};
+}
+
+/* ---------- dữ liệu mẫu ---------- */
+function seed(){
+  const r = rng(20261028);
+  const provinces = [
+    {id:'P01', code:'HNI', name:'Hà Nội'}, {id:'P02', code:'HTH', name:'Hà Tĩnh'}, {id:'P03', code:'QTR', name:'Quảng Trị'},
+    {id:'P04', code:'HUE', name:'Huế'}, {id:'P05', code:'DNG', name:'Đà Nẵng'}, {id:'P06', code:'QNG', name:'Quảng Ngãi'}];
+  const xaNames = {
+    P01:['Phường Hoàn Kiếm','Phường Ba Đình','Phường Cầu Giấy','Xã Sóc Sơn'],
+    P02:['Phường Thành Sen','Phường Trần Phú','Xã Kỳ Anh','Xã Thạch Hà','Xã Cẩm Xuyên'],
+    P03:['Phường Đồng Hới','Phường Đông Hà','Xã Gio Linh','Xã Vĩnh Linh'],
+    P04:['Phường Thuận Hóa','Phường Phú Xuân','Phường Hương Thủy','Xã Phú Vang'],
+    P05:['Phường Hải Châu','Phường Thanh Khê','Phường Sơn Trà','Phường Ngũ Hành Sơn','Phường Hội An','Phường Tam Kỳ','Xã Hòa Vang'],
+    P06:['Phường Cẩm Thành','Phường Trương Quang Trọng','Xã Bình Sơn','Xã Lý Sơn']};
+  const xas = [], cells = []; let enb = 10100, xi = 0;
+  for (const p of provinces){
+    xaNames[p.id].forEach((n,i) => {
+      const id = `X${String(++xi).padStart(3,'0')}`;
+      xas.push({id, code:`${p.code}-${String(i+1).padStart(2,'0')}`, provinceId:p.id, name:n});
+      if (n === 'Xã Vĩnh Linh') return; // xã chưa có dữ liệu cell – minh hoạ trường hợp không xác định được cell
+      const nEnb = 2 + Math.floor(r()*8);
+      for (let e=0; e<nEnb; e++){
+        enb++;
+        for (let c=1; c<=3; c++) cells.push({id:`452-02-${enb}-${c}`, enb, xaId:id, tech:'4G', subs: 300 + Math.floor(r()*2200)});
+      }
+    });
+  }
+  const users = [
+    {id:'U1', username:'soanthao1', name:'Nguyễn Văn An', unit:'VNPT-VinaPhone', phone:'0912345101', email:'an.nv@vnpt.vn', role:'SO', status:'active'},
+    {id:'U2', username:'soanthao2', name:'Trần Thị Bình', unit:'VNPT-VinaPhone', phone:'0912345102', email:'binh.tt@vnpt.vn', role:'SO', status:'active'},
+    {id:'U3', username:'pheduyet1', name:'Lê Minh Châu', unit:'VNPT-VinaPhone', phone:'0912345103', email:'chau.lm@vnpt.vn', role:'PD', status:'active'},
+    {id:'U4', username:'pheduyet2', name:'Phạm Quốc Dũng', unit:'VNPT-VinaPhone', phone:'0912345104', email:'dung.pq@vnpt.vn', role:'PD', status:'active'},
+    {id:'U5', username:'quantri', name:'Hoàng Thu Hà', unit:'VNPT-VinaPhone', phone:'0912345105', email:'ha.ht@vnpt.vn', role:'QT', status:'active'}];
+  users.forEach(u => { u.password = 'Demo@123'; u.failLogin = 0; u.createdAt = now(); });
+  const priorities = [
+    {mi:4370, vi:'Cảnh báo Khẩn cấp Quốc gia', en:'Presidential Alert', active:true},
+    {mi:4371, vi:'Cảnh báo cực kỳ nghiêm trọng', en:'Extreme Alert', active:true},
+    {mi:4373, vi:'Cảnh báo nghiêm trọng', en:'Severe Alert', active:true},
+    {mi:4379, vi:'Tìm kiếm cứu nạn khẩn cấp', en:'Amber Alert', active:true},
+    {mi:4380, vi:'Bản tin thử nghiệm', en:'Test Alert', active:true}];
+  const T = (code, group, header, body, mi=4370) => ({id:code, code, name:header.replace(/[\[\]]/g,''), group, header, body, mi, active:true, createdAt:now()});
+  const G1='Bão & Gió giật', G2='Lũ & Thủy điện', G3='Sạt lở & Địa chất', G5='Cứu nạn & Dân sự';
+  const templates = [
+    T('TMP-01',G1,'[BÃO CỰC KỲ NGUY HIỂM]','Bão số {Ten_Bao} dự kiến đổ bộ vào {Khu_vuc} sức gió cấp {Cap_Gio} vào {Time}. Toàn bộ người dân ở yên trong nhà kiên cố từ {Gio_Bat_Dau}. Hotline: 112.'),
+    T('TMP-02',G1,'[SIÊU BÃO ĐỔ BỘ]','SIÊU BÃO {Ten_Bao} dự kiến tàn phá khốc liệt tại {Tinh} vào {Time_1}. Người dân cắt cầu dao điện, chằng chống cửa, không ra ngoài trước {Time_2}. Hotline cứu trợ: 112.'),
+    T('TMP-03',G1,'[TRIỀU CƯỜNG VEN BIỂN]','Triều cường dâng cao {Do_Cao}m tại {Khu_vuc_Bien} vào {Time}. Nguy cơ vỡ đê biển và sóng đánh trùm bờ kè. Đề nghị người dân sơ tán tàu thuyền và người lên cao. Hotline cứu hộ: 112.'),
+    T('TMP-04',G1,'[LỐC XOÁY - GIÓ GIẬT]','Cảnh báo giông lốc xoáy giật cấp {Cap_Giat} tại {Khu_vuc} vào {Time}. Đề nghị người dân tránh xa cây to, biển quảng cáo, nhà mái tôn. Hotline cứu trợ: 112.'),
+    T('TMP-05',G1,'[ÁP THẤP NHIỆT ĐỚI]','Áp thấp gây mưa lớn diện rộng trên {So_Luong_Tinh} tỉnh. Lũ lớn có thể xuất hiện đêm nay vào {Time}. Theo dõi bản tin tại: {Link}. Hotline cứu trợ: 112.'),
+    T('TMP-06',G1,'[SÓNG THẦN VEN BIỂN]','CẢNH BÁO SÓNG THẦN: Đề nghị toàn bộ cư dân ven biển {Tinh} lập tức di tản sâu vào đất liền tối thiểu {So_Km}km hoặc lên đồi cao trước {Time}. Hotline cứu trợ: 112.'),
+    T('TMP-07',G1,'[LỆNH CẤM BIỂN KHẨN]','UBND {Tinh} ban hành lệnh cấm biển từ {Gio}. Đề nghị toàn bộ tàu thuyền vào nơi neo đậu an toàn, tuyệt đối không ra khơi. Hotline cứu trợ: 112.'),
+    T('TMP-08',G1,'[MƯA ĐÁ DIỆN RỘNG]','Dự kiến mưa đá hạt lớn và giông sét dữ dội tại {Dia_ban} từ {Gio}. Đề nghị người đi đường khẩn trương tìm nơi trú ẩn kiên cố. Người dân tuyệt đối không ra ngoài. Hotline cứu trợ: 112.'),
+    T('TMP-09',G1,'[SÉT ĐÁNH CỰC ĐOAN]','Mật độ phóng điện giông sét rất cao tại {Khu_vuc} vào {Time}. Đề nghị người dân tắt các thiết bị điện tử, không đứng ngoài đồng trống. Hotline cứu trợ: 112.'),
+    T('TMP-10',G1,'[RÉT ĐẬM - RÉT HẠI]','Rét hại nhiệt độ dưới {Nhiet_do} độ C, băng giá tại {Vung_Nui}. Giữ ấm cho người già, trẻ nhỏ, đưa gia súc vào chuồng kín.'),
+    T('TMP-11',G2,'[THỦY ĐIỆN XẢ LŨ]','Thủy điện {Ten_Dap} xả lũ lưu lượng {Luu_luong}m3/s từ {Gio}. Nước sông dâng nhanh trong {So_phut} phút. Sơ tán khẩn cấp!'),
+    T('TMP-12',G2,'[VỠ ĐÊ KHẨN CẤP]','BÁO ĐỘNG ĐỎ: Đê {Ten_De} tại {Vi_tri} bị tràn/vỡ. Nước cuồn cuộn vào khu dân cư. Người dân di chuyển gấp theo hướng {Huong}.'),
+    T('TMP-13',G2,'[LŨ ĐẠT ĐỈNH BÁO ĐỘNG 3]','Mực nước sông {Ten_Song} đã vượt Báo động 3 là {So_Met}m. Ngập lụt toàn bộ vùng trũng thấp {Xa_Phuong}. Kê cao tài sản.'),
+    T('TMP-14',G2,'[NGẬP SÂU ĐÔ THỊ]','Ngập sâu từ 0.5m - 1.2m tại các tuyến đường {Danh_sach_duong}. Không cố điều khiển phương tiện giao thông qua điểm ngập.'),
+    T('TMP-15',G2,'[CÔ LẬP DO LŨ]','Xã {Ten_Xa} đang bị nước lũ cô lập hoàn toàn. Lực lượng cứu nạn đang tiếp cận. Giữ liên lạc hotline cứu hộ: {So_DT}.'),
+    T('TMP-16',G2,'[HỒ CHỨA ĐẦY NƯỚC]','Hồ chứa {Ten_Ho} mở cửa xả đáy từ {Gio}. Người dân tuyệt đối không đánh bắt cá hoặc vớt củi ven sông.'),
+    T('TMP-17',G2,'[LŨ CHỒNG LŨ]','Lũ đợt mới đang dâng nhanh trong khi lũ cũ chưa rút tại {Khu_vuc}. Duy trì phương án sơ tán tại chỗ trên tầng cao.'),
+    T('TMP-18',G2,'[Ô NHIỄM NGUỒN NƯỚC LŨ]','Nguồn nước sinh hoạt tại {Dia_ban} bị ngập ô nhiễm. Thực hiện ăn chín uống sôi, dùng viên khử khuẩn Cloramin B.'),
+    T('TMP-19',G2,'[TIẾP TẾ LƯƠNG THỰC LŨ]','Ca nô cứu trợ của Quân đội đang phát lương thực tại {Diem_Tap_Trung}. Người dân cần cứu nạn vẫy cờ đỏ hoặc gọi 112.'),
+    T('TMP-20',G2,'[LŨ RÚT - ĐỀ PHÒNG DỊCH]','Lũ đang rút tại {Xa_Phuong}. Khẩn trương dọn bùn rác, khử trùng giếng nước, cảnh giác sạt trượt taluy sau lũ.'),
+    T('TMP-21',G3,'[LŨ QUÉT ĐẶC BIỆT NGUY HIỂM]','Lũ quét kinh hoàng đang đổ về khe suối {Ten_Suoi}. Toàn bộ bà con sống ven suối rời nhà chạy lên đỉnh đồi ngay lập tức!'),
+    T('TMP-22',G3,'[SẠT LỞ NÚI ĐÁ TALUY]','Nguy cơ sạt lở quả đồi phía sau bản {Ten_Ban}. Đã xuất hiện vết nứt lớn {So_Met}m. Lập tức di dời trước {Gio}.'),
+    T('TMP-23',G3,'[ĐỘNG ĐẤT DƯ CHẤN]','Động đất {Do_Richter} độ Richter tại {Tam_Chan}. Rời khỏi các tòa nhà cũ, tìm khoảng đất trống, không dùng thang máy.'),
+    T('TMP-24',G3,'[ĐỨT GÃY QUỐC LỘ]','Quốc lộ {So_Hieu} qua đèo {Ten_Deo} sạt lở đứt đường, ách tắc giao thông. Các phương tiện dừng hành trình, quay đầu.'),
+    T('TMP-25',G3,'[SỤT LÚN ĐẤT ĐÔ THỊ]','Hố sụt lún xuất hiện tại đường {Ten_Duong}. Phong tỏa bán kính {Ban_Kinh}m. Người dân không lại gần quay phim.'),
+    T('TMP-26',G3,'[ĐÁ LĂN ĐƯỜNG ĐÈO]','Mưa lớn gây hiện tượng đá tảng lăn từ vách núi xuống cung đường {Ten_Cung_Duong}. Tuyệt đối không lưu thông.'),
+    T('TMP-27',G3,'[BÙN ĐÁ TRÀN KHU DÂN CƯ]','Dòng bùn đất tràn mạnh vào khu dân cư {Xom_Thon}. Sơ tán khẩn cấp người già và trẻ nhỏ về trường học {Ten_Truong}.'),
+    T('TMP-28',G3,'[NƯỚC NGẦM PHUN TRÀO]','Phát hiện nước ngầm đục ngầu phun trào chân taluy tại {Vi_tri}. Dấu hiệu đất sắp trượt. Rời đi ngay!'),
+    T('TMP-29',G3,'[SẠT LỞ BỜ SÔNG]','Bờ sông {Ten_Song} sạt lở ăn sâu vào nhà dân. Nguy cơ trôi nhà trong đêm. Lực lượng hỗ trợ di dời: {So_DT}.'),
+    T('TMP-30',G3,'[DƯ CHẤN ĐỘNG ĐẤT ĐÊM]','Dự báo có dư chấn cấp {Cap} lúc nửa đêm tại {Dia_Ban}. Khuyến cáo không ngủ trong nhà yếu, mang theo đèn pin.'),
+    T('TMP-50',G5,'[THỬ NGHIỆM HỆ THỐNG PWS]','[TEST] Bản tin kiểm tra hệ thống cảnh báo khẩn cấp Quốc gia VNPT VinaPhone. Người dân không cần thực hiện hành động nào.',4380)];
+  const settings = {repetition:20, duration:120, priority:4370, maxPages:15, otpTtl:300, otpMaxFail:3, loginOtp:true,
+    approveUpdateStop:true, successThreshold:99, retrySend:3, retryMax:3, simFail:2, logRetentionDays:365, sessionTimeout:30};
+  S = {v:1, provinces, xas, cells, users, priorities, templates, settings, messages:[], logs:[], seq:{}, cellsUpdatedAt:now()};
+  seedMessages();
+  log('Hệ thống','Khởi tạo dữ liệu demo','','Thông tin','SYS');
+}
+
+function seedMessages(){
+  const t0 = now();
+  const xa = n => S.xas.find(x => x.name === n).id;
+  // 1) chiến dịch đã kết thúc (hết hạn)
+  const a = newMsg({campaign:'Bão số 6 – sơ tán ven biển', docNo:'125/BCĐ-PCTT', mode:'template', templateId:'TMP-01',
+    vars:{Ten_Bao:'6', Khu_vuc:'Đà Nẵng', Cap_Gio:'12', Time:'15h30 ngày 22/10', Gio_Bat_Dau:'14h00'},
+    areas:[xa('Phường Sơn Trà'), xa('Phường Ngũ Hành Sơn'), xa('Phường Hội An')], priority:4370, repetition:20, duration:180}, 'U1', t0 - 6*864e5);
+  a.status='expired'; a.submittedAt=a.createdAt+60e3; a.approvedBy='U3'; a.approverUnit='VNPT-VinaPhone'; a.approvedAt=a.submittedAt+120e3;
+  a.sentAt=a.approvedAt+640; a.startAt=a.sentAt; a.endAt=a.startAt+180*60e3; a.endedAt=a.endAt; a.cells=cellsOf(a.areas);
+  const rr = rng(7); a.results={}; a.cells.forEach(c => a.results[c] = rr() < 0.996 ? 'ok':'fail'); a.doneAt=a.sentAt+1800; a.serial=serial(a);
+  a.history.push({at:a.submittedAt,by:'U1',act:'Gửi duyệt'},{at:a.approvedAt,by:'U3',act:'Duyệt (OTP hợp lệ)'},{at:a.sentAt,by:'SYS',act:'Gửi lệnh phát tới MME',note:`${a.cells.length} cell, sau ${(a.sentAt-a.approvedAt)/1000} giây`},{at:a.endAt,by:'SYS',act:'Hết thời hạn phát – tự gửi lệnh dừng'});
+  // 2) chờ duyệt
+  const b = newMsg({campaign:'Xả lũ thủy điện – sông Vu Gia', docNo:'88/UBND-PCTT', mode:'template', templateId:'TMP-11',
+    vars:{Ten_Dap:'A Vương', Luu_luong:'1.200', Gio:'16h00 hôm nay', So_phut:'45'},
+    areas:[xa('Xã Hòa Vang')], priority:4370, repetition:15, duration:120}, 'U2', t0 - 25*60e3);
+  b.status='pending'; b.submittedAt=t0 - 20*60e3; b.history.push({at:b.submittedAt,by:'U2',act:'Gửi duyệt'});
+  // 3) nháp
+  const c = newMsg({campaign:'Diễn tập PCTT 2026', docNo:'', mode:'free', header:'[BAN CHỈ ĐẠO QUỐC GIA PCTT]',
+    body:'Bản tin diễn tập phòng chống thiên tai. Người dân không cần thực hiện hành động nào.', areas:[xa('Phường Thuận Hóa')], priority:4380, repetition:30, duration:60}, 'U1', t0 - 2*3600e3);
+  S.messages.push(a,b,c);
+}
+
+function nextCode(t){
+  const d = new Date(t||now()); const k = `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}`;
+  S.seq[k] = (S.seq[k]||0) + 1; return `CMP-${k}-${String(S.seq[k]).padStart(3,'0')}`;
+}
+function newMsg(o, by, t){
+  const tm = S.templates.find(x => x.id === o.templateId);
+  const m = {id:uid('M'), code:nextCode(t), campaign:o.campaign, docNo:o.docNo, mode:o.mode, templateId:o.templateId||null, vars:o.vars||{},
+    header: o.mode==='template' && tm ? tm.header : o.header, body: o.mode==='template' && tm ? fill(tm.body,o.vars) : o.body,
+    areas:o.areas, priority:o.priority, repetition:o.repetition, duration:o.duration, status:'draft', createdBy:by, createdAt:t||now(), updatedAt:t||now(),
+    updateNo:0, versions:[], history:[{at:t||now(), by, act:'Tạo bản tin'}], results:{}, cells:[]};
+  return m;
+}
+const fullText = m => [m.header, m.body].filter(Boolean).join(' ');
+/* Serial Number 16 bit = GS (2 bit, 01 = chống trùng toàn mạng) | Message Code (10 bit) | Update Number (4 bit).
+   Message Code cấp duy nhất cho từng bản tin để 2 bản tin khác nhau không bị máy coi là trùng. */
+function allocMsgCode(m){
+  if (m.msgCode != null) return;
+  const used = new Set(S.messages.filter(x => x !== m && x.msgCode != null && x.status==='broadcasting' && x.priority==m.priority).map(x => x.msgCode));
+  let c = S.msgSeq || 0; for (let i = 0; i < 1024 && used.has(c % 1024); i++) c++;
+  m.msgCode = c % 1024; S.msgSeq = (c + 1) % 1024;
+}
+function serial(m){ allocMsgCode(m); const code = m.msgCode; return '0x' + (((1 << 14) | (code << 4) | (m.updateNo % 16)) >>> 0).toString(16).toUpperCase().padStart(4,'0'); }
+
+/* ---------- tra cứu ---------- */
+const U = id => (id==='SYS' || id==='system') ? {name:'Hệ thống', username:'system'} : (S.users.find(u => u.id === id) || {name:'(không rõ)'});
+const PRI = mi => S.priorities.find(p => p.mi == mi) || {mi, vi:'(không rõ)'};
+const XA = id => S.xas.find(x => x.id === id);
+const PROV = id => S.provinces.find(p => p.id === id);
+const cellsOf = areas => S.cells.filter(c => areas.includes(c.xaId)).map(c => c.id);
+function areaStats(areas){
+  const t0 = performance.now();
+  const set = new Set(areas); const cs = S.cells.filter(c => set.has(c.xaId));
+  const enbs = new Set(cs.map(c => c.enb));
+  const empty = areas.filter(a => !cs.some(c => c.xaId === a));
+  return {cells:cs.length, enbs:enbs.size, subs:cs.reduce((s,c)=>s+c.subs,0), empty, ms: performance.now()-t0};
+}
+function areaText(areas, max=3){
+  const byP = {}; areas.forEach(a => { const x = XA(a); if(!x) return; (byP[x.provinceId] = byP[x.provinceId] || []).push(x.name); });
+  const parts = Object.entries(byP).map(([p,xs]) => `${PROV(p).name}: ${xs.length > max ? xs.slice(0,max).join(', ') + ` (+${xs.length-max})` : xs.join(', ')}`);
+  return parts.join('; ') || '–';
+}
+function resStats(m){
+  const total = m.cells.length; let ok=0, fail=0;
+  for (const c of m.cells){ const v = m.results[c]; if (v==='ok') ok++; else if (v==='fail') fail++; }
+  return {total, ok, fail, pending: total-ok-fail, rate: total ? ok/total*100 : 0};
+}
+const subsOf = m => S.cells.filter(c => m.cells.includes(c.id)).reduce((s,c)=>s+c.subs,0);
+
+/* ---------- nhật ký (YC031) ---------- */
+function log(group, action, target, level='Thông tin', by){
+  S.logs.unshift({id:uid('L'), at:now(), by: by || (me && me.id) || 'SYS', group, action, target, level});
+  if (S.logs.length > 3000) S.logs.length = 3000;
+}
+
+/* ---------- phiên ---------- */
+function loadSession(){ try{ const s = JSON.parse(lsGet(LS_SES)||'null'); if (s && S.users.find(u => u.id===s.uid && u.status==='active')) { me = S.users.find(u => u.id===s.uid); } }catch(e){} }
+function setSession(u){ me = u; if (u) lsSet(LS_SES, JSON.stringify({uid:u.id, at:now()})); else lsDel(LS_SES); }
+const isRole = (...r) => me && r.includes(me.role);
+
+/* ---------- toast, modal, sms ---------- */
+function toast(msg, type=''){
+  const el = document.createElement('div'); el.className = 'toast ' + type; el.textContent = msg;
+  $('#toasts').appendChild(el); setTimeout(() => el.remove(), 4200);
+}
+function modal(title, body, foot, wide){
+  $('#modal').innerHTML = `<div class="ov" data-ov><div class="modal ${wide?'wide':''}" role="dialog" aria-modal="true">
+    <div class="hd"><h2>${title}</h2><button class="x" data-act="closeModal" aria-label="Đóng">×</button></div>
+    <div class="bd">${body}</div>${foot?`<div class="ft">${foot}</div>`:''}</div></div>`;
+  const f = $('#modal').querySelector('input,textarea,select'); if (f) setTimeout(() => f.focus(), 30);
+}
+function closeModal(){ $('#modal').innerHTML = ''; }
+function smsShow(phone, text){
+  const box = $('#sms');
+  box.innerHTML = `<div class="card"><div class="hd"><b>📱 SMS mô phỏng</b><span class="small muted">tới ${esc(phone.slice(0,4))}***${esc(phone.slice(-3))}</span><button class="x" data-act="smsClose">×</button></div>
+    <div class="bd">${esc(text)}<div class="hint">Demo: hệ thống thật gửi SMS tới điện thoại người dùng.</div></div></div>`;
+  box.style.display = 'block';
+}
+function smsHide(){ $('#sms').style.display = 'none'; }
+
+/* OTP dùng chung: đăng nhập (NF09) và phê duyệt (YC010) */
+function otpStart(user, purpose, onOk, onFail){
+  const code = String(Math.floor(100000 + Math.random()*900000));
+  otpCtx = {code, exp: now() + S.settings.otpTtl*1000, fails:0, user, purpose, onOk, onFail};
+  smsShow(user.phone, `Ma OTP CBC VNPT: ${code}. Dung de ${noAccent(purpose)}. Hieu luc ${Math.round(S.settings.otpTtl/60)} phut. Khong cung cap ma cho nguoi khac.`);
+  return otpCtx;
+}
+function otpCheck(input){
+  if (!otpCtx) return {ok:false, msg:'Phiên OTP không tồn tại.'};
+  if (now() > otpCtx.exp) return {ok:false, msg:'Mã OTP đã hết hiệu lực. Bấm "Gửi lại mã".', expired:true};
+  if (input.trim() === otpCtx.code){ const c = otpCtx; otpCtx = null; smsHide(); return {ok:true, ctx:c}; }
+  otpCtx.fails++;
+  const remain = S.settings.otpMaxFail - otpCtx.fails;
+  if (remain <= 0){ const c = otpCtx; otpCtx = null; smsHide(); return {ok:false, locked:true, ctx:c, msg:`Nhập sai OTP ${S.settings.otpMaxFail} lần. Phiên xác thực bị huỷ.`}; }
+  return {ok:false, msg:`Mã OTP không đúng. Còn ${remain} lần thử.`};
+}
+
+/* ---------- quyền ---------- */
+function can(act, m){
+  if (!me) return false;
+  const own = m && m.createdBy === me.id;
+  switch(act){
+    case 'create': return me.role==='SO';
+    case 'edit': case 'cancel': return me.role==='SO' && own && ['draft','rejected'].includes(m.status);
+    case 'submit': return me.role==='SO' && own && ['draft','rejected'].includes(m.status);
+    case 'approve': return me.role==='PD' && m.status==='pending' && m.createdBy !== me.id;
+    case 'update': case 'stop': return me.role==='SO' && m.status==='broadcasting' && !m.pendingAction;
+    case 'approveAction': return me.role==='PD' && m.pendingAction && m.pendingAction.by !== me.id && m.status==='broadcasting';
+    case 'cancelAction': return m.pendingAction && m.pendingAction.by === me.id;
+    case 'retry': return me.role==='SO' && m.status==='broadcasting' && !roundPending(m) && retryable(m).length > 0;
+    case 'retryKill': return me.role==='SO' && ['stopped','expired'].includes(m.status) && !roundPending(m) && killRetryable(m).length > 0;
+    case 'admin': return me.role==='QT';
+  }
+  return false;
+}
+
+/* ---------- mô phỏng mạng: phát / cập nhật / phát lại / dừng / hết hạn ----------
+   Mỗi lần CBC gửi lệnh xuống mạng là một "lượt gửi" (m.rounds). Trạng thái hiện tại của từng cell ở m.results,
+   thông tin tích luỹ theo cell ở m.cinfo: số lần gửi lệnh, lần gửi gần nhất, lúc phát thành công, số lần phát lại. */
+const RTYPE = {initial:'Lệnh phát', update:'Lệnh cập nhật nội dung', retry:'Phát lại cell lỗi', kill:'Lệnh huỷ phát (dừng thủ công)', expire:'Lệnh huỷ phát (hết thời hạn)', killretry:'Gửi lại lệnh huỷ cho cell lỗi'};
+const isKill = t => t==='kill' || t==='expire' || t==='killretry';
+function sendRound(m, type, cells, by, note){
+  const at = now() + 300 + Math.floor(Math.random()*600);
+  const r = {no:(m.rounds||[]).length+1, type, at, by, serial:m.serial, updateNo:m.updateNo, cells:[...cells], res:{}, doneAt:null, note:note||''};
+  m.rounds = m.rounds || []; m.cinfo = m.cinfo || {};
+  cells.forEach(c => {
+    const ci = m.cinfo[c] = m.cinfo[c] || {sends:0, lastAt:null, okAt:null, retries:0, count:null};
+    if (isKill(type)){ r.res[c] = 'pending'; m.kres = m.kres || {}; m.kres[c] = 'pending'; ci.kills = (ci.kills||0) + 1; return; }
+    r.res[c] = 'pending'; m.results[c] = 'pending'; ci.sends++; ci.lastAt = at;
+    if (type==='retry') ci.retries++;
+    if (type==='update') ci.okAt = null;
+  });
+  m.rounds.push(r); m.doneAt = isKill(type) ? m.doneAt : null;
+  return r;
+}
+/* Số lần trạm đã phát trên sóng: trạm tự lặp lại mỗi chu kỳ; khi đang phát là ước tính, khi dừng là số mạng trả về (mô phỏng) */
+function airCount(m, c){
+  const ci = (m.cinfo||{})[c]; if (!ci || !ci.okAt) return null;
+  if (ci.count != null) return ci.count;
+  const end = m.endedAt || Math.min(now(), m.endAt);
+  return Math.max(1, Math.floor((end - ci.okAt) / (m.repetition*1000)) + 1);
+}
+function finalizeCounts(m){ m.cells.forEach(c => { const ci = (m.cinfo||{})[c]; if (ci && ci.okAt && ci.count == null) ci.count = Math.max(1, Math.floor((m.endedAt - ci.okAt)/(m.repetition*1000)) + 1); }); }
+const roundPending = m => (m.rounds||[]).some(r => Object.values(r.res).includes('pending'));
+function killRetryable(m){ const max = S.settings.retryMax; return m.cells.filter(c => (m.kres||{})[c]==='fail' && (((m.cinfo||{})[c]||{}).kills||0) <= max); }
+function retryable(m){ const max = S.settings.retryMax; return m.cells.filter(c => m.results[c]==='fail' && ((m.cinfo||{})[c]||{}).retries < max); }
+
+function broadcast(m, approver){
+  m.status = 'broadcasting'; m.approvedBy = approver.id; m.approverUnit = approver.unit; m.approvedAt = now();
+  m.cells = cellsOf(m.areas); m.results = {}; m.cinfo = {}; m.rounds = []; m.serial = serial(m);
+  const r = sendRound(m, 'initial', m.cells, 'SYS');
+  m.sentAt = r.at; m.startAt = r.at; m.endAt = m.startAt + m.duration*60e3;   // duyệt → gửi lệnh < 2 giây (mục 3.1)
+  m.history.push({at:m.approvedAt, by:approver.id, act:'Duyệt (OTP hợp lệ)'});
+  m.history.push({at:m.sentAt, by:'SYS', act:'Gửi lệnh phát (Write-Replace Warning Request) tới MME', note:`${m.cells.length} cell · Serial ${m.serial} · sau ${((m.sentAt-m.approvedAt)/1000).toFixed(1)} giây kể từ khi duyệt`});
+  log('Phát tin','Gửi lệnh phát tới MME', `${m.code} – ${m.cells.length} cell`, 'Quan trọng', 'SYS');
+}
+function applyUpdate(m, a, approver){
+  m.versions.push({at:now(), updateNo:m.updateNo, body:m.body, header:m.header});
+  m.updateNo++; m.body = a.body; m.serial = serial(m); m.updatedAt = now();
+  const r = sendRound(m, 'update', m.cells, approver ? approver.id : a.by, a.reason);
+  m.history.push({at:now(), by:approver ? approver.id : a.by, act: approver ? 'Duyệt cập nhật (OTP hợp lệ)' : 'Cập nhật bản tin'});
+  m.history.push({at:r.at, by:'SYS', act:'Gửi bản tin cập nhật tới MME', note:`Serial ${m.serial} (lần cập nhật ${m.updateNo}) · lý do: ${a.reason}`});
+  log('Phát tin','Gửi bản tin cập nhật', `${m.code} – Serial ${m.serial}`, 'Quan trọng', 'SYS');
+}
+function endBroadcast(m, type, by, note){
+  m.cells.forEach(c => { if (m.results[c]==='pending') m.results[c]='fail'; });
+  (m.rounds||[]).forEach(r => Object.keys(r.res).forEach(c => { if (r.res[c]==='pending') r.res[c]='fail'; }));
+  sendRound(m, type, m.cells.filter(c => m.results[c]==='ok'), by, note); finalizeCounts(m);
+}
+function applyStop(m, a, approver){
+  m.status = 'stopped'; m.endedAt = now(); m.stopReason = a.reason;
+  endBroadcast(m, 'kill', approver ? approver.id : a.by, a.reason);
+  m.history.push({at:now(), by:approver ? approver.id : a.by, act: approver ? 'Duyệt dừng phát (OTP hợp lệ)' : 'Dừng phát'});
+  m.history.push({at:now(), by:'SYS', act:'Gửi lệnh dừng (Kill Request) tới MME', note:`Lý do: ${a.reason}`});
+  log('Phát tin','Gửi lệnh dừng phát', m.code, 'Quan trọng', 'SYS');
+}
+function tick(){
+  if (!S) return;
+  let changed = false; const t = now();
+  for (const m of S.messages){
+    if (!['broadcasting','stopped','expired'].includes(m.status) || !m.rounds) continue;
+    if (m.status==='broadcasting' && t >= m.endAt){
+      m.status = 'expired'; m.endedAt = m.endAt; m.pendingAction = null; endBroadcast(m, 'expire', 'SYS', '');
+      m.history.push({at:m.endAt, by:'SYS', act:'Hết thời hạn phát – tự gửi lệnh dừng (Kill Request)'});
+      log('Phát tin','Tự dừng khi hết thời hạn', m.code, 'Thông tin', 'SYS'); changed = true; continue;
+    }
+    for (const r of m.rounds || []){
+      if (t < r.at) continue;
+      const pend = r.cells.filter(c => r.res[c]==='pending'); if (!pend.length) continue;
+      const n = Math.max(1, Math.ceil(r.cells.length/6));
+      const k = isKill(r.type), pOk = r.type==='retry' || r.type==='killretry' ? 0.9 : 1 - S.settings.simFail/(k ? 200 : 100);
+      pend.slice(0,n).forEach(c => { const v = Math.random() < pOk ? 'ok' : 'fail'; r.res[c] = v; if (k) m.kres[c] = v; else { m.results[c] = v; m.cinfo[c].respAt = t; if (v==='ok') m.cinfo[c].okAt = t; } });
+      if (pend.length <= n){
+        r.doneAt = t; if (!m.doneAt) m.doneAt = t;
+        const ok = r.cells.filter(c => r.res[c]==='ok').length, s = resStats(m);
+        if (k){
+          m.history.push({at:t, by:'SYS', act:`Nhận đủ kết quả lượt gửi #${r.no} (${RTYPE[r.type].toLowerCase()})`, note:`${ok}/${r.cells.length} cell dừng phát thành công`});
+          if (ok < r.cells.length) log('Phát tin','Lệnh huỷ phát lỗi ở một số cell', `${m.code} – ${r.cells.length-ok} cell`, 'Cảnh báo', 'SYS');
+          changed = true; continue;
+        }
+        m.history.push({at:t, by:'SYS', act:`Nhận đủ kết quả lượt gửi #${r.no} (${RTYPE[r.type].toLowerCase()})`, note:`${ok}/${r.cells.length} cell thành công · tổng ${s.ok}/${s.total} (${s.rate.toFixed(2)}%)`});
+        if (s.rate < S.settings.successThreshold) log('Phát tin','Tỷ lệ phát thành công dưới ngưỡng', `${m.code} – ${s.rate.toFixed(2)}%`, 'Cảnh báo', 'SYS');
+      }
+      changed = true;
+    }
+  }
+  if (changed){ save(); liveRefresh(); }
+}
+/* chuyển dữ liệu demo cũ (chưa có lượt gửi) sang cấu trúc mới */
+function migrate(){
+  const st = S.settings; if (st.retryMax == null) st.retryMax = 3; if (st.simFail == null) st.simFail = 2;
+  if (!S.seedLink){
+    S.seedLink = 1; const x = n => (S.xas.find(z => z.name === n) || {}).id, ar = [x('Phường Hải Châu'), x('Phường Thanh Khê')].filter(Boolean);
+    if (ar.length && S.templates.some(t => t.id === 'TMP-05')){
+      const t0 = now() - 3*864e5, d = newMsg({campaign:'Áp thấp nhiệt đới – mưa lớn Đà Nẵng', docNo:'131/BCĐ-PCTT', mode:'template', templateId:'TMP-05',
+        vars:{So_Luong_Tinh:'5', Time:'20h00', Link:'https://pctt.gov.vn/b6'}, areas:ar, priority:4370, repetition:20, duration:60}, 'U1', t0);
+      d.status='expired'; d.submittedAt=t0+60e3; d.approvedBy='U3'; d.approverUnit='VNPT-VinaPhone'; d.approvedAt=t0+150e3;
+      d.sentAt=d.approvedAt+700; d.startAt=d.sentAt; d.endAt=d.startAt+60*60e3; d.endedAt=d.endAt; d.cells=cellsOf(d.areas);
+      const rr = rng(11); d.results={}; d.cells.forEach(c => d.results[c] = rr() < 0.995 ? 'ok':'fail'); d.doneAt=d.sentAt+1600; d.serial=serial(d);
+      d.history.push({at:d.submittedAt,by:'U1',act:'Gửi duyệt'},{at:d.approvedAt,by:'U3',act:'Duyệt (OTP hợp lệ)'},{at:d.sentAt,by:'SYS',act:'Gửi lệnh phát tới MME',note:`${d.cells.length} cell`},{at:d.endAt,by:'SYS',act:'Hết thời hạn phát – tự gửi lệnh dừng'});
+      S.messages.push(d);
+    }
+  }
+  S.messages.forEach(m => {
+    (m.rounds||[]).forEach(r => { if (isKill(r.type) && !Object.keys(r.res).length){ r.cells = m.cells.filter(c => m.results[c]==='ok'); m.kres = m.kres || {};
+      r.cells.forEach(c => { r.res[c] = 'ok'; m.kres[c] = 'ok'; }); r.doneAt = r.at + 1400; } });
+    if (m.sentAt && m.msgCode == null){ m.serial = serial(m); (m.rounds||[]).forEach(r => r.serial = m.serial); }
+    if (!m.sentAt || m.rounds) return;
+    m.rounds = [{no:1, type:'initial', at:m.sentAt, by:'SYS', serial:m.serial, cells:[...m.cells], res:{...m.results}, doneAt:m.doneAt, note:''}];
+    m.cinfo = {}; m.cells.forEach(c => m.cinfo[c] = {sends:1, lastAt:m.sentAt, okAt: m.results[c]==='ok' ? m.sentAt+1000 : null, retries:0, count:null});
+    if (m.endedAt){ const kc = m.cells.filter(c => m.results[c]==='ok'); m.kres = {}; const res = {}; kc.forEach(c => { res[c] = 'ok'; m.kres[c] = 'ok'; });
+      m.rounds.push({no:2, type: m.status==='stopped'?'kill':'expire', at:m.endedAt, by:'SYS', serial:m.serial, cells:kc, res, doneAt:m.endedAt+1400, note:m.stopReason||''}); finalizeCounts(m); }
+  });
+}
+function liveRefresh(){
+  if (!me || $('#modal').innerHTML) return;
+  const a = document.activeElement; if (a && ['INPUT','TEXTAREA','SELECT'].includes(a.tagName) && a.type !== 'checkbox') return;
+  const r = route(); if (['dashboard','msg','reports','messages','approvals'].includes(r.name)) render();
+  else renderNavCounts();
+}
+
+/* =========================================================================
+   ĐIỀU HƯỚNG & KHUNG
+   ========================================================================= */
+function route(){
+  const h = (location.hash || '#/dashboard').split('?')[0].slice(2).split('/');
+  if (h[0]==='messages' && h[1]==='new') return {name:'compose'};
+  if (h[0]==='messages' && h[1] && h[2]==='edit') return {name:'compose', id:h[1]};
+  if (h[0]==='messages' && h[1]) return {name:'msg', id:h[1]};
+  if (h[0]==='catalog') return {name:'catalog', tab:h[1]||'areas'};
+  return {name: h[0] || 'dashboard'};
+}
+const go = h => { if (location.hash === h) render(); else location.hash = h; };
+
+const NAV = [
+  {h:'#/dashboard', n:'dashboard', t:'Tổng quan', ic:'▦', roles:['SO','PD','QT']},
+  {h:'#/messages', n:'messages', t:'Bản tin cảnh báo', ic:'✉', roles:['SO','PD','QT'], also:['msg','compose']},
+  {h:'#/approvals', n:'approvals', t:'Chờ phê duyệt', ic:'✓', roles:['PD'], cnt:true},
+  {h:'#/reports', n:'reports', t:'Báo cáo chiến dịch', ic:'▤', roles:['SO','PD','QT']},
+  {h:'#/templates', n:'templates', t:'Thư viện mẫu tin', ic:'☰', roles:['SO','PD','QT']},
+  {g:'Quản trị', roles:['QT']},
+  {h:'#/catalog/areas', n:'catalog', t:'Danh mục & vùng phát', ic:'⌖', roles:['QT']},
+  {h:'#/settings', n:'settings', t:'Tham số hệ thống', ic:'⚙', roles:['QT']},
+  {h:'#/users', n:'users', t:'Người dùng & phân quyền', ic:'👤', roles:['QT']},
+  {h:'#/logs', n:'logs', t:'Nhật ký hệ thống', ic:'≡', roles:['QT']}];
+
+const pendingCount = () => S.messages.filter(m => (m.status==='pending' && m.createdBy!==me.id) || (m.pendingAction && m.status==='broadcasting' && m.pendingAction.by!==me.id)).length;
+function renderNavCounts(){ const el = document.querySelector('[data-cnt]'); if (el){ const c = pendingCount(); el.textContent = c; el.style.display = c ? '' : 'none'; } }
+
+function shell(inner){
+  const r = route();
+  const nav = NAV.filter(i => i.roles.includes(me.role)).map(i => i.g ? `<div class="grp">${i.g}</div>` :
+    `<a href="${i.h}" class="${(r.name===i.n || (i.also||[]).includes(r.name)) ? 'on':''}"><span>${i.ic}</span>${i.t}${i.cnt?`<span class="cnt" data-cnt>${pendingCount()}</span>`:''}</a>`).join('');
+  const others = S.users.filter(u => u.status==='active' && u.role && u.id!==me.id);
+  return `<div id="app">
+    <aside class="side"><div class="brand"><b>CMS Cell Broadcast</b><span>VNPT · Cảnh báo khẩn cấp</span></div>
+      <nav class="nav">${nav}</nav><div class="foot">Bản demo GĐ1 · dữ liệu lưu trên trình duyệt</div></aside>
+    <div class="main">
+      <header class="top"><button class="btn sm hamb" data-act="toggleNav" aria-label="Menu">☰ Menu</button><div class="sp"></div>
+        ${isRole('SO') ? `<a class="btn pri" href="#/messages/new">+ Tạo bản tin</a>` : ''}
+        <div class="who" data-act="toggleMenu"><div class="av">${esc(me.name.split(' ').pop()[0])}</div>
+          <div><div style="font-weight:600;line-height:1.2">${esc(me.name)}</div><div class="small muted">${ROLE[me.role]}</div></div>
+          <div class="menu" id="umenu">
+            <div class="small muted" style="padding:6px 10px">${esc(me.username)} · ${esc(me.unit)}</div><hr>
+            <div class="small muted" style="padding:2px 10px">Chuyển tài khoản (demo, bỏ qua OTP)</div>
+            ${others.map(u => `<button data-act="switchUser" data-id="${u.id}">${esc(u.name)} <span class="small muted">· ${ROLE[u.role]}</span></button>`).join('')}
+            <hr><button data-act="resetDemo">Đặt lại dữ liệu demo</button><button data-act="logout">Đăng xuất</button>
+          </div></div>
+      </header>
+      <main class="content">${inner}</main>
+    </div></div>`;
+}
+
+function render(){
+  if (!me){ $('#root').innerHTML = viewLogin(); return; }
+  const r = route();
+  const views = {dashboard:viewDashboard, messages:viewMessages, compose:viewCompose, msg:viewMsg, approvals:viewApprovals, reports:viewReports,
+    templates:viewTemplates, catalog:viewCatalog, settings:viewSettings, users:viewUsers, logs:viewLogs};
+  const allowed = NAV.find(n => n.n===r.name || (n.also||[]).includes(r.name));
+  let html;
+  if (!views[r.name] || (allowed && !allowed.roles.includes(me.role))) html = `<div class="card"><div class="empty">Không có quyền truy cập chức năng này hoặc trang không tồn tại. <a href="#/dashboard">Về Tổng quan</a></div></div>`;
+  else html = views[r.name](r);
+  $('#root').innerHTML = shell(html);
+  const key = location.hash; if (key !== lastRoute){ window.scrollTo(0,0); lastRoute = key; }
+  if (r.name==='compose') composeRefresh();
+}
+
+/* =========================================================================
+   ĐĂNG NHẬP (NF09)
+   ========================================================================= */
+let loginStep = {u:null, err:''};
+function viewLogin(){
+  const acc = S.users.filter(u => u.status==='active' && u.role);
+  if (loginStep.u) return `<div class="login"><div class="l">${loginLeft()}</div><div class="r"><div class="box card"><div class="bd">
+    <h1 style="margin-bottom:6px">Xác thực OTP</h1>
+    <p class="muted">Mã OTP đã gửi qua SMS tới số ${esc(loginStep.u.phone.slice(0,4))}***${esc(loginStep.u.phone.slice(-3))}.</p>
+    ${loginStep.err?`<div class="alert err">${esc(loginStep.err)}</div>`:''}
+    <form data-form="loginOtp"><label class="f">Mã OTP <span class="req">*</span></label><input class="otp" name="otp" maxlength="6" inputmode="numeric" autocomplete="one-time-code" autofocus>
+    <div class="row" style="margin-top:14px"><button class="btn" type="button" data-act="loginBack">Quay lại</button><button class="btn link" type="button" data-act="loginResend">Gửi lại mã</button><div class="sp"></div><button class="btn pri">Xác nhận</button></div></form>
+  </div></div></div></div>`;
+  return `<div class="login"><div class="l">${loginLeft()}</div><div class="r"><div class="box"><div class="card"><div class="bd">
+    <h1 style="margin-bottom:4px">Đăng nhập</h1><p class="muted" style="margin-top:0">Hệ thống quản lý phát tin Cell Broadcast</p>
+    ${loginStep.err?`<div class="alert err">${esc(loginStep.err)}</div>`:''}
+    <form data-form="login">
+      <div class="mb"><label class="f">Tên đăng nhập <span class="req">*</span></label><input type="text" name="username" autocomplete="username" autofocus></div>
+      <div class="mb"><label class="f">Mật khẩu <span class="req">*</span></label><input type="password" name="password" autocomplete="current-password"></div>
+      <button class="btn pri" style="width:100%;justify-content:center">Đăng nhập</button>
+    </form></div></div>
+    <div class="demo-acc"><div class="small muted" style="margin-bottom:6px">Tài khoản demo (mật khẩu <b class="mono">Demo@123</b>) – bấm để điền:</div>
+      ${acc.map(u => `<button data-act="fillLogin" data-u="${esc(u.username)}"><b class="mono">${esc(u.username)}</b><span class="sp"></span><span class="badge b-role">${ROLE[u.role]}</span></button>`).join('')}
+    </div></div></div></div>`;
+}
+function loginLeft(){
+  return `<h1>CMS Cell Broadcast VNPT</h1><p style="max-width:460px">Soạn, phê duyệt và phát bản tin cảnh báo khẩn cấp tới mọi thiết bị di động trong vùng ảnh hưởng.</p>
+  <ul style="max-width:460px;padding-left:18px;color:#c3d2e6"><li>Chọn vùng phát theo Tỉnh/Xã, hệ thống tự xác định trạm và cell.</li><li>Soạn từ thư viện mẫu hoặc soạn tự do.</li><li>Phê duyệt 2 người, xác thực OTP trước khi phát.</li><li>Theo dõi kết quả phát theo từng cell.</li></ul>
+  <p class="small" style="color:#8fa1b8;margin-top:30px">Bản demo GĐ1 theo URD v0.1. Kết nối mạng (MME) và SMS là mô phỏng; dữ liệu lưu trên trình duyệt.</p>`;
+}
+function doLogin(fd){
+  const un = (fd.get('username')||'').trim(), pw = fd.get('password')||'';
+  if (!un || !pw){ loginStep.err = 'Nhập tên đăng nhập và mật khẩu.'; return render(); }
+  const u = S.users.find(x => x.username === un);
+  if (!u || u.password !== pw){ loginStep.err = 'Tên đăng nhập hoặc mật khẩu không đúng.'; return render(); }
+  if (u.status !== 'active'){ loginStep.err = 'Tài khoản đã bị khoá. Liên hệ Quản trị hệ thống.'; return render(); }
+  if (!u.role){ loginStep.err = 'Tài khoản chưa được phân quyền. Liên hệ Quản trị hệ thống.'; return render(); }
+  if (!S.settings.loginOtp) return finishLogin(u);
+  loginStep = {u, err:''}; otpStart(u, 'dang nhap CMS'); render();
+}
+function finishLogin(u){
+  loginStep = {u:null, err:''}; setSession(u); log('Đăng nhập','Đăng nhập thành công', u.username); save();
+  toast(`Xin chào ${u.name}`, 'ok'); location.hash = '#/dashboard'; render();
+}
+
+/* =========================================================================
+   TỔNG QUAN
+   ========================================================================= */
+function viewDashboard(){
+  const ms = S.messages, t = now();
+  const live = ms.filter(m => m.status==='broadcasting');
+  const pend = ms.filter(m => m.status==='pending');
+  const mine = ms.filter(m => m.createdBy===me.id && ['draft','rejected'].includes(m.status));
+  const d24 = ms.filter(m => ['expired','stopped'].includes(m.status) && m.endedAt > t-864e5);
+  const kpi = (v,l,h) => `<a class="card kpi" href="${h}" style="color:inherit;text-decoration:none"><div class="v">${v}</div><div class="l">${l}</div></a>`;
+  return `<div class="ph"><h1>Tổng quan</h1><span class="sub">${fmt(t)}</span></div>
+  <div class="kpis">${kpi(live.length,'Bản tin đang phát','#/messages?st=broadcasting')}${kpi(pend.length,'Bản tin chờ duyệt', isRole('PD')?'#/approvals':'#/messages?st=pending')}
+    ${kpi(mine.length,'Nháp / bị từ chối của tôi','#/messages?mine=1')}${kpi(d24.length,'Kết thúc trong 24 giờ','#/reports')}</div>
+  ${pend.length && isRole('PD') ? `<div class="alert warn">Có <b>${pendingCount()}</b> yêu cầu đang chờ bạn phê duyệt. <a href="#/approvals">Xem ngay</a></div>`:''}
+  <div class="card mb"><div class="hd"><h2>Bản tin đang phát</h2></div>
+  ${live.length ? `<table class="t"><thead><tr><th>Mã</th><th>Chiến dịch / tiêu đề</th><th>Vùng phát</th><th style="width:220px">Kết quả phát</th><th>Còn lại</th></tr></thead><tbody>
+    ${live.map(m => { const s = resStats(m); return `<tr class="click" data-act="open" data-id="${m.id}"><td class="mono">${m.code}</td><td><b>${esc(m.campaign)}</b><div class="small muted">${esc(m.header||'')}</div>${m.pendingAction?`<span class="badge b-pending">Có yêu cầu ${m.pendingAction.type==='update'?'cập nhật':'dừng'} chờ duyệt</span>`:''}</td>
+      <td class="small">${esc(areaText(m.areas,2))}</td><td>${progBar(s)}<div class="small muted">${s.ok}/${s.total} cell thành công · ${s.rate.toFixed(1)}%</div></td><td class="small">${left(m.endAt-t)}</td></tr>`; }).join('')}
+  </tbody></table>` : `<div class="empty">Không có bản tin nào đang phát.</div>`}</div>
+  <div class="card"><div class="hd"><h2>Hoạt động gần đây</h2></div>
+  ${recentActs()}</div>`;
+}
+function recentActs(){
+  const items = [];
+  S.messages.forEach(m => m.history.forEach(h => items.push({...h, m})));
+  items.sort((a,b) => b.at-a.at);
+  const list = items.slice(0,8);
+  return list.length ? `<table class="t"><tbody>${list.map(i => `<tr class="click" data-act="open" data-id="${i.m.id}"><td class="small muted" style="width:150px">${fmt(i.at)}</td><td><b>${esc(i.act)}</b> <span class="muted">· ${esc(i.m.code)} · ${esc(i.m.campaign)}</span>${i.note?`<div class="small muted">${esc(i.note)}</div>`:''}</td><td class="small" style="width:160px">${esc(U(i.by).name)}</td></tr>`).join('')}</tbody></table>` : `<div class="empty">Chưa có hoạt động.</div>`;
+}
+function progBar(s){
+  const w = v => s.total ? (v/s.total*100) : 0;
+  return `<div class="prog" title="Thành công ${s.ok} · Lỗi ${s.fail} · Chờ phản hồi ${s.pending}"><i style="width:${w(s.ok)}%;background:var(--ok)"></i><i style="width:${w(s.fail)}%;background:var(--err)"></i><i style="width:${w(s.pending)}%;background:#c9d3e0"></i></div>`;
+}
+const badge = st => `<span class="badge b-${st}">${ST[st]}</span>`;
+
+/* =========================================================================
+   DANH SÁCH BẢN TIN (YC013)
+   ========================================================================= */
+function qs(){ const q = {}; const i = location.hash.indexOf('?'); if (i>=0) new URLSearchParams(location.hash.slice(i+1)).forEach((v,k)=>q[k]=v); return q; }
+let msgFilter = {st:'', q:'', mi:'', by:'', from:'', to:''};
+function viewMessages(){
+  const q = qs(); if (q.st !== undefined) msgFilter.st = q.st; if (q.mine) msgFilter.by = me.id;
+  const f = msgFilter;
+  let list = S.messages.slice().sort((a,b) => b.updatedAt - a.updatedAt);
+  if (f.st) list = list.filter(m => m.status===f.st);
+  if (f.mi) list = list.filter(m => String(m.priority)===f.mi);
+  if (f.by) list = list.filter(m => m.createdBy===f.by);
+  if (dayFrom(f.from)) list = list.filter(m => m.createdAt >= dayFrom(f.from));
+  if (dayTo(f.to)) list = list.filter(m => m.createdAt <= dayTo(f.to));
+  if (f.q){ const k = noAccent(f.q.toLowerCase()); list = list.filter(m => noAccent(`${m.code} ${m.campaign} ${m.docNo} ${m.header} ${m.body} ${areaText(m.areas,99)}`.toLowerCase()).includes(k)); }
+  const creators = S.users.filter(u => u.role==='SO');
+  return `<div class="ph"><h1>Bản tin cảnh báo</h1><span class="sub">${list.length} bản tin</span><div class="sp"></div>${isRole('SO')?`<a class="btn pri" href="#/messages/new">+ Tạo bản tin</a>`:''}</div>
+  <div class="card"><div class="bd" style="padding-bottom:0"><form class="filters" data-form="msgFilter">
+    <div style="flex:2;min-width:220px"><label class="f">Tìm kiếm</label><input type="text" name="q" value="${esc(f.q)}" placeholder="Mã, tên chiến dịch, số văn bản, nội dung, vùng phát"></div>
+    <div><label class="f">Trạng thái</label><select name="st"><option value="">Tất cả</option>${Object.entries(ST).map(([k,v])=>`<option value="${k}" ${f.st===k?'selected':''}>${v}</option>`).join('')}</select></div>
+    <div><label class="f">Mức ưu tiên</label><select name="mi"><option value="">Tất cả</option>${S.priorities.map(p=>`<option value="${p.mi}" ${f.mi==p.mi?'selected':''}>${p.mi} – ${esc(p.vi)}</option>`).join('')}</select></div>
+    <div><label class="f">Người tạo</label><select name="by"><option value="">Tất cả</option>${creators.map(u=>`<option value="${u.id}" ${f.by===u.id?'selected':''}>${esc(u.name)}</option>`).join('')}</select></div>
+    <div><label class="f">Từ ngày</label>${dateIn('from', f.from)}</div><div><label class="f">Đến ngày</label>${dateIn('to', f.to)}</div>
+    <div style="min-width:auto"><button class="btn pri">Lọc</button> <button class="btn" type="button" data-act="clearFilter">Xoá lọc</button></div>
+  </form></div>
+  ${list.length ? `<div style="overflow:auto"><table class="t"><thead><tr><th>Mã</th><th>Tên chiến dịch</th><th>Tiêu đề</th><th>Mức ưu tiên</th><th>Vùng phát</th><th>Trạng thái</th><th>Người tạo</th><th>Cập nhật</th><th></th></tr></thead><tbody>
+  ${list.map(m => `<tr class="click" data-act="open" data-id="${m.id}"><td class="mono small">${m.code}</td><td><b>${esc(m.campaign)}</b><div class="small muted">${esc(m.docNo||'')}</div></td><td class="small">${esc(m.header||'')}</td>
+    <td class="small">${m.priority}<div class="muted">${esc(PRI(m.priority).vi)}</div></td><td class="small">${esc(areaText(m.areas,2))}</td><td>${badge(m.status)}${m.pendingAction?`<div class="small" style="color:var(--warn)">${m.pendingAction.type==='update'?'Cập nhật':'Dừng'} chờ duyệt</div>`:''}</td>
+    <td class="small">${esc(U(m.createdBy).name)}</td><td class="small muted">${fmt(m.updatedAt)}</td>
+    <td class="row" style="flex-wrap:nowrap">${can('edit',m)?`<a class="btn sm" href="#/messages/${m.id}/edit" data-stop>Sửa</a>`:''}${can('approve',m)?`<a class="btn sm pri" href="#/messages/${m.id}" data-stop>Duyệt</a>`:''}</td></tr>`).join('')}
+  </tbody></table></div>` : `<div class="empty">Không có bản tin phù hợp.</div>`}</div>`;
+}
+
+/* =========================================================================
+   SOẠN BẢN TIN (YC001–YC008, YC011)
+   ========================================================================= */
+function composeInit(id){
+  const st = S.settings;
+  if (id){
+    const m = S.messages.find(x => x.id===id);
+    if (!m || !can('edit', m)) return null;
+    F = {id:m.id, campaign:m.campaign, docNo:m.docNo, mode:m.mode, templateId:m.templateId, vars:{...m.vars}, header:m.header, body:m.body,
+      areas:[...m.areas], priority:m.priority, repetition:m.repetition, duration:m.duration, prov:(XA(m.areas[0])||{}).provinceId || S.provinces[0].id,
+      group:'', tq:'', errors:{}, touched:false};
+    if (m.mode==='template'){ const t = S.templates.find(x => x.id===m.templateId); if (t){ F.body = t.body; F.header = t.header; } }
+  } else {
+    F = {id:null, campaign:'', docNo:'', mode:'template', templateId:'', vars:{}, header:'', body:'', areas:[], priority:st.priority,
+      repetition:st.repetition, duration:st.duration, prov:S.provinces[0].id, group:'', tq:'', errors:{}, touched:false};
+  }
+  return F;
+}
+const HEADERS = ['[CẢNH BÁO KHẨN CẤP QUỐC GIA]','[BAN CHỈ ĐẠO QUỐC GIA PCTT]','[CẢNH BÁO THIÊN TAI - UBND TỈNH/THÀNH PHỐ]','[TÌM KIẾM CỨU NẠN KHẨN CẤP]','[CỤC CẢNH SÁT PCCC]'];
+function composeText(){ return F.mode==='template' ? [F.header, fill(F.body, F.vars)].filter(Boolean).join(' ') : [F.header, F.body].filter(Boolean).join(' '); }
+function viewCompose(r){
+  if (!r.id && !can('create')) return `<div class="card"><div class="empty">Chỉ Người soạn thảo được tạo bản tin.</div></div>`;
+  if (!F || F.route !== location.hash){ if (!composeInit(r.id)) return `<div class="card"><div class="empty">Bản tin không tồn tại hoặc không được sửa ở trạng thái hiện tại.</div></div>`; F.route = location.hash; }
+  const m = r.id ? S.messages.find(x => x.id===r.id) : null;
+  const e = F.errors, er = k => e[k] ? `<div class="ferr">${esc(e[k])}</div>` : '';
+  return `<div class="ph"><a href="${r.id?`#/messages/${r.id}`:'#/messages'}" class="btn sm">← Quay lại</a><h1>${r.id?`Sửa bản tin <span class="mono" style="font-size:16px">${m.code}</span>`:'Tạo bản tin cảnh báo'}</h1>${m?badge(m.status):''}</div>
+  ${m && m.status==='rejected' ? `<div class="alert err"><b>Bản tin bị từ chối</b> bởi ${esc(U(m.rejectedBy).name)} lúc ${fmt(m.rejectedAt)}. Lý do: ${esc(m.rejectReason)}</div>`:''}
+  <div id="errBox"></div>
+  <div class="compose"><div>
+    <div class="card mb"><div class="hd"><span class="secno">1</span><h2>Thông tin chiến dịch</h2></div><div class="bd grid g2">
+      <div class="${e.campaign?'has-err':''}"><label class="f">Tên chiến dịch <span class="req">*</span></label><input type="text" data-f="campaign" value="${esc(F.campaign)}" maxlength="150" placeholder="VD: Bão số 7 – sơ tán ven biển">${er('campaign')}</div>
+      <div class="${e.docNo?'has-err':''}"><label class="f">Số văn bản yêu cầu <span class="req">*</span></label><input type="text" data-f="docNo" value="${esc(F.docNo)}" maxlength="60" placeholder="VD: 125/BCĐ-PCTT">${er('docNo')}<div class="hint">Số công văn của cơ quan chức năng yêu cầu phát tin.</div></div>
+      <div style="grid-column:1/-1"><label class="f">Cách soạn nội dung</label><div class="seg">
+        <label><input type="radio" name="mode" value="template" data-f="mode" ${F.mode==='template'?'checked':''}><span>Theo mẫu trong thư viện</span></label>
+        <label><input type="radio" name="mode" value="free" data-f="mode" ${F.mode==='free'?'checked':''}><span>Soạn tự do</span></label></div></div>
+    </div></div>
+    <div class="card mb"><div class="hd"><span class="secno">2</span><h2>Nội dung bản tin</h2></div><div class="bd" id="secContent">${composeContent()}</div></div>
+    <div class="card mb"><div class="hd"><span class="secno">3</span><h2>Vùng phát</h2></div><div class="bd" id="secArea">${composeArea()}</div></div>
+    <div class="card mb"><div class="hd"><span class="secno">4</span><h2>Mức ưu tiên và tham số phát</h2></div><div class="bd grid g3">
+      <div class="${e.priority?'has-err':''}"><label class="f">Mức ưu tiên (Message ID) <span class="req">*</span></label><select data-f="priority">${S.priorities.filter(p=>p.active||p.mi==F.priority).map(p=>`<option value="${p.mi}" ${F.priority==p.mi?'selected':''}>${p.mi} – ${esc(p.vi)}</option>`).join('')}</select>${er('priority')}<div class="hint">Cách hiển thị trên máy (âm thanh, pop-up) do mức ưu tiên và hệ điều hành quyết định.</div></div>
+      <div class="${e.repetition?'has-err':''}"><label class="f">Chu kỳ lặp lại (giây) <span class="req">*</span></label><input type="number" min="5" max="300" data-f="repetition" value="${F.repetition}">${er('repetition')}<div class="hint">5–300 giây, khuyến nghị 15–20 giây.</div></div>
+      <div class="${e.duration?'has-err':''}"><label class="f">Thời hạn phát (phút) <span class="req">*</span></label><input type="number" min="15" max="2880" data-f="duration" value="${F.duration}">${er('duration')}
+        <div class="hint" id="durHint">${dur(F.duration||0)} · 15 phút – 48 giờ</div>
+        <div class="row" style="gap:4px;margin-top:4px">${[30,60,120,360,720,1440,2880].map(v=>`<button class="btn sm" type="button" data-act="setDur" data-v="${v}">${dur(v)}</button>`).join('')}</div></div>
+    </div></div>
+  </div>
+  <div class="sticky">
+    <div class="card mb"><div class="hd"><h2>Xem trước</h2><span class="small muted">mô phỏng gần đúng</span></div><div class="bd" id="preview"></div></div>
+    <div class="card"><div class="bd">
+      <div class="small muted mb">Người soạn: <b>${esc(me.name)}</b>. Sau khi gửi duyệt, bản tin cần Người phê duyệt khác duyệt và xác thực OTP mới được phát.</div>
+      <div class="row"><a class="btn" href="${r.id?`#/messages/${r.id}`:'#/messages'}">Huỷ</a><div class="sp"></div><button class="btn" data-act="saveDraft">Lưu nháp</button><button class="btn pri" data-act="submitMsg">Gửi duyệt</button></div>
+    </div></div>
+  </div></div>`;
+}
+function composeContent(){
+  const e = F.errors, er = k => e[k] ? `<div class="ferr">${esc(e[k])}</div>` : '';
+  if (F.mode === 'template'){
+    const groups = [...new Set(S.templates.filter(t=>t.active).map(t => t.group))];
+    let tl = S.templates.filter(t => t.active && (!F.group || t.group===F.group));
+    if (F.tq){ const k = noAccent(F.tq.toLowerCase()); tl = tl.filter(t => noAccent(`${t.code} ${t.name} ${t.body}`.toLowerCase()).includes(k)); }
+    const t = S.templates.find(x => x.id===F.templateId);
+    const vs = t ? vars(t.body) : [];
+    return `<div class="grid g3 mb">
+      <div><label class="f">Nhóm tình huống</label><select data-f="group"><option value="">Tất cả nhóm</option>${groups.map(g=>`<option ${F.group===g?'selected':''}>${esc(g)}</option>`).join('')}</select></div>
+      <div style="grid-column:span 2" class="${e.templateId?'has-err':''}"><label class="f">Mẫu tin <span class="req">*</span></label><select data-f="templateId"><option value="">— Chọn mẫu (${tl.length}) —</option>${tl.map(x=>`<option value="${x.id}" ${F.templateId===x.id?'selected':''}>${x.code} · ${esc(x.name)}</option>`).join('')}${t && !tl.includes(t)?`<option value="${t.id}" selected>${t.code} · ${esc(t.name)}</option>`:''}</select>${er('templateId')}</div>
+    </div>
+    <div class="mb"><input type="text" data-f="tq" value="${esc(F.tq)}" placeholder="Tìm mẫu theo mã, tên, nội dung…"></div>
+    ${t ? `<div class="alert info"><div class="small muted">Tiêu đề và mức ưu tiên nạp từ mẫu (mức ưu tiên mẫu: ${t.mi} – ${esc(PRI(t.mi).vi)})</div><b>${esc(t.header)}</b><div style="margin-top:4px">${esc(t.body).replace(/\{([^{}]+)\}/g,'<span class="var">{$1}</span>')}</div></div>
+      ${vs.length ? `<div class="small muted" style="margin-bottom:6px">Nhập giá trị cho ${vs.length} biến:</div><div class="grid g2">${vs.map(v => `<div class="${e['var_'+v]?'has-err':''}"><label class="f">{${esc(v)}} <span class="req">*</span></label><input type="text" data-var="${esc(v)}" value="${esc(F.vars[v]||'')}">${er('var_'+v)}</div>`).join('')}</div>` : `<div class="muted">Mẫu này không có biến.</div>`}`
+    : `<div class="muted">Chọn một mẫu để nạp tiêu đề, mức ưu tiên và nội dung.</div>`}`;
+  }
+  return `<div class="mb ${e.header?'has-err':''}"><label class="f">Tiêu đề <span class="req">*</span></label>
+    <input type="text" list="hdrs" data-f="header" value="${esc(F.header)}" maxlength="60" placeholder="Chọn hoặc nhập, VD [BAN CHỈ ĐẠO QUỐC GIA PCTT]"><datalist id="hdrs">${HEADERS.map(h=>`<option value="${esc(h)}">`).join('')}</datalist>${er('header')}
+    <div class="hint">Theo cấp độ khẩn cấp và cơ quan phát lệnh.</div></div>
+    <div class="${e.body?'has-err':''}"><label class="f">Nội dung <span class="req">*</span></label><textarea data-f="body" rows="6" placeholder="Nhập nội dung cảnh báo, có thể kèm số hotline hoặc đường dẫn https://…">${esc(F.body)}</textarea>${er('body')}
+    <div class="row" style="margin-top:6px"><button class="btn sm" type="button" data-act="toNoAccent">Chuyển sang không dấu</button><span class="hint">Không dấu: 93 ký tự/trang, tương thích mọi máy. Có dấu: 41 ký tự/trang.</span></div></div>`;
+}
+function composeArea(){
+  const p = F.prov; const xs = S.xas.filter(x => x.provinceId===p);
+  const cnt = id => S.cells.filter(c => c.xaId===id).length;
+  const allOn = xs.length && xs.every(x => F.areas.includes(x.id));
+  return `<div class="grid g2"><div>
+    <label class="f">Tỉnh/Thành phố</label><select data-f="prov">${S.provinces.map(x=>`<option value="${x.id}" ${p===x.id?'selected':''}>${esc(x.name)} (${F.areas.filter(a=>XA(a)&&XA(a).provinceId===x.id).length}/${S.xas.filter(y=>y.provinceId===x.id).length} xã)</option>`).join('')}</select>
+    <div class="row" style="margin:8px 0 6px"><b class="small">Xã/Phường</b><div class="sp"></div><button class="btn sm" type="button" data-act="selAllXa">${allOn?'Bỏ chọn cả tỉnh':'Chọn cả tỉnh'}</button></div>
+    <div class="xalist">${xs.map(x => `<label><input type="checkbox" data-xa="${x.id}" ${F.areas.includes(x.id)?'checked':''}> ${esc(x.name)} <span class="faint small">${cnt(x.id)} cell</span></label>`).join('')}</div>
+  </div><div>
+    <label class="f">Vùng đã chọn <span class="req">*</span></label>
+    <div id="areaSel" style="min-height:40px">${areaChips()}</div>
+    <div id="areaRes" style="margin-top:10px"></div>
+  </div></div>`;
+}
+function areaChips(){ return F.areas.length ? F.areas.map(a => `<span class="chip">${esc(XA(a).name)}, ${esc(PROV(XA(a).provinceId).name)}<button type="button" data-act="rmXa" data-id="${a}" aria-label="Bỏ">×</button></span>`).join('') : '<span class="muted small">Chưa chọn xã nào.</span>'; }
+function areaSoftRefresh(){
+  $('#areaSel').innerHTML = areaChips();
+  document.querySelectorAll('[data-xa]').forEach(c => c.checked = F.areas.includes(c.dataset.xa));
+  const xs = S.xas.filter(x => x.provinceId===F.prov); const b = document.querySelector('[data-act=selAllXa]');
+  if (b) b.textContent = xs.length && xs.every(x => F.areas.includes(x.id)) ? 'Bỏ chọn cả tỉnh' : 'Chọn cả tỉnh';
+  document.querySelectorAll('[data-f=prov] option').forEach(o => { const all = S.xas.filter(y=>y.provinceId===o.value); o.textContent = `${PROV(o.value).name} (${F.areas.filter(a=>XA(a)&&XA(a).provinceId===o.value).length}/${all.length} xã)`; });
+  composeRefresh();
+}
+function areaResult(){
+  if (!F.areas.length) return F.errors.areas ? `<div class="ferr">${esc(F.errors.areas)}</div>` : '';
+  const s = areaStats(F.areas);
+  return `${s.cells ? `<div class="alert ok" style="margin:0 0 8px"><b>${nf(s.enbs)} trạm · ${nf(s.cells)} cell</b> thuộc vùng · ước tính ${nf(s.subs)} thuê bao<div class="small">Xác định từ dữ liệu Xã → Cell trong ${s.ms < 1 ? 'dưới 1' : Math.round(s.ms)} ms (yêu cầu &lt; 3 giây).</div></div>`
+    : `<div class="alert err" style="margin:0 0 8px">Không xác định được cell nào trong vùng đã chọn. Chọn lại vùng phát.</div>`}
+    ${s.empty.length ? `<div class="alert warn" style="margin:0">Chưa có dữ liệu cell: ${s.empty.map(a=>esc(XA(a).name)).join(', ')}. Các xã này sẽ không được phát.</div>`:''}`;
+}
+function previewHtml(text, mi){
+  const ms = measure(text), max = S.settings.maxPages;
+  return `<div class="phone"><div class="screen"><div class="alertbox"><div class="ttl">⚠ ${esc(PRI(mi).vi)}</div>
+    <div class="msg">${text ? esc(text) : '<span class="faint">Nội dung bản tin sẽ hiển thị ở đây.</span>'}</div><div class="okb">ĐÃ HIỂU</div></div></div></div>
+    <div class="stats"><div><b>${nf(ms.len)}</b><span>ký tự</span></div><div><b style="color:${ms.pages>max?'var(--err)':'inherit'}">${ms.pages}/${max}</b><span>trang CB</span></div><div><b style="font-size:13px">${ms.per}</b><span>ký tự/trang</span></div></div>
+    <div class="small muted" style="margin-top:8px">Bộ ký tự: ${ms.cs}. ${ms.pages>max?`<span style="color:var(--err)">Vượt số trang tối đa.</span>`:''}</div>`;
+}
+function composeRefresh(){
+  if (!F) return;
+  const p = $('#preview'); if (p) p.innerHTML = previewHtml(composeText(), F.priority);
+  const a = $('#areaRes'); if (a) a.innerHTML = areaResult();
+  const d = $('#durHint'); if (d) d.textContent = `${dur(F.duration||0)} · 15 phút – 48 giờ`;
+}
+function errBoxHtml(){ const v = Object.values(F.errors); return v.length ? `<div class="alert err"><b>Chưa gửi được, còn ${v.length} lỗi:</b><ul>${v.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>` : ''; }
+function clearErr(key, el){
+  if (!F.errors[key]) return; delete F.errors[key];
+  const w = el && el.closest('.has-err'); if (w){ w.classList.remove('has-err'); const fe = w.querySelector('.ferr'); if (fe) fe.remove(); }
+  const b = $('#errBox'); if (b && b.innerHTML) b.innerHTML = errBoxHtml();
+}
+function validate(forSubmit){
+  const e = {};
+  if (!F.campaign.trim()) e.campaign = 'Nhập tên chiến dịch.';
+  if (forSubmit){
+    if (!F.docNo.trim()) e.docNo = 'Nhập số văn bản yêu cầu.';
+    if (F.mode==='template'){
+      const t = S.templates.find(x => x.id===F.templateId);
+      if (!t) e.templateId = 'Chọn mẫu tin.';
+      else vars(t.body).forEach(v => { if (!(F.vars[v]||'').trim()) e['var_'+v] = 'Nhập giá trị biến.'; });
+    } else {
+      if (!F.header.trim()) e.header = 'Nhập tiêu đề.';
+      if (!F.body.trim()) e.body = 'Nhập nội dung.';
+      else if (vars(F.body).length) e.body = 'Nội dung còn biến {…} chưa thay giá trị.';
+    }
+    if (measure(composeText()).pages > S.settings.maxPages) e[F.mode==='template'?'templateId':'body'] = `Nội dung vượt ${S.settings.maxPages} trang.`;
+    if (!F.areas.length) e.areas = 'Chọn ít nhất một xã/phường.';
+    else if (!areaStats(F.areas).cells) e.areas = 'Vùng đã chọn không có cell nào.';
+    if (!PRI(F.priority).active) e.priority = 'Chọn mức ưu tiên.';
+  }
+  const rp = Number(F.repetition), du = Number(F.duration);
+  if (!(rp >= 5 && rp <= 300)) e.repetition = 'Chu kỳ lặp phải từ 5 đến 300 giây.';
+  if (!(du >= 15 && du <= 2880)) e.duration = 'Thời hạn phát phải từ 15 phút đến 48 giờ.';
+  return e;
+}
+function saveCompose(submit){
+  F.errors = validate(submit);
+  if (Object.keys(F.errors).length){
+    render();
+    $('#errBox').innerHTML = errBoxHtml();
+    window.scrollTo(0,0); return;
+  }
+  const t = S.templates.find(x => x.id===F.templateId);
+  const data = {campaign:F.campaign.trim(), docNo:F.docNo.trim(), mode:F.mode, templateId:F.mode==='template'?F.templateId:null,
+    vars:F.mode==='template'?{...F.vars}:{}, header:F.mode==='template'&&t?t.header:F.header.trim(), body:F.mode==='template'&&t?fill(t.body,F.vars):F.body.trim(),
+    areas:[...F.areas], priority:Number(F.priority), repetition:Number(F.repetition), duration:Number(F.duration)};
+  let m;
+  if (F.id){ m = S.messages.find(x => x.id===F.id); Object.assign(m, data); m.updatedAt = now(); m.history.push({at:now(), by:me.id, act:'Sửa bản tin'}); if (!submit) m.status = 'draft'; }
+  else { m = newMsg(data, me.id); S.messages.push(m); log('Bản tin','Tạo bản tin', m.code); }
+  if (submit){ m.status = 'pending'; m.submittedAt = now(); m.updatedAt = now(); m.history.push({at:now(), by:me.id, act:'Gửi duyệt'}); log('Bản tin','Gửi duyệt', m.code); toast(`Đã gửi duyệt ${m.code}. Đã thông báo Người phê duyệt.`, 'ok'); }
+  else { log('Bản tin','Lưu nháp', m.code); toast(`Đã lưu nháp ${m.code}.`, 'ok'); }
+  save(); F = null; go(`#/messages/${m.id}`);
+}
+
+/* =========================================================================
+   CHI TIẾT BẢN TIN (YC007, YC010, YC014–YC021)
+   ========================================================================= */
+function viewMsg(r){
+  const m = S.messages.find(x => x.id===r.id);
+  if (!m) return `<div class="card"><div class="empty">Không tìm thấy bản tin.</div></div>`;
+  const s = resStats(m), t = now(), live = m.status==='broadcasting';
+  const acts = [];
+  if (can('edit',m)) acts.push(`<a class="btn" href="#/messages/${m.id}/edit">Sửa</a>`);
+  if (can('cancel',m)) acts.push(`<button class="btn danger" data-act="cancelMsg" data-id="${m.id}">Huỷ bản tin</button>`);
+  if (can('submit',m)) acts.push(`<button class="btn pri" data-act="submitExisting" data-id="${m.id}">Gửi duyệt</button>`);
+  if (can('approve',m)) acts.push(`<button class="btn danger" data-act="reject" data-id="${m.id}">Từ chối</button><button class="btn ok" data-act="approve" data-id="${m.id}">Duyệt và phát</button>`);
+  if (can('update',m)) acts.push(`<button class="btn" data-act="updateMsg" data-id="${m.id}">Cập nhật nội dung</button>`);
+  if (can('stop',m)) acts.push(`<button class="btn dangerfill" data-act="stopMsg" data-id="${m.id}">Dừng phát</button>`);
+  if (['broadcasting','stopped','expired'].includes(m.status)) acts.push(`<a class="btn" href="#/reports?id=${m.id}">Xem báo cáo</a>`);
+  const pa = m.pendingAction;
+  return `<div class="ph"><a href="#/messages" class="btn sm">← Danh sách</a><h1 class="mono">${m.code}</h1>${badge(m.status)}<div class="sp"></div>${acts.join('')}</div>
+  ${m.status==='pending' && me.role==='PD' && m.createdBy===me.id ? `<div class="alert warn">Bạn không được duyệt bản tin do chính mình soạn.</div>`:''}
+  ${m.status==='pending' && me.role==='SO' ? `<div class="alert info">Bản tin đang chờ Người phê duyệt xem xét.</div>`:''}
+  ${m.status==='rejected' ? `<div class="alert err"><b>Bị từ chối</b> bởi ${esc(U(m.rejectedBy).name)} lúc ${fmt(m.rejectedAt)}. Lý do: ${esc(m.rejectReason)}</div>`:''}
+  ${pa && live ? `<div class="card mb" style="border-color:#f0d9a8"><div class="hd" style="background:var(--warn-l)"><h2>Yêu cầu ${pa.type==='update'?'cập nhật nội dung':'dừng phát'} đang chờ duyệt</h2><span class="small muted">${esc(U(pa.by).name)} · ${fmt(pa.at)}</span><div class="sp"></div>
+      ${can('cancelAction',m)?`<button class="btn sm" data-act="cancelAction" data-id="${m.id}">Rút yêu cầu</button>`:''}
+      ${can('approveAction',m)?`<button class="btn sm danger" data-act="rejectAction" data-id="${m.id}">Từ chối</button><button class="btn sm ok" data-act="approveAction" data-id="${m.id}">Duyệt</button>`:''}</div>
+      <div class="bd"><div class="small muted">Lý do: ${esc(pa.reason)}</div>${pa.type==='update'?`<div class="diff" style="margin-top:8px"><div><b class="small">Nội dung hiện tại</b><pre>${esc(m.body)}</pre></div><div><b class="small">Nội dung mới</b><pre>${esc(pa.body)}</pre></div></div>`:''}</div></div>`:''}
+  <div class="compose"><div>
+    <div class="card mb"><div class="hd"><h2>Thông tin chung</h2></div><div class="bd kv">
+      <div>Tên chiến dịch</div><div><b>${esc(m.campaign)}</b></div><div>Số văn bản yêu cầu</div><div>${esc(m.docNo||'–')}</div>
+      <div>Cách soạn</div><div>${m.mode==='template'?`Theo mẫu ${esc(m.templateId)}`:'Soạn tự do'}</div>
+      <div>Mức ưu tiên</div><div>${m.priority} – ${esc(PRI(m.priority).vi)}</div>
+      <div>Chu kỳ lặp / thời hạn</div><div>${m.repetition} giây · ${dur(m.duration)}</div>
+      <div>Người soạn</div><div>${esc(U(m.createdBy).name)} · ${fmt(m.createdAt)}</div>
+      <div>Người duyệt</div><div>${m.approvedBy?`${esc(U(m.approvedBy).name)} (${esc(m.approverUnit)}) · ${fmt(m.approvedAt)}`:'–'}</div>
+      ${m.startAt?`<div>Thời gian phát</div><div>${fmt(m.startAt)} → ${fmt(m.endAt)}${live?` <span class="muted">(còn ${left(m.endAt-t)})</span>`:''}</div>`:''}
+      ${m.endedAt?`<div>Kết thúc</div><div>${fmt(m.endedAt)}${m.stopReason?` · dừng thủ công: ${esc(m.stopReason)}`:''}</div>`:''}
+      ${m.serial?`<div>Serial Number</div><div class="mono">${m.serial} <span class="muted">(lần cập nhật ${m.updateNo})</span></div>`:''}
+    </div></div>
+    <div class="card mb"><div class="hd"><h2>Vùng phát</h2><span class="small muted">${m.areas.length} xã/phường</span></div><div class="bd">
+      ${m.areas.map(a => `<span class="chip" style="padding-right:10px">${esc(XA(a).name)}, ${esc(PROV(XA(a).provinceId).name)}</span>`).join('')}
+      ${(()=>{ const as = areaStats(m.areas); const n = m.cells.length || as.cells; return `<div class="small muted" style="margin-top:8px">${nf(as.enbs)} trạm · ${nf(n)} cell · ước tính ${nf(m.cells.length?subsOf(m):as.subs)} thuê bao trong vùng</div>`; })()}
+    </div></div>
+    ${m.sentAt ? resultCard(m, s) : ''}
+    ${m.versions.length ? `<div class="card mb"><div class="hd"><h2>Các phiên bản nội dung</h2></div><div class="bd">${m.versions.slice().reverse().map(v => `<div class="small muted">Lần cập nhật ${v.updateNo} · thay thế lúc ${fmt(v.at)}</div><pre style="white-space:pre-wrap;margin:4px 0 12px;font:inherit;background:#f7f8fa;padding:8px;border-radius:6px">${esc(v.body)}</pre>`).join('')}</div></div>`:''}
+    <div class="card"><div class="hd"><h2>Lịch sử xử lý</h2></div><div class="bd"><ul class="timeline">${m.history.slice().reverse().map(h => `<li><b>${esc(h.act)}</b> <span class="small muted">· ${esc(U(h.by).name)} · ${fmt(h.at)}</span>${h.note?`<div class="small muted">${esc(h.note)}</div>`:''}</li>`).join('')}</ul></div></div>
+  </div><div class="sticky"><div class="card"><div class="hd"><h2>Nội dung bản tin</h2></div><div class="bd">${previewHtml(fullText(m), m.priority)}</div></div></div></div>`;
+}
+function resultCard(m, s){
+  const live = m.status==='broadcasting', max = S.settings.retryMax, busy = roundPending(m);
+  const fails = m.cells.filter(c => m.results[c]==='fail'), rt = retryable(m), kfail = m.cells.filter(c => (m.kres||{})[c]==='fail'), krt = killRetryable(m);
+  const t = now(), okCells = m.cells.filter(c => m.results[c]==='ok');
+  const per = Math.max(1, Math.floor(m.duration*60 / m.repetition));
+  const done1 = okCells.length ? Math.max(...okCells.map(c => airCount(m, c) || 0)) : 0;
+  const subsIn = cs => S.cells.filter(c => cs.includes(c.id)).reduce((a,c) => a + c.subs, 0);
+  const rounds = m.rounds || [];
+  const stateTxt = live ? `<b>${nf(okCells.length)}/${nf(s.total)} cell đang phát</b>${s.pending?` · ${nf(s.pending)} cell chờ phản hồi`:''}${s.fail?` · <span style="color:var(--err)">${nf(s.fail)} cell lỗi</span>`:''}`
+    : `<b>Đã kết thúc</b> · ${nf(m.cells.filter(c => (m.kres||{})[c]==='ok').length)} cell dừng thành công${kfail.length?` · <span style="color:var(--err)">${nf(kfail.length)} cell huỷ lỗi (có thể vẫn đang phát)</span>`:''}`;
+  const cmd = r => {
+    const v = Object.values(r.res), ok = v.filter(x => x==='ok').length, fl = v.filter(x => x==='fail').length, pd = v.filter(x => x==='pending').length, k = isKill(r.type);
+    const prev = r.type==='update' ? rounds.filter(x => x.no < r.no && !isKill(x.type)).slice(-1)[0] : null;
+    const serialTxt = r.type==='update' && prev ? `Serial ${esc(prev.serial)} → <b>${esc(r.serial)}</b> (tăng số cập nhật, máy sẽ hiển thị bản tin mới)` : r.type==='retry' ? `Serial ${esc(r.serial)} giữ nguyên (máy đã nhận sẽ bỏ qua, không bị trùng)` : `Serial ${esc(r.serial)}`;
+    const okTxt = k ? 'cell dừng phát thành công' : r.type==='update' ? 'cell đã chuyển sang nội dung mới' : 'cell bắt đầu phát';
+    return `<div class="cmd ${k?'kill':''}"><div class="row"><span class="no">${r.no}</span><b>${RTYPE[r.type]}</b><span class="small muted mono">${k?'Kill Request':'Write-Replace Warning Request'}</span><div class="sp"></div><span class="small muted">${fmt(r.at)} · ${esc(U(r.by).name)}</span></div>
+      <div class="small" style="margin:4px 0 6px">${r.note?`Lý do: ${esc(r.note)} · `:''}${k ? (r.type==='killretry' ? `Gửi lại tới ${nf(r.cells.length)} cell chưa huỷ được` : `Gửi tới ${nf(r.cells.length)} cell đang phát`) : `Gửi tới ${nf(r.cells.length)} cell · ${serialTxt}`}</div>
+      ${progBar({total:r.cells.length, ok, fail:fl, pending:pd})}
+      <div class="small" style="margin-top:6px"><b style="color:var(--ok)">${nf(ok)}</b> ${okTxt}${fl?` · <b style="color:var(--err)">${nf(fl)}</b> cell lỗi`:''}${pd?` · ${nf(pd)} cell chờ phản hồi`:''}
+        ${r.doneAt?` · hoàn thành sau ${((r.doneAt-r.at)/1000).toFixed(1)} giây`:''}${!k && ok ? ` · ước tính ${nf(subsIn(r.cells.filter(c => r.res[c]==='ok')))} thiết bị trong vùng phủ các cell này` : ''}</div></div>`;
+  };
+  return `<div class="card mb"><div class="hd"><h2>Lệnh gửi tới mạng và kết quả theo cell</h2></div><div class="bd">
+    <div class="howto small">CBC gửi <b>một lệnh</b> xuống mạng; sau đó trạm <b>tự phát lặp lại mỗi ${m.repetition} giây</b> trong suốt thời hạn ${dur(m.duration)} (khoảng ${nf(per)} lần mỗi cell), không cần CBC gửi thêm. Mạng chỉ trả kết quả thành công/lỗi cho <b>từng lệnh</b>, không trả kết quả cho từng lần lặp. Mỗi lần phát lại, cập nhật hay huỷ là một lệnh mới, được liệt kê bên dưới theo thứ tự.</div>
+    <div class="row" style="margin:12px 0"><div>${stateTxt}</div><div class="sp"></div>
+      ${okCells.length ? `<span class="small muted">${live?'Đến giờ':'Tổng cộng'} mỗi cell đã phát trên sóng khoảng <b>${nf(done1)}</b>/${nf(per)} lần${live?` · còn ${left(m.endAt-t)}`:''}</span>` : ''}</div>
+    ${live && fails.length ? `<div class="alert warn" style="margin:0 0 12px"><div class="row"><b>${fails.length} cell phát lỗi</b><div class="sp"></div>${can('retry',m)?`<button class="btn sm" data-act="retryFail" data-id="${m.id}">Phát lại ${rt.length} cell lỗi</button>`:''}</div>${busy?'<div class="small">Đang chờ kết quả lệnh trước.</div>':(!rt.length?`<div class="small">Các cell lỗi đã được phát lại tối đa ${max} lần.</div>`:'')}</div>` : ''}
+    ${!live && kfail.length ? `<div class="alert err" style="margin:0 0 12px"><div class="row"><b>${kfail.length} cell chưa nhận lệnh huỷ</b><div class="sp"></div>${can('retryKill',m)?`<button class="btn sm" data-act="retryKill" data-id="${m.id}">Gửi lại lệnh huỷ</button>`:''}</div><div class="small">Các cell này có thể vẫn đang phát bản tin. ${busy?'Đang chờ kết quả lệnh trước.':''}</div></div>` : ''}
+    <div class="cmds">${rounds.map(cmd).join('')}</div>
+    <details id="cellDet" style="margin-top:14px" ${window.__detOpen?'open':''}><summary style="cursor:pointer"><b>Trạng thái từng cell</b> <span class="small muted">(${nf(s.total)} cell)</span></summary>
+      <div class="row small" style="margin:8px 0"><label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" data-act="onlyFail" ${window.__onlyFail?'checked':''}> Chỉ hiện cell có lỗi</label></div>
+      <div style="max-height:320px;overflow:auto"><table class="t"><thead><tr><th>Cell ID</th><th>eNodeB</th><th>Xã/Phường</th><th>Trạng thái</th><th class="num">Số lệnh đã nhận</th><th class="num">Số lần đã phát trên sóng</th><th></th></tr></thead><tbody>
+      ${m.cells.filter(c => !window.__onlyFail || m.results[c]==='fail' || (m.kres||{})[c]==='fail').map(c => { const cc = S.cells.find(x=>x.id===c) || {}; const v = m.results[c], kv = (m.kres||{})[c]; const ci = (m.cinfo||{})[c] || {}; const n = airCount(m, c);
+        const st = kv==='ok' ? ['Đã dừng','var(--muted)'] : kv==='fail' ? ['Huỷ lỗi','var(--err)'] : kv==='pending' ? ['Chờ kết quả huỷ','var(--muted)'] : v==='ok' ? [live?'Đang phát':'Đã phát','var(--ok)'] : v==='fail' ? ['Phát lỗi','var(--err)'] : ['Chờ phản hồi','var(--muted)'];
+        const canOne = can('retry', m) && v==='fail' && (ci.retries||0) < max;
+        return `<tr><td class="mono small">${c}</td><td class="small">${cc.enb||'–'}</td><td class="small">${esc((XA(cc.xaId)||{}).name||'–')}</td>
+          <td class="small" style="color:${st[1]}">${st[0]}</td><td class="num small">${(ci.sends||0)+(ci.kills||0)}${ci.retries?` <span class="muted">(phát lại ${ci.retries})</span>`:''}</td>
+          <td class="num small">${n==null?'–':(ci.count!=null?nf(n):'~'+nf(n))}</td>
+          <td style="text-align:right">${canOne?`<button class="btn sm" data-act="retryCell" data-id="${m.id}" data-c="${c}">Phát lại</button>`:''}</td></tr>`; }).join('')}
+      </tbody></table></div>
+      <div class="small muted" style="margin-top:6px">"Số lần đã phát trên sóng": khi đang phát là số ước tính theo chu kỳ ${m.repetition} giây (dấu ~); khi đã dừng là số mạng trả về trong kết quả lệnh huỷ.</div></details>
+  </div></div>`;
+}
+
+/* =========================================================================
+   DASHBOARD CHIẾN DỊCH (Màn hình 4 + mục báo cáo 1–2 của tài liệu yêu cầu)
+   Hạ tầng: số liệu từ phản hồi của MME. Thuê bao/tương tác: chỉ có khi có nguồn ngoài CBC
+   (VNPT Net, dịch vụ rút gọn link) – trong demo là số giả lập, ghi rõ trên giao diện.
+   ========================================================================= */
+const linkOf = m => { const x = fullText(m).match(/https?:\/\/[^\s]+/i); return x ? x[0].replace(/[.,;:)]+$/,'') : null; };
+const hm = t => { const d = new Date(t); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+function simEngage(m){
+  const r = rng(parseInt(m.code.replace(/\D/g,''), 10) || 1), reach = subsOf(m);
+  const end = Math.min(now(), m.endedAt || m.endAt), el = Math.max(0, (end - m.startAt)/60000);
+  const ctr = 0.15 + r()*0.1, tau = 6 + r()*6;
+  const cum = t => Math.round(reach * ctr * (1 - Math.exp(-t/tau)));
+  const step = m.duration <= 60 ? 5 : 15, buckets = [];
+  for (let a = 0; a < el; a += step){
+    const b = Math.min(a + step, el);
+    if (buckets.length === 7){ buckets.push({from:m.startAt + a*60e3, to:end, n: cum(el) - cum(a), rest:true}); break; }
+    buckets.push({from:m.startAt + a*60e3, to:m.startAt + b*60e3, n: cum(b) - cum(a)});
+  }
+  return {reach, clicks:cum(el), buckets, calls:Math.round(reach*0.0004*(1 - Math.exp(-el/20))), base:Math.round(reach*0.000004*el)};
+}
+
+/* =========================================================================
+   CHỜ PHÊ DUYỆT (YC009)
+   ========================================================================= */
+function viewApprovals(){
+  const news = S.messages.filter(m => m.status==='pending').sort((a,b) => b.submittedAt-a.submittedAt);
+  const own = news.filter(m => m.createdBy===me.id), mine = news.filter(m => m.createdBy!==me.id);
+  const acts = S.messages.filter(m => m.status==='broadcasting' && m.pendingAction);
+  return `<div class="ph"><h1>Chờ phê duyệt</h1><span class="sub">Duyệt cần xác thực OTP. Không duyệt được bản tin do chính mình soạn.</span></div>
+  <div class="card mb"><div class="hd"><h2>Bản tin mới chờ duyệt</h2><span class="badge b-pending">${mine.length}</span></div>
+  ${mine.length ? `<table class="t"><thead><tr><th>Mã</th><th>Chiến dịch</th><th>Tiêu đề</th><th>Mức ưu tiên</th><th>Vùng phát</th><th>Người soạn</th><th>Gửi lúc</th><th></th></tr></thead><tbody>
+    ${mine.map(m => `<tr class="click" data-act="open" data-id="${m.id}"><td class="mono small">${m.code}</td><td><b>${esc(m.campaign)}</b><div class="small muted">${esc(m.docNo)}</div></td><td class="small">${esc(m.header)}</td><td class="small">${m.priority}<div class="muted">${esc(PRI(m.priority).vi)}</div></td><td class="small">${esc(areaText(m.areas,2))}</td><td class="small">${esc(U(m.createdBy).name)}</td><td class="small muted">${fmt(m.submittedAt)}</td><td><a class="btn sm pri" href="#/messages/${m.id}" data-stop>Xem xét</a></td></tr>`).join('')}
+  </tbody></table>` : `<div class="empty">Không có bản tin mới chờ duyệt.</div>`}</div>
+  <div class="card"><div class="hd"><h2>Yêu cầu cập nhật / dừng bản tin đang phát</h2><span class="badge b-pending">${acts.filter(m=>m.pendingAction.by!==me.id).length}</span></div>
+  ${acts.length ? `<table class="t"><thead><tr><th>Mã</th><th>Chiến dịch</th><th>Yêu cầu</th><th>Lý do</th><th>Người yêu cầu</th><th>Lúc</th><th></th></tr></thead><tbody>
+    ${acts.map(m => `<tr class="click" data-act="open" data-id="${m.id}"><td class="mono small">${m.code}</td><td>${esc(m.campaign)}</td><td>${m.pendingAction.type==='update'?'Cập nhật nội dung':'<b style="color:var(--err)">Dừng phát</b>'}</td><td class="small">${esc(m.pendingAction.reason)}</td><td class="small">${esc(U(m.pendingAction.by).name)}</td><td class="small muted">${fmt(m.pendingAction.at)}</td><td><a class="btn sm pri" href="#/messages/${m.id}" data-stop>Xem xét</a></td></tr>`).join('')}
+  </tbody></table>` : `<div class="empty">Không có yêu cầu nào.</div>`}</div>
+  ${own.length?`<p class="small muted">${own.length} bản tin chờ duyệt do bạn soạn được ẩn khỏi danh sách duyệt của bạn.</p>`:''}`;
+}
+function otpModal(title, intro, onOk){
+  otpStart(me, title.toLowerCase());
+  const body = () => `${intro}<div class="alert info" style="margin-top:12px">Mã OTP đã gửi qua SMS tới ${esc(me.phone.slice(0,4))}***${esc(me.phone.slice(-3))}. Hiệu lực ${Math.round(S.settings.otpTtl/60)} phút.</div>
+    <div id="otpErr"></div><label class="f">Mã OTP <span class="req">*</span></label><input class="otp" id="otpIn" maxlength="6" inputmode="numeric" autocomplete="one-time-code">`;
+  modal(title, body(), `<button class="btn link" data-act="otpResend">Gửi lại mã</button><div class="sp"></div><button class="btn" data-act="closeModal">Huỷ</button><button class="btn ok" data-act="otpConfirm">Xác nhận</button>`);
+  window.__otpOk = onOk; window.__otpTitle = title;
+}
+
+/* =========================================================================
+   BÁO CÁO (YC020–YC022)
+   ========================================================================= */
+let repFilter = {q:'', from:'', to:''};
+function reportRows(){
+  const f = repFilter;
+  let list = S.messages.filter(m => m.sentAt).sort((a,b) => b.sentAt-a.sentAt);
+  if (dayFrom(f.from)) list = list.filter(m => m.createdAt >= dayFrom(f.from));
+  if (dayTo(f.to)) list = list.filter(m => m.createdAt <= dayTo(f.to));
+  if (f.q){ const k = noAccent(f.q.toLowerCase()); list = list.filter(m => noAccent(`${m.code} ${m.campaign} ${m.docNo} ${m.header} ${areaText(m.areas,99)}`.toLowerCase()).includes(k)); }
+  return list;
+}
+function playedMin(m){ const end = m.endedAt || Math.min(now(), m.endAt); return Math.max(0, (end - m.startAt)/60000); }
+function repCellState(m, c){ const v = m.results[c]; return v==='ok' ? ['Thành công','sb-ok'] : v==='fail' ? ['Lỗi','sb-fail'] : ['Chờ phản hồi','sb-pend']; }
+function repCellRows(m){
+  const q = noAccent((window.__cellQ||'').toLowerCase().trim()), f = window.__cellSt || '';
+  const list = m.cells.filter(c => { const cc = S.cells.find(x => x.id===c) || {}; const v = m.results[c] || 'pending';
+    return (!f || v===f) && (!q || noAccent(`${c} ${cc.enb} ${(XA(cc.xaId)||{}).name||''}`.toLowerCase()).includes(q)); });
+  const rows = list.map(c => { const cc = S.cells.find(x => x.id===c) || {}, ci = (m.cinfo||{})[c] || {}, st = repCellState(m, c);
+    const at = ci.respAt || ci.okAt || (m.results[c]==='fail' ? ci.lastAt : null);
+    return `<tr><td class="mono small">${c}</td><td class="mono small">${esc(cc.enb||'–')}</td><td>4G</td><td>${esc((XA(cc.xaId)||{}).name||'–')}</td><td>${at && m.results[c]!=='pending' ? fmt(at).slice(11) : '—'}</td><td><span class="sb ${st[1]}">${st[0]}</span></td></tr>`; }).join('');
+  return {rows: rows || `<tr><td colspan="6" class="empty">Không có cell phù hợp.</td></tr>`, n: list.length};
+}
+function viewReports(){
+  const list = reportRows(), thr = S.settings.successThreshold, all = S.messages.filter(m => m.sentAt).sort((a,b) => b.sentAt-a.sentAt);
+  const id = qs().id, m = all.find(x => x.id===id) || all[0];
+  const head = `<div class="ph"><h1>Báo cáo chiến dịch</h1><div class="sp"></div>${m?`<button class="btn" data-act="exportOne" data-id="${m.id}">Xuất báo cáo chiến dịch (CSV)</button>`:''}<button class="btn" data-act="exportAll">Xuất tổng hợp (CSV)</button></div>`;
+  if (!m) return head + `<div class="card"><div class="empty">Chưa có chiến dịch nào được phát.</div></div>`;
+  window.__repId = m.id;
+  const s = resStats(m), live = m.status==='broadcasting', cs = S.cells.filter(c => m.cells.includes(c.id));
+  const enbAll = new Set(cs.map(c => c.enb)).size, enbOk = new Set(cs.filter(c => m.results[c.id]==='ok').map(c => c.enb)).size;
+  const r0 = (m.rounds||[])[0], lk = linkOf(m), e = simEngage(m), mx = Math.max(1, ...e.buckets.map(b => b.n));
+  const w = v => s.total ? v/s.total*100 : 0, ctr = e.reach ? (e.clicks/e.reach*100).toFixed(2).replace('.', ',') : '0,00';
+  const tile = (l, v, sub, color, pill) => `<div class="tile"><div class="l">${l}${pill||''}</div><div class="v ${color||''}">${v}</div><div class="s">${sub}</div></div>`;
+  const pill = (t, c) => `<span class="pill ${c}">${t}</span>`;
+  const kv = (k, v) => `<div><div class="k">${k}</div><div class="v">${v}</div></div>`;
+  const cr = repCellRows(m);
+  return `${head}
+  <div class="card rsel"><div class="bd row"><div style="flex:1;min-width:240px"><label class="f" style="text-transform:uppercase;font-size:12px;color:var(--muted)">Chiến dịch</label>
+    <select id="repSel">${all.map(x => `<option value="${x.id}" ${x===m?'selected':''}>${esc(x.campaign)} · ${x.code}</option>`).join('')}</select></div>
+    <div class="small muted" style="align-self:flex-end;padding-bottom:8px">Phạm vi: toàn bộ thời gian chiến dịch · ${live?'đang phát, tự cập nhật':'số liệu chốt'} lúc ${fmt(Math.min(now(), m.endedAt||m.endAt))}</div></div></div>
+
+  <div class="sec-h"><h2>01 · Tổng quan chiến dịch</h2><div class="sub">Thông tin lệnh phát và kết quả phản hồi theo cell/trạm.</div></div>
+  <div class="tiles">
+    ${tile('Cell được chỉ định', nf(s.total), 'Tập Cell ID trong lệnh phát')}
+    ${tile('Cell xác nhận thành công', nf(s.ok), 'Theo phản hồi hạ tầng', 'c-ok')}
+    ${tile('Tỷ lệ kích hoạt theo cell', s.rate.toFixed(2).replace('.', ',') + '%', `Cell thành công / cell chỉ định · ngưỡng ≥ ${thr}%`, s.pending ? 'c-pri' : (s.rate>=thr ? 'c-pri' : 'c-err'))}
+    ${tile('Chưa thành công / chờ phản hồi', nf(s.fail + s.pending), `${nf(s.fail)} lỗi · ${nf(s.pending)} chờ`, 'c-warn')}
+  </div>
+  <div class="two">
+    <div class="card"><div class="bd"><div class="row"><div><h2>Thông tin chiến dịch</h2><div class="small muted">Đối chiếu với công văn và lệnh phát</div></div><div class="sp"></div>${pill('Nghiệp vụ CMS','p-cms')}</div>
+      <div class="kv2">${kv('Tên chiến dịch', esc(m.campaign))}${kv('Thời gian khởi tạo', fmt(m.createdAt))}
+        ${kv('Tiêu đề bản tin', esc(m.header||'–'))}${kv('Đơn vị duyệt', esc(m.approverUnit||'–'))}
+        ${kv('Số văn bản yêu cầu', esc(m.docNo||'–'))}${kv('Vùng phát sóng', esc(areaText(m.areas, 3)))}
+        ${kv('Thời lượng phát', `${fmt(m.startAt).slice(11,16)}–${fmt(m.endedAt||m.endAt).slice(11,16)} · ${dur(m.endedAt ? playedMin(m) : m.duration)}`)}${kv('Trạng thái', ST[m.status])}
+        ${kv('Mã chiến dịch', m.code)}${kv('Hình thức nội dung', m.mode==='template' ? esc(m.templateId) : 'Soạn tự do')}</div></div></div>
+    <div class="card"><div class="bd"><div class="row"><div><h2>Kết quả kích hoạt</h2><div class="small muted">Tính trên Cell ID được chỉ định</div></div><div class="sp"></div>${pill('Phản hồi hạ tầng','p-cms')}</div>
+      <div class="row" style="margin:14px 0 8px"><span class="big">${s.rate.toFixed(2).replace('.', ',')}%</span><span class="small muted">Cell xác nhận thành công / Cell chỉ định</span></div>
+      <div class="bar2"><i style="width:${w(s.ok)}%;background:#1f9d7a"></i><i style="width:${w(s.pending)}%;background:#f0a63a"></i><i style="width:${w(s.fail)}%;background:#e0534a"></i></div>
+      <div class="legend small"><span><i style="background:#1f9d7a"></i>Thành công ${nf(s.ok)}</span><span><i style="background:#f0a63a"></i>Chờ ${nf(s.pending)}</span><span><i style="background:#e0534a"></i>Lỗi ${nf(s.fail)}</span></div>
+      <div class="trow"><span class="muted">eNodeB</span><span class="bar2"><i style="width:${enbAll?enbOk/enbAll*100:0}%;background:#1f9d7a"></i></span><b>${nf(enbOk)} / ${nf(enbAll)} trạm</b></div>
+      <div class="trow"><span class="muted">gNodeB</span><span class="bar2"></span><span class="muted">Chưa áp dụng (GĐ1 chỉ 4G)</span></div>
+      <div class="note" style="margin-top:12px"><b>Trạm thành công</b> là trạm có ít nhất 1 cell xác nhận phát. Lệnh phát đầu tiên hoàn thành sau <b>${r0 && r0.doneAt ? ((r0.doneAt-r0.at)/1000).toFixed(1)+' giây' : '…'}</b>; từ lúc duyệt đến khi gửi lệnh tới MME <b>${((m.sentAt-m.approvedAt)/1000).toFixed(1)} giây</b> (yêu cầu &lt; 2 giây).</div></div></div>
+  </div>
+  <div class="card" style="margin-top:14px"><div class="bd"><div class="row"><div><h2>Danh sách Cell ID</h2><div class="small muted" id="cellCnt">${nf(cr.n)}/${nf(s.total)} cell</div></div><div class="sp"></div>
+      <select id="cellSt" style="width:auto"><option value="">Tất cả trạng thái</option>${[['ok','Thành công'],['fail','Lỗi'],['pending','Chờ phản hồi']].map(([v,t]) => `<option value="${v}" ${window.__cellSt===v?'selected':''}>${t}</option>`).join('')}</select>
+      <input type="text" id="cellQ" placeholder="Tìm Cell ID, trạm hoặc xã…" value="${esc(window.__cellQ||'')}" style="width:240px"></div></div>
+    <div style="max-height:360px;overflow:auto"><table class="t"><thead><tr><th>Cell ID</th><th>Trạm</th><th>Công nghệ</th><th>Địa bàn ánh xạ</th><th>Thời điểm phản hồi</th><th>Trạng thái</th></tr></thead><tbody id="cellTb">${cr.rows}</tbody></table></div></div>
+
+  <div class="sec-h"><h2>02 · Tiếp cận và tương tác</h2><div class="sub">Các chỉ số này cần nguồn đo riêng ngoài CBC; phân biệt số ước tính với số thực sự quan sát được.</div></div>
+  <div class="tiles t3">
+    ${tile('Thuê bao hiện diện ước tính', nf(e.reach), `Đang bám cell lúc phát (${fmt(m.startAt).slice(0,16)}); không phải số đã nhận tin.`, 'c-pri', pill('VNPT Net','p-net'))}
+    ${tile('Thiết bị nhận thành công', 'Không có số liệu', 'Thiết bị không gửi xác nhận đã nhận tin.', 'na', pill('Không đo qua CBC','p-no'))}
+    ${tile('Lượt click link', lk ? nf(e.clicks) : 'Không có link', lk ? 'Lượt mở link rút gọn; có thể lặp hoặc từ người được chia sẻ.' : 'Bản tin không chứa link nên không có số click.', lk ? '' : 'na', pill('Link rút gọn VNPT','p-ext'))}
+    ${tile('Tỷ lệ click tham chiếu (CTR)', lk ? ctr + '%' : '–', 'Lượt click / thuê bao hiện diện ước tính; không phải tỷ lệ người nhận đã click.', lk ? '' : 'na', pill('Ước tính','p-net'))}
+    ${tile('Cuộc gọi 112 / 114', nf(e.calls), `Từ vùng phát sau thời điểm phát · cùng khung giờ ngày thường: ${nf(e.base)}`, '', pill('VNPT Net','p-net'))}
+    ${tile('Tin lưu SMS Inbox · lượt mở tin', 'Không có số liệu', 'Điện thoại tự xử lý, không gửi gì về mạng.', 'na', pill('Không đo qua CBC','p-no'))}
+  </div>
+  <div class="two" style="margin-top:14px">
+    <div class="card"><div class="bd"><div class="row"><div><h2>Link trong bản tin</h2><div class="small muted">Chỉ có số liệu khi bản tin chứa link rút gọn được theo dõi</div></div><div class="sp"></div>${pill('Ngoài CBC','p-ext')}</div>
+      ${lk ? `<div class="kv2">${kv('Mẫu bản tin', m.mode==='template' ? esc(m.templateId) : 'Soạn tự do')}${kv('Link', `<span class="mono" style="font-weight:600">${esc(lk)}</span>`)}${kv('Lượt click', nf(e.clicks))}${kv('Nguồn', 'Dịch vụ rút gọn link của VNPT')}</div>
+        <div class="formula"><b>CTR tham chiếu = ${nf(e.clicks)} / ${nf(e.reach)} = ${ctr}%.</b> Đây là tỷ lệ lượt click trên số thuê bao hiện diện ước tính. Link được chia sẻ hoặc một người bấm nhiều lần vẫn làm tăng tử số.</div>
+        <div class="small" style="margin:14px 0 6px"><b>Phân bổ click theo thời gian</b></div>
+        ${e.buckets.length ? e.buckets.map(b => `<div class="hb"><span class="mono">${hm(b.from)}–${hm(b.to)}${b.rest?' (còn lại)':''}</span><span class="bar"><i style="width:${b.n/mx*100}%"></i></span><span>${nf(b.n)} <span class="muted">(${e.clicks?Math.round(b.n/e.clicks*100):0}%)</span></span></div>`).join('') : '<div class="small muted">Chưa có lượt click.</div>'}`
+      : `<div class="empty">Bản tin không chứa link nên không có số liệu click.</div>`}</div></div>
+    <div class="card"><div class="bd"><div class="row"><div><h2>Cách hiểu số liệu</h2><div class="small muted">Điều kiện để đưa vào báo cáo</div></div><div class="sp"></div>${pill('Cần chốt nguồn','p-net')}</div>
+      <div class="note" style="margin-top:12px"><b>Thiết bị nhận thành công:</b> không thống kê được vì điện thoại không gửi xác nhận đã nhận bản tin.</div>
+      <div class="note" style="margin-top:10px"><b>Thuê bao hiện diện ước tính:</b> số thuê bao đang bám các cell được chọn tại thời điểm phát, nếu VNPT Net cung cấp dữ liệu. Đây là số tiếp cận tiềm năng.</div>
+      <div class="note" style="margin-top:10px"><b>CTR tham chiếu:</b> lượt click link rút gọn / thuê bao hiện diện ước tính. Lượt click có thể lặp hoặc đến từ link được chia sẻ, nên không phải tỷ lệ người nhận đã click.</div>
+      <div class="note" style="margin-top:10px"><b>Cuộc gọi 112/114:</b> lấy từ dữ liệu cước của VNPT Net theo cell và thời gian.</div></div></div>
+  </div>
+
+  <div class="sec-h"><h2>Tổng hợp các chiến dịch</h2><div class="sub">${list.length} chiến dịch đã phát · bấm một dòng để xem báo cáo chi tiết ở trên.</div></div>
+  <div class="card"><div class="bd" style="padding-bottom:0"><form class="filters" data-form="repFilter">
+    <div style="flex:2;min-width:220px"><label class="f">Tìm kiếm</label><input type="text" name="q" value="${esc(repFilter.q)}" placeholder="Mã, tên chiến dịch, số văn bản, vùng phát"></div>
+    <div><label class="f">Từ ngày</label>${dateIn('from', repFilter.from)}</div><div><label class="f">Đến ngày</label>${dateIn('to', repFilter.to)}</div>
+    <div style="min-width:auto"><button class="btn pri">Lọc</button></div></form></div>
+  ${list.length ? `<div style="overflow:auto"><table class="t"><thead><tr><th>Mã</th><th>Tên chiến dịch</th><th>Khởi tạo</th><th>Đơn vị duyệt</th><th>Số VB</th><th>Vùng phát</th><th>Thời lượng phát</th><th class="num">Trạm</th><th class="num">Cell OK / tổng</th><th class="num">Tỷ lệ</th><th>Trạng thái</th></tr></thead><tbody>
+  ${list.map(x => { const st = resStats(x); const xc = S.cells.filter(c => x.cells.includes(c.id)); const eo = new Set(xc.filter(c => x.results[c.id]==='ok').map(c=>c.enb)).size, ea = new Set(xc.map(c=>c.enb)).size;
+    return `<tr class="click ${x===m?'sel':''}" data-act="repPick" data-id="${x.id}"><td class="mono small">${x.code}</td><td><b>${esc(x.campaign)}</b></td><td class="small">${fmt(x.createdAt)}</td><td class="small">${esc(x.approverUnit||'')}</td><td class="small">${esc(x.docNo)}</td><td class="small">${esc(areaText(x.areas,2))}</td><td class="small">${dur(playedMin(x))}</td>
+    <td class="num small">${eo}/${ea}</td><td class="num small">${nf(st.ok)}/${nf(st.total)}</td><td class="num"><b style="color:${st.pending?'inherit':(st.rate>=thr?'var(--ok)':'var(--err)')}">${st.rate.toFixed(2)}%</b></td><td>${badge(x.status)}</td></tr>`; }).join('')}
+  </tbody></table></div>` : `<div class="empty">Không có chiến dịch phù hợp.</div>`}</div>`;
+}
+function csv(rows){ return '﻿' + rows.map(r => r.map(v => `"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\r\n'); }
+function download(name, content){
+  const b = new Blob([content], {type:'text/csv;charset=utf-8'}); const a = document.createElement('a');
+  a.href = URL.createObjectURL(b); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+function exportAll(){
+  const rows = [['Mã chiến dịch','Tên chiến dịch','Thời gian khởi tạo','Tiêu đề','Đơn vị duyệt','Người duyệt','Số VB yêu cầu','Vùng phát','Thời lượng phát (phút)','Số cell thành công','Tổng số cell','Tỷ lệ kích hoạt (%)','Thuê bao ước tính','Trạng thái']];
+  reportRows().forEach(m => { const s = resStats(m); rows.push([m.code, m.campaign, fmt(m.createdAt), m.header, m.approverUnit, U(m.approvedBy).name, m.docNo, areaText(m.areas,99), Math.round(playedMin(m)), s.ok, s.total, s.rate.toFixed(2), subsOf(m), ST[m.status]]); });
+  download(`bao-cao-chien-dich-${fmtD(now()).replace(/\//g,'')}.csv`, csv(rows)); log('Báo cáo','Xuất báo cáo tổng hợp', `${rows.length-1} chiến dịch`); save();
+}
+function exportOne(m){
+  const s = resStats(m);
+  const rows = [['Mã chiến dịch', m.code],['Tên chiến dịch', m.campaign],['Thời gian khởi tạo', fmt(m.createdAt)],['Tiêu đề', m.header],['Nội dung', m.body],['Đơn vị duyệt', m.approverUnit],['Người duyệt', U(m.approvedBy).name],
+    ['Số VB yêu cầu', m.docNo],['Vùng phát', areaText(m.areas,99)],['Thời lượng phát (phút)', Math.round(playedMin(m))],['Mức ưu tiên', `${m.priority} – ${PRI(m.priority).vi}`],['Số cell thành công / tổng', `${s.ok}/${s.total}`],['Tỷ lệ kích hoạt (%)', s.rate.toFixed(2)],['Thuê bao ước tính', subsOf(m)],[],
+    ['Cell ID','eNodeB','Xã/Phường','Kết quả','Số lần gửi lệnh','Số lần phát lại','Gửi gần nhất','Số lần phát trên sóng']];
+  m.cells.forEach(c => { const cc = S.cells.find(x=>x.id===c)||{}; const ci = (m.cinfo||{})[c]||{}; rows.push([c, cc.enb, (XA(cc.xaId)||{}).name, m.results[c]==='ok'?'Thành công':m.results[c]==='fail'?'Lỗi':'Chờ phản hồi', ci.sends||0, ci.retries||0, fmt(ci.lastAt), airCount(m,c) ?? '']); });
+  rows.push([], ['Lượt gửi','Loại','Thời điểm','Serial','Số cell','Thành công','Lỗi']);
+  (m.rounds||[]).forEach(r => { const v = Object.values(r.res); rows.push([r.no, RTYPE[r.type], fmt(r.at), r.serial, r.cells.length, v.filter(x=>x==='ok').length, v.filter(x=>x==='fail').length]); });
+  download(`${m.code}.csv`, csv(rows)); log('Báo cáo','Xuất báo cáo chiến dịch', m.code); save();
+}
+
+/* =========================================================================
+   THƯ VIỆN MẪU (YC025, YC026)
+   ========================================================================= */
+let tplFilter = {g:'', q:'', st:'active'};
+function viewTemplates(){
+  const admin = isRole('QT');
+  const groups = [...new Set(S.templates.map(t => t.group))];
+  let list = S.templates.slice();
+  if (!admin) list = list.filter(t => t.active);
+  else if (tplFilter.st) list = list.filter(t => tplFilter.st==='active' ? t.active : !t.active);
+  if (tplFilter.g) list = list.filter(t => t.group===tplFilter.g);
+  if (tplFilter.q){ const k = noAccent(tplFilter.q.toLowerCase()); list = list.filter(t => noAccent(`${t.code} ${t.name} ${t.header} ${t.body}`.toLowerCase()).includes(k)); }
+  const used = id => S.messages.some(m => m.templateId===id);
+  return `<div class="ph"><h1>Thư viện mẫu tin</h1><span class="sub">${list.length} mẫu</span><div class="sp"></div>${admin?`<button class="btn pri" data-act="tplEdit">+ Thêm mẫu</button>`:''}</div>
+  <div class="card"><div class="bd" style="padding-bottom:0"><form class="filters" data-form="tplFilter">
+    <div style="flex:2;min-width:220px"><label class="f">Tìm kiếm</label><input type="text" name="q" value="${esc(tplFilter.q)}" placeholder="Mã, tên, nội dung"></div>
+    <div><label class="f">Nhóm tình huống</label><select name="g"><option value="">Tất cả</option>${groups.map(g=>`<option ${tplFilter.g===g?'selected':''}>${esc(g)}</option>`).join('')}</select></div>
+    ${admin?`<div><label class="f">Trạng thái</label><select name="st"><option value="">Tất cả</option><option value="active" ${tplFilter.st==='active'?'selected':''}>Đang dùng</option><option value="off" ${tplFilter.st==='off'?'selected':''}>Ngừng sử dụng</option></select></div>`:''}
+    <div style="min-width:auto"><button class="btn pri">Lọc</button></div></form></div>
+  ${list.length ? `<table class="t"><thead><tr><th>Mã</th><th>Nhóm</th><th>Tiêu đề</th><th style="width:45%">Nội dung mẫu</th><th>Mức ưu tiên</th>${admin?'<th>Trạng thái</th><th></th>':''}</tr></thead><tbody>
+  ${list.map(t => `<tr><td class="mono small">${t.code}</td><td class="small">${esc(t.group)}</td><td class="small"><b>${esc(t.header)}</b></td><td class="small">${esc(t.body).replace(/\{([^{}]+)\}/g,'<span class="var">{$1}</span>')}</td><td class="small">${t.mi}</td>
+    ${admin?`<td>${t.active?'<span class="badge b-broadcasting">Đang dùng</span>':'<span class="badge b-cancelled">Ngừng</span>'}</td><td class="row" style="flex-wrap:nowrap"><button class="btn sm" data-act="tplEdit" data-id="${t.id}">Sửa</button>
+      ${used(t.id) ? `<button class="btn sm" data-act="tplToggle" data-id="${t.id}">${t.active?'Ngừng':'Dùng lại'}</button>` : `<button class="btn sm danger" data-act="tplDel" data-id="${t.id}">Xoá</button>`}</td>`:''}</tr>`).join('')}
+  </tbody></table>` : `<div class="empty">Không có mẫu phù hợp.</div>`}</div>
+  ${admin?`<p class="small muted">Mẫu đã dùng để phát chỉ được ngừng sử dụng, không xoá, để giữ lịch sử.</p>`:''}`;
+}
+function tplForm(t){
+  t = t || {code:'', name:'', group:'', header:'', body:'', mi:S.settings.priority};
+  const groups = [...new Set(S.templates.map(x => x.group))];
+  modal(t.id?`Sửa mẫu ${t.code}`:'Thêm mẫu tin', `<form id="tplF" class="grid g2">
+    <div><label class="f">Mã mẫu <span class="req">*</span></label><input type="text" name="code" value="${esc(t.code)}" ${t.id?'readonly':''} placeholder="TMP-51"></div>
+    <div><label class="f">Nhóm tình huống <span class="req">*</span></label><input type="text" name="group" list="grpl" value="${esc(t.group)}"><datalist id="grpl">${groups.map(g=>`<option value="${esc(g)}">`).join('')}</datalist></div>
+    <div><label class="f">Tiêu đề <span class="req">*</span></label><input type="text" name="header" value="${esc(t.header)}" placeholder="[TIÊU ĐỀ]"></div>
+    <div><label class="f">Mức ưu tiên <span class="req">*</span></label><select name="mi">${S.priorities.map(p=>`<option value="${p.mi}" ${t.mi==p.mi?'selected':''}>${p.mi} – ${esc(p.vi)}</option>`).join('')}</select></div>
+    <div style="grid-column:1/-1"><label class="f">Nội dung (biến đặt trong { }) <span class="req">*</span></label><textarea name="body" rows="5">${esc(t.body)}</textarea><div class="hint" id="tplVars"></div></div>
+    <div style="grid-column:1/-1" id="tplErr"></div></form>`,
+    `<button class="btn" data-act="closeModal">Huỷ</button><button class="btn pri" data-act="tplSave" data-id="${t.id||''}">Lưu</button>`, true);
+  const upd = () => { const b = $('#tplF [name=body]').value; const v = vars(b); $('#tplVars').textContent = v.length ? `Biến: ${v.map(x=>'{'+x+'}').join(', ')}` : 'Chưa có biến.'; };
+  $('#tplF [name=body]').addEventListener('input', upd); upd();
+}
+function tplSave(id){
+  const fd = new FormData($('#tplF')); const d = Object.fromEntries(fd); const errs = [];
+  ['code','group','header','body'].forEach(k => { d[k] = (d[k]||'').trim(); });
+  if (!d.code) errs.push('Nhập mã mẫu.'); if (!d.group) errs.push('Nhập nhóm tình huống.'); if (!d.header) errs.push('Nhập tiêu đề.'); if (!d.body) errs.push('Nhập nội dung.');
+  if (!id && S.templates.some(t => t.code.toLowerCase()===d.code.toLowerCase())) errs.push('Mã mẫu đã tồn tại.');
+  const open = (d.body.match(/\{/g)||[]).length, close = (d.body.match(/\}/g)||[]).length;
+  if (open !== close || /\{[^}]*\{|\{\s*\}/.test(d.body)) errs.push('Cú pháp biến không hợp lệ: mỗi biến phải dạng {Ten_bien}.');
+  if (errs.length){ $('#tplErr').innerHTML = `<div class="alert err"><ul>${errs.map(e=>`<li>${esc(e)}</li>`).join('')}</ul></div>`; return; }
+  const rec = {code:d.code, name:d.header.replace(/[\[\]]/g,''), group:d.group, header:d.header, body:d.body, mi:Number(d.mi)};
+  if (id){ Object.assign(S.templates.find(t => t.id===id), rec); log('Mẫu tin','Sửa mẫu tin', d.code); }
+  else { S.templates.push({...rec, id:d.code, active:true, createdAt:now()}); log('Mẫu tin','Thêm mẫu tin', d.code); }
+  save(); closeModal(); toast('Đã lưu mẫu tin.', 'ok'); render();
+}
+
+/* =========================================================================
+   DANH MỤC (YC027–YC029)
+   ========================================================================= */
+function viewCatalog(r){
+  const tab = r.tab;
+  const tabs = `<div class="tabs"><a href="#/catalog/areas" class="${tab==='areas'?'on':''}">Tỉnh/Xã</a><a href="#/catalog/cells" class="${tab==='cells'?'on':''}">Dữ liệu Xã → Cell</a><a href="#/catalog/priorities" class="${tab==='priorities'?'on':''}">Mức ưu tiên</a></div>`;
+  let body = '';
+  if (tab==='areas'){
+    body = `<div class="row mb"><div class="alert info" style="margin:0;flex:1">Dữ liệu mẫu cho demo, chưa phải danh mục hành chính chính thức.</div><button class="btn" data-act="provEdit">+ Thêm tỉnh</button><button class="btn pri" data-act="xaEdit">+ Thêm xã/phường</button></div>
+    ${S.provinces.map(p => { const xs = S.xas.filter(x => x.provinceId===p.id); return `<div class="card mb"><div class="hd"><h2>${esc(p.name)}</h2><span class="small muted mono">${esc(p.code)}</span><span class="small muted">· ${xs.length} xã/phường</span><div class="sp"></div><button class="btn sm" data-act="provEdit" data-id="${p.id}">Sửa</button></div>
+      <table class="t"><thead><tr><th>Mã</th><th>Tên xã/phường</th><th class="num">Số cell</th><th></th></tr></thead><tbody>${xs.map(x => `<tr><td class="mono small">${esc(x.code)}</td><td>${esc(x.name)}</td><td class="num">${S.cells.filter(c=>c.xaId===x.id).length}</td><td style="text-align:right"><button class="btn sm" data-act="xaEdit" data-id="${x.id}">Sửa</button></td></tr>`).join('')}</tbody></table></div>`; }).join('')}`;
+  } else if (tab==='cells'){
+    const rows = S.xas.map(x => { const cs = S.cells.filter(c => c.xaId===x.id); return {x, n:cs.length, enb:new Set(cs.map(c=>c.enb)).size, subs:cs.reduce((s,c)=>s+c.subs,0)}; });
+    body = `<div class="card mb"><div class="bd"><div class="row"><div><b>Nạp dữ liệu ánh xạ Xã → Cell</b><div class="small muted">File CSV có cột: <span class="mono">cell_id, enodeb, ma_xa, cong_nghe, so_tb_uoc_tinh</span>. Dữ liệu của các xã có trong file sẽ được thay thế.</div></div><div class="sp"></div>
+      <button class="btn" data-act="cellTemplate">Tải file mẫu</button><label class="btn pri" style="margin:0">Chọn file CSV…<input type="file" accept=".csv,text/csv" id="cellFile" hidden></label></div>
+      <div class="small muted" style="margin-top:8px">Tổng ${nf(S.cells.length)} cell · cập nhật gần nhất ${fmt(S.cellsUpdatedAt)}. Nguồn dữ liệu chính thức (CSDL mạng vô tuyến VNPT Net) đang chờ xác nhận.</div><div id="importRes"></div></div></div>
+    <div class="card"><table class="t"><thead><tr><th>Tỉnh</th><th>Xã/Phường</th><th class="num">Trạm</th><th class="num">Cell</th><th class="num">TB ước tính</th></tr></thead><tbody>
+      ${rows.map(r => `<tr><td class="small">${esc(PROV(r.x.provinceId).name)}</td><td>${esc(r.x.name)} <span class="mono small muted">${esc(r.x.code)}</span></td><td class="num">${r.enb}</td><td class="num">${r.n ? r.n : '<span style="color:var(--err)">0 – chưa có dữ liệu</span>'}</td><td class="num">${nf(r.subs)}</td></tr>`).join('')}
+    </tbody></table></div>`;
+  } else {
+    body = `<div class="row mb"><div class="small muted" style="flex:1">Theo bảng cấu hình CMAS Việt Nam (tài liệu yêu cầu mục 3.2.2). Tên hiển thị trong demo là dữ liệu mẫu, cần đối chiếu bảng chính thức.</div><button class="btn pri" data-act="priEdit">+ Thêm mức</button></div>
+    <div class="card"><table class="t"><thead><tr><th>Message ID</th><th>Tên tiếng Việt</th><th>Tên tiếng Anh</th><th>Trạng thái</th><th></th></tr></thead><tbody>
+      ${S.priorities.map(p => `<tr><td class="mono">${p.mi}${p.mi==S.settings.priority?' <span class="badge b-role">Mặc định</span>':''}</td><td>${esc(p.vi)}</td><td>${esc(p.en)}</td><td>${p.active?'<span class="badge b-broadcasting">Đang dùng</span>':'<span class="badge b-cancelled">Ngừng</span>'}</td><td style="text-align:right"><button class="btn sm" data-act="priEdit" data-id="${p.mi}">Sửa</button></td></tr>`).join('')}
+    </tbody></table></div>`;
+  }
+  return `<div class="ph"><h1>Danh mục & vùng phát</h1></div>${tabs}${body}`;
+}
+function importCells(text){
+  const lines = text.replace(/^﻿/,'').split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) return {err:['File không có dữ liệu.']};
+  const hdr = lines[0].split(',').map(s => s.trim().toLowerCase());
+  const need = ['cell_id','enodeb','ma_xa','cong_nghe','so_tb_uoc_tinh'];
+  const miss = need.filter(n => !hdr.includes(n)); if (miss.length) return {err:[`Thiếu cột: ${miss.join(', ')}`]};
+  const idx = Object.fromEntries(need.map(n => [n, hdr.indexOf(n)]));
+  const out = [], err = [], seen = new Set();
+  lines.slice(1).forEach((l,i) => {
+    const c = l.split(',').map(s => s.trim()); const row = i+2;
+    const xa = S.xas.find(x => x.code === c[idx.ma_xa]);
+    if (!c[idx.cell_id]) return err.push(`Dòng ${row}: thiếu cell_id.`);
+    if (seen.has(c[idx.cell_id])) return err.push(`Dòng ${row}: trùng cell_id ${c[idx.cell_id]}.`);
+    if (!xa) return err.push(`Dòng ${row}: mã xã "${c[idx.ma_xa]}" không có trong danh mục.`);
+    seen.add(c[idx.cell_id]);
+    out.push({id:c[idx.cell_id], enb:Number(c[idx.enodeb])||0, xaId:xa.id, tech:c[idx.cong_nghe]||'4G', subs:Number(c[idx.so_tb_uoc_tinh])||0});
+  });
+  return {rows:out, err};
+}
+
+/* =========================================================================
+   THAM SỐ (YC030), NGƯỜI DÙNG (YC023, YC024), NHẬT KÝ (YC031)
+   ========================================================================= */
+function viewSettings(){
+  const s = S.settings;
+  const fld = (k,l,h,attr='') => `<div><label class="f">${l}</label><input type="number" name="${k}" value="${s[k]}" ${attr}><div class="hint">${h}</div></div>`;
+  return `<div class="ph"><h1>Tham số hệ thống</h1></div><form data-form="settings">
+  <div class="card mb"><div class="hd"><h2>Giá trị mặc định khi tạo bản tin</h2></div><div class="bd grid g3">
+    <div><label class="f">Mức ưu tiên mặc định</label><select name="priority">${S.priorities.filter(p=>p.active).map(p=>`<option value="${p.mi}" ${s.priority==p.mi?'selected':''}>${p.mi} – ${esc(p.vi)}</option>`).join('')}</select><div class="hint">Cảnh báo thiên tai: Khẩn cấp Quốc gia (4370).</div></div>
+    ${fld('repetition','Chu kỳ lặp lại mặc định (giây)','5–300 giây','min=5 max=300')}${fld('duration','Thời hạn phát mặc định (phút)','15–2880 phút','min=15 max=2880')}
+    ${fld('maxPages','Số trang tối đa của bản tin','1–15 trang; chờ khách hàng chốt','min=1 max=15')}</div></div>
+  <div class="card mb"><div class="hd"><h2>Phê duyệt và bảo mật</h2></div><div class="bd grid g3">
+    ${fld('otpTtl','Hiệu lực mã OTP (giây)','60–600 giây','min=60 max=600')}${fld('otpMaxFail','Số lần nhập sai OTP tối đa','1–10 lần','min=1 max=10')}${fld('sessionTimeout','Thời gian chờ phiên (phút)','5–120 phút','min=5 max=120')}
+    <div><label class="f">OTP khi đăng nhập</label><select name="loginOtp"><option value="1" ${s.loginOtp?'selected':''}>Bật</option><option value="0" ${!s.loginOtp?'selected':''}>Tắt</option></select></div>
+    <div><label class="f">Cập nhật / dừng bản tin cần phê duyệt</label><select name="approveUpdateStop"><option value="1" ${s.approveUpdateStop?'selected':''}>Có (duyệt + OTP)</option><option value="0" ${!s.approveUpdateStop?'selected':''}>Không</option></select><div class="hint">Chờ khách hàng xác nhận.</div></div></div></div>
+  <div class="card mb"><div class="hd"><h2>Kết quả phát và lưu trữ</h2></div><div class="bd grid g3">
+    ${fld('successThreshold','Ngưỡng tỷ lệ phát thành công (%)','Theo tài liệu yêu cầu: ≥ 99%','min=50 max=100 step=0.1')}${fld('retryMax','Số lần phát lại tối đa cho mỗi cell lỗi','1–5 lần; chờ khách hàng xác nhận','min=1 max=5')}${fld('retrySend','Số lần tự gửi lại khi mất kết nối MME','0–5 lần','min=0 max=5')}${fld('logRetentionDays','Thời hạn lưu nhật ký (ngày)','Chờ khách hàng xác nhận','min=30 max=3650')}</div></div>
+  <div class="card mb" style="border-style:dashed"><div class="hd"><h2>Mô phỏng mạng</h2><span class="small muted">chỉ có trong bản demo</span></div><div class="bd grid g3">${fld('simFail','Tỷ lệ cell lỗi giả lập khi phát (%)','0–20%; tăng lên để demo phát lại','min=0 max=20 step=0.5')}</div></div>
+  <div id="setErr"></div><button class="btn pri">Lưu tham số</button></form>`;
+}
+function saveSettings(fd){
+  const n = k => Number(fd.get(k)); const e = [];
+  const rules = {repetition:[5,300], duration:[15,2880], maxPages:[1,15], otpTtl:[60,600], otpMaxFail:[1,10], sessionTimeout:[5,120], successThreshold:[50,100], retrySend:[0,5], retryMax:[1,5], simFail:[0,20], logRetentionDays:[30,3650]};
+  Object.entries(rules).forEach(([k,[a,b]]) => { const v = n(k); if (!(v>=a && v<=b)) e.push(`${k}: phải từ ${a} đến ${b}.`); });
+  if (e.length){ $('#setErr').innerHTML = `<div class="alert err"><ul>${e.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`; return; }
+  Object.keys(rules).forEach(k => S.settings[k] = n(k));
+  S.settings.priority = n('priority'); S.settings.loginOtp = fd.get('loginOtp')==='1'; S.settings.approveUpdateStop = fd.get('approveUpdateStop')==='1';
+  log('Tham số','Cập nhật tham số hệ thống', '', 'Quan trọng'); save(); toast('Đã lưu tham số.', 'ok'); render();
+}
+function viewUsers(){
+  const st = u => u.status==='active' ? '<span class="badge b-broadcasting">Hoạt động</span>' : '<span class="badge b-rejected">Khoá</span>';
+  return `<div class="ph"><h1>Người dùng & phân quyền</h1><span class="sub">${S.users.length} tài khoản</span><div class="sp"></div><button class="btn pri" data-act="userEdit">+ Thêm tài khoản</button></div>
+  <div class="card mb"><table class="t"><thead><tr><th>STT</th><th>Tên đăng nhập</th><th>Họ tên</th><th>Đơn vị</th><th>Vai trò</th><th>Số điện thoại nhận OTP</th><th>Trạng thái</th><th>Ngày tạo</th><th></th></tr></thead><tbody>
+  ${S.users.map((u,i) => `<tr><td>${i+1}</td><td class="mono small">${esc(u.username)}</td><td><b>${esc(u.name)}</b></td><td class="small">${esc(u.unit)}</td><td>${u.role?`<span class="badge b-role">${ROLE[u.role]}</span>`:'<span class="small muted">Chưa phân quyền</span>'}</td><td class="small">${esc(u.phone)}</td>
+    <td>${st(u)}</td><td class="small">${fmtD(u.createdAt)}</td>
+    <td class="row" style="flex-wrap:nowrap;justify-content:flex-end"><button class="btn sm" data-act="userEdit" data-id="${u.id}">Sửa</button>${u.role!=='QT'?`<button class="btn sm" data-act="userRole" data-id="${u.id}">Phân quyền</button>`:''}${u.id!==me.id?`<button class="btn sm ${u.status==='active'?'danger':''}" data-act="userToggle" data-id="${u.id}">${u.status==='active'?'Khoá':'Mở khoá'}</button>`:''}</td></tr>`).join('')}
+  </tbody></table><div class="bd small muted">Không xoá tài khoản, chỉ khoá. Tài khoản bị khoá không đăng nhập được.</div></div>
+  <div class="card"><div class="hd"><h2>Vai trò</h2></div><table class="t"><thead><tr><th>Vai trò</th><th>Quyền</th></tr></thead><tbody>
+    <tr><td><b>Người soạn thảo</b></td><td>Soạn bản tin.</td></tr>
+    <tr><td><b>Người phê duyệt</b></td><td>Duyệt và phát bản tin.</td></tr>
+  </tbody></table><div class="bd small muted">Người phê duyệt không được duyệt bản tin do chính mình soạn.</div></div>`;
+}
+function userForm(u){
+  u = u || {name:'', username:'', unit:'VNPT-VinaPhone', phone:''};
+  modal(u.id?'Sửa tài khoản':'Thêm tài khoản', `<form id="userF" class="grid g2">
+    <div><label class="f">Tên đăng nhập <span class="req">*</span></label><input type="text" name="username" value="${esc(u.username)}" ${u.id?'readonly':''}></div>
+    <div><label class="f">Họ tên <span class="req">*</span></label><input type="text" name="name" value="${esc(u.name)}"></div>
+    <div><label class="f">Đơn vị <span class="req">*</span></label><input type="text" name="unit" value="${esc(u.unit)}"></div>
+    <div><label class="f">Số điện thoại nhận OTP <span class="req">*</span></label><input type="tel" name="phone" value="${esc(u.phone)}" placeholder="09xxxxxxxx"></div>
+    ${u.id?'':'<div class="hint" style="grid-column:1/-1">Mật khẩu ban đầu (demo): Demo@123. Sau khi tạo, bấm Phân quyền để gán vai trò.</div>'}<div style="grid-column:1/-1" id="userErr"></div></form>`,
+    `<button class="btn" data-act="closeModal">Huỷ</button><button class="btn pri" data-act="userSave" data-id="${u.id||''}">Lưu</button>`, true);
+}
+function userSave(id){
+  const d = Object.fromEntries(new FormData($('#userF'))); Object.keys(d).forEach(k => d[k] = d[k].trim()); const e = [];
+  if (!id && !/^[a-z0-9._]{3,30}$/.test(d.username)) e.push('Tên đăng nhập 3–30 ký tự: chữ thường, số, dấu chấm, gạch dưới.');
+  if (!id && S.users.some(u => u.username===d.username)) e.push('Tên đăng nhập đã tồn tại.');
+  if (!d.name) e.push('Nhập họ tên.'); if (!d.unit) e.push('Nhập đơn vị.');
+  if (!/^0\d{9}$/.test(d.phone)) e.push('Số điện thoại phải gồm 10 chữ số, bắt đầu bằng 0 (dùng nhận OTP).');
+  if (e.length){ $('#userErr').innerHTML = `<div class="alert err"><ul>${e.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`; return; }
+  if (id){ const u = S.users.find(x => x.id===id); Object.assign(u, {name:d.name, unit:d.unit, phone:d.phone}); log('Người dùng','Sửa tài khoản', u.username); }
+  else { S.users.push({id:uid('U'), username:d.username, name:d.name, unit:d.unit, phone:d.phone, role:'', status:'active', password:'Demo@123', createdAt:now()}); log('Người dùng','Tạo tài khoản', d.username); }
+  save(); closeModal(); toast('Đã lưu tài khoản.', 'ok'); render();
+}
+function roleForm(u){
+  modal('Phân quyền', `<p>Tài khoản <b class="mono">${esc(u.username)}</b> · ${esc(u.name)}</p>
+    <label class="f">Vai trò <span class="req">*</span></label>
+    ${['SO','PD'].map(k => `<label style="display:block;margin:6px 0"><input type="radio" name="role" value="${k}" ${u.role===k?'checked':''}> ${ROLE[k]}</label>`).join('')}
+    <div id="roleErr"></div>`,
+    `<button class="btn" data-act="closeModal">Huỷ</button><button class="btn pri" data-act="roleSave" data-id="${u.id}">Lưu</button>`);
+}
+let logFilter = {q:'', by:'', from:'', to:''};
+function viewLogs(){
+  const f = logFilter; let list = S.logs;
+  if (f.by) list = list.filter(l => l.by===f.by);
+  if (dayFrom(f.from)) list = list.filter(l => l.at >= dayFrom(f.from)); if (dayTo(f.to)) list = list.filter(l => l.at <= dayTo(f.to));
+  if (f.q){ const k = noAccent(f.q.toLowerCase()); list = list.filter(l => noAccent(`${l.action} ${l.target}`.toLowerCase()).includes(k)); }
+  const shown = list.slice(0,300);
+  return `<div class="ph"><h1>Nhật ký hệ thống</h1><span class="sub">${nf(list.length)} bản ghi${list.length>300?' · hiển thị 300 bản ghi mới nhất':''} · không ai được sửa, xoá nhật ký</span></div>
+  <div class="card"><div class="bd" style="padding-bottom:0"><form class="filters" data-form="logFilter">
+    <div style="flex:2;min-width:200px"><label class="f">Tìm kiếm</label><input type="text" name="q" value="${esc(f.q)}" placeholder="Thao tác, đối tượng"></div>
+    <div><label class="f">Người thực hiện</label><select name="by"><option value="">Tất cả</option><option value="SYS" ${f.by==='SYS'?'selected':''}>Hệ thống</option>${S.users.map(u=>`<option value="${u.id}" ${f.by===u.id?'selected':''}>${esc(u.name)}</option>`).join('')}</select></div>
+    <div><label class="f">Từ ngày</label>${dateIn('from', f.from)}</div><div><label class="f">Đến ngày</label>${dateIn('to', f.to)}</div>
+    <div style="min-width:auto"><button class="btn pri">Lọc</button></div></form></div>
+  ${shown.length ? `<table class="t"><thead><tr><th>STT</th><th>Thời điểm</th><th>Người thực hiện</th><th>Thao tác</th><th>Đối tượng</th></tr></thead><tbody>
+    ${shown.map((l,i) => `<tr><td>${i+1}</td><td class="small" style="white-space:nowrap">${fmt(l.at)}</td><td class="small">${esc(U(l.by).name)}</td><td>${esc(l.action)}</td><td class="small">${esc(l.target)}</td></tr>`).join('')}
+  </tbody></table>` : `<div class="empty">Không có bản ghi.</div>`}</div>`;
+}
+
+/* =========================================================================
+   SỰ KIỆN
+   ========================================================================= */
+function retryAsk(m, one){
+  const cells = one ? [one] : retryable(m), max = S.settings.retryMax;
+  modal(one ? `Phát lại cell ${one}` : `Phát lại ${cells.length} cell lỗi`, `<div class="kv small"><div>Bản tin</div><div class="mono">${m.code}</div><div>Số cell phát lại</div><div><b>${cells.length}</b>${cells.length<=6?` <span class="mono muted">(${cells.join(', ')})</span>`:''}</div>
+    <div>Message ID</div><div>${m.priority} (giữ nguyên)</div><div>Serial Number</div><div class="mono">${esc(m.serial)} (giữ nguyên, không tăng)</div><div>Giới hạn</div><div>tối đa ${max} lần phát lại cho mỗi cell</div></div>
+    <div class="alert info" style="margin:12px 0 0">Chỉ gửi lại cho các cell lỗi. Máy đã nhận bản tin cùng Message ID + Serial sẽ tự bỏ qua nên người dân không bị nhận trùng.</div>`,
+    `<button class="btn" data-act="closeModal">Huỷ</button><button class="btn pri" data-act="retryOk" data-id="${m.id}" ${one?`data-c="${one}"`:''}>Phát lại</button>`);
+}
+function reasonModal(title, label, btn, cls, onOk, extra=''){
+  modal(title, `${extra}<label class="f">${label} <span class="req">*</span></label><textarea id="reasonIn" rows="3"></textarea><div id="reasonErr"></div>`,
+    `<button class="btn" data-act="closeModal">Huỷ</button><button class="btn ${cls}" data-act="reasonOk">${btn}</button>`, !!extra);
+  window.__reasonOk = onOk;
+}
+const A = {
+  closeModal(){ closeModal(); if (otpCtx && otpCtx.purpose !== 'dang nhap CMS'){ otpCtx = null; smsHide(); } },
+  smsClose(){ smsHide(); },
+  onlyFail(el){ window.__onlyFail = el.checked; render(); },
+  toggleNav(){ document.querySelector('.side').classList.toggle('open'); },
+  fillLogin(el){ const f = document.querySelector('[data-form=login]'); f.username.value = el.dataset.u; f.password.value = 'Demo@123'; f.password.focus(); },
+  loginBack(){ loginStep = {u:null, err:''}; otpCtx = null; smsHide(); render(); },
+  loginResend(){ otpStart(loginStep.u, 'dang nhap CMS'); loginStep.err = ''; render(); toast('Đã gửi lại mã OTP.'); },
+  toggleMenu(el, ev){ if (ev.target.closest('.menu')) return; $('#umenu').classList.toggle('open'); },
+  switchUser(el){ const u = S.users.find(x => x.id===el.dataset.id); log('Đăng nhập','Đăng xuất', me.username); setSession(u); log('Đăng nhập','Chuyển tài khoản (demo)', u.username); save(); F = null; toast(`Đang dùng tài khoản ${u.name} – ${ROLE[u.role]}`, 'ok'); go('#/dashboard'); },
+  logout(){ log('Đăng nhập','Đăng xuất', me.username); save(); setSession(null); F = null; location.hash = ''; render(); },
+  resetDemo(){ if (!confirm('Xoá toàn bộ dữ liệu demo và khởi tạo lại?')) return; lsDel(LS_KEY); lsDel(LS_SES); seed(); save(); me = null; F = null; location.hash = ''; render(); toast('Đã khởi tạo lại dữ liệu demo.', 'ok'); },
+  open(el){ go(`#/messages/${el.dataset.id}`); },
+  clearFilter(){ msgFilter = {st:'', q:'', mi:'', by:'', from:'', to:''}; go('#/messages'); },
+  setDur(el){ F.duration = Number(el.dataset.v); const i = document.querySelector('[data-f=duration]'); if (i) i.value = F.duration; composeRefresh(); },
+  toNoAccent(){ F.header = noAccent(F.header); F.body = noAccent(F.body); $('#secContent').innerHTML = composeContent(); composeRefresh(); },
+  selAllXa(){ const xs = S.xas.filter(x => x.provinceId===F.prov).map(x => x.id); const all = xs.every(x => F.areas.includes(x)); F.areas = all ? F.areas.filter(a => !xs.includes(a)) : [...new Set([...F.areas, ...xs])]; clearErr('areas'); areaSoftRefresh(); },
+  rmXa(el){ F.areas = F.areas.filter(a => a !== el.dataset.id); areaSoftRefresh(); },
+  saveDraft(){ saveCompose(false); },
+  submitMsg(){ saveCompose(true); },
+  submitExisting(el){ composeInit(el.dataset.id); F.route = `#/messages/${el.dataset.id}/edit`; F.errors = validate(true);
+    if (Object.keys(F.errors).length){ toast('Bản tin còn thiếu thông tin, mở màn hình sửa để hoàn thiện.', 'warn'); go(`#/messages/${el.dataset.id}/edit`); setTimeout(() => saveCompose(true), 0); return; }
+    saveCompose(true); },
+  cancelMsg(el){ const m = S.messages.find(x => x.id===el.dataset.id);
+    reasonModal(`Huỷ bản tin ${m.code}`, 'Lý do huỷ', 'Huỷ bản tin', 'dangerfill', r => { m.status='cancelled'; m.updatedAt=now(); m.history.push({at:now(), by:me.id, act:'Huỷ bản tin', note:r}); log('Bản tin','Huỷ bản tin', m.code); save(); toast('Đã huỷ bản tin.'); render(); }); },
+  approve(el){ const m = S.messages.find(x => x.id===el.dataset.id); const s = areaStats(m.areas);
+    otpModal('Duyệt và phát bản tin', `<div class="kv small"><div>Bản tin</div><div class="mono">${m.code}</div><div>Chiến dịch</div><div>${esc(m.campaign)}</div><div>Mức ưu tiên</div><div>${m.priority} – ${esc(PRI(m.priority).vi)}</div><div>Vùng phát</div><div>${esc(areaText(m.areas,5))} · ${nf(s.cells)} cell</div><div>Thời hạn</div><div>${dur(m.duration)}</div></div>
+      <div class="alert warn" style="margin:12px 0 0">Sau khi xác nhận, lệnh phát được gửi ngay xuống mạng.</div>`,
+      () => { broadcast(m, me); m.updatedAt = now(); log('Phê duyệt','Duyệt bản tin (OTP hợp lệ)', m.code, 'Quan trọng'); save(); toast(`Đã duyệt. ${m.code} đang phát tới ${nf(m.cells.length)} cell.`, 'ok'); render(); }); },
+  reject(el){ const m = S.messages.find(x => x.id===el.dataset.id);
+    reasonModal(`Từ chối bản tin ${m.code}`, 'Lý do từ chối (gửi cho Người soạn thảo)', 'Từ chối', 'dangerfill', r => { m.status='rejected'; m.rejectReason=r; m.rejectedBy=me.id; m.rejectedAt=now(); m.updatedAt=now(); m.history.push({at:now(), by:me.id, act:'Từ chối', note:r}); log('Phê duyệt','Từ chối bản tin', m.code, 'Quan trọng'); save(); toast('Đã từ chối và trả về Người soạn thảo.'); render(); }); },
+  updateMsg(el){ const m = S.messages.find(x => x.id===el.dataset.id);
+    modal(`Cập nhật bản tin ${m.code}`, `<div class="alert info">Bản tin mới thay thế bản tin đang phát trên các cell, Serial Number tăng để máy hiển thị lại. ${S.settings.approveUpdateStop?'Yêu cầu cần Người phê duyệt duyệt + OTP.':''}</div>
+      <div class="diff"><div><label class="f">Nội dung hiện tại</label><pre>${esc(m.body)}</pre></div><div><label class="f">Nội dung mới <span class="req">*</span></label><textarea id="updBody" rows="7">${esc(m.body)}</textarea><div id="updCnt" class="hint"></div></div></div>
+      <label class="f" style="margin-top:10px">Lý do cập nhật <span class="req">*</span></label><input type="text" id="updReason" placeholder="VD: Đính chính giờ sơ tán"><div id="updErr"></div>`,
+      `<button class="btn" data-act="closeModal">Huỷ</button><button class="btn pri" data-act="updateOk" data-id="${m.id}">${S.settings.approveUpdateStop?'Gửi duyệt':'Phát bản cập nhật'}</button>`, true);
+    const cnt = () => { const ms = measure([m.header, $('#updBody').value].join(' ')); $('#updCnt').textContent = `${ms.len} ký tự · ${ms.pages} trang · ${ms.cs}`; };
+    $('#updBody').addEventListener('input', cnt); cnt(); },
+  updateOk(el){ const m = S.messages.find(x => x.id===el.dataset.id); const body = $('#updBody').value.trim(), reason = $('#updReason').value.trim(); const e = [];
+    if (!body) e.push('Nhập nội dung mới.'); else if (body === m.body) e.push('Nội dung mới chưa thay đổi.'); if (vars(body).length) e.push('Nội dung còn biến {…} chưa thay.');
+    if (measure([m.header, body].join(' ')).pages > S.settings.maxPages) e.push(`Nội dung vượt ${S.settings.maxPages} trang.`); if (!reason) e.push('Nhập lý do cập nhật.');
+    if (e.length){ $('#updErr').innerHTML = `<div class="alert err" style="margin-top:10px"><ul>${e.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`; return; }
+    const a = {type:'update', body, reason, by:me.id, at:now()};
+    if (S.settings.approveUpdateStop){ m.pendingAction = a; m.history.push({at:now(), by:me.id, act:'Gửi duyệt yêu cầu cập nhật', note:reason}); log('Bản tin','Gửi duyệt cập nhật', m.code); toast('Đã gửi yêu cầu cập nhật cho Người phê duyệt.', 'ok'); }
+    else { applyUpdate(m, a, null); log('Bản tin','Cập nhật bản tin', m.code, 'Quan trọng'); toast('Đã phát bản cập nhật.', 'ok'); }
+    m.updatedAt = now(); save(); closeModal(); render(); },
+  stopMsg(el){ const m = S.messages.find(x => x.id===el.dataset.id);
+    reasonModal(`Dừng phát ${m.code}`, 'Lý do dừng', S.settings.approveUpdateStop?'Gửi duyệt dừng phát':'Dừng phát ngay', 'dangerfill', r => {
+      const a = {type:'stop', reason:r, by:me.id, at:now()};
+      if (S.settings.approveUpdateStop){ m.pendingAction = a; m.history.push({at:now(), by:me.id, act:'Gửi duyệt yêu cầu dừng phát', note:r}); log('Bản tin','Gửi duyệt dừng phát', m.code); toast('Đã gửi yêu cầu dừng cho Người phê duyệt.', 'ok'); }
+      else { applyStop(m, a, null); log('Bản tin','Dừng phát', m.code, 'Quan trọng'); toast('Đã gửi lệnh dừng phát.', 'ok'); }
+      m.updatedAt = now(); save(); render(); }, `<div class="alert warn">Lệnh dừng gửi tới mạng; máy đầu cuối đã nhận bản tin vẫn giữ bản tin đã hiển thị.</div>`); },
+  cancelAction(el){ const m = S.messages.find(x => x.id===el.dataset.id); m.history.push({at:now(), by:me.id, act:'Rút yêu cầu '+(m.pendingAction.type==='update'?'cập nhật':'dừng')}); m.pendingAction = null; m.updatedAt = now(); log('Bản tin','Rút yêu cầu', m.code); save(); render(); },
+  approveAction(el){ const m = S.messages.find(x => x.id===el.dataset.id); const a = m.pendingAction;
+    otpModal(a.type==='update'?'Duyệt cập nhật bản tin':'Duyệt dừng phát', `<div class="kv small"><div>Bản tin</div><div class="mono">${m.code}</div><div>Yêu cầu</div><div>${a.type==='update'?'Cập nhật nội dung':'Dừng phát'}</div><div>Lý do</div><div>${esc(a.reason)}</div><div>Người yêu cầu</div><div>${esc(U(a.by).name)}</div></div>`,
+      () => { if (m.status !== 'broadcasting'){ toast('Bản tin đã kết thúc, yêu cầu không còn hiệu lực.', 'warn'); m.pendingAction=null; save(); return render(); }
+        a.type==='update' ? applyUpdate(m, a, me) : applyStop(m, a, me); m.pendingAction = null; m.updatedAt = now();
+        log('Phê duyệt', a.type==='update'?'Duyệt cập nhật (OTP hợp lệ)':'Duyệt dừng phát (OTP hợp lệ)', m.code, 'Quan trọng'); save(); toast('Đã duyệt và gửi lệnh tới mạng.', 'ok'); render(); }); },
+  rejectAction(el){ const m = S.messages.find(x => x.id===el.dataset.id);
+    reasonModal('Từ chối yêu cầu', 'Lý do từ chối', 'Từ chối', 'dangerfill', r => { m.history.push({at:now(), by:me.id, act:'Từ chối yêu cầu '+(m.pendingAction.type==='update'?'cập nhật':'dừng'), note:r}); m.pendingAction = null; m.updatedAt = now(); log('Phê duyệt','Từ chối yêu cầu', m.code); save(); render(); }); },
+  retryFail(el){ retryAsk(S.messages.find(x => x.id===el.dataset.id), null); },
+  retryKill(el){ const m = S.messages.find(x => x.id===el.dataset.id); const cells = killRetryable(m);
+    if (!can('retryKill', m) || !cells.length){ toast('Không còn cell nào để gửi lại lệnh huỷ.', 'warn'); return render(); }
+    const r = sendRound(m, 'killretry', cells, me.id, '');
+    m.history.push({at:now(), by:me.id, act:'Gửi lại lệnh huỷ cho cell lỗi', note:`${cells.length} cell · lượt gửi #${r.no}`});
+    log('Phát tin','Gửi lại lệnh huỷ', `${m.code} – ${cells.length} cell`, 'Quan trọng'); save(); toast(`Đã gửi lại lệnh huỷ cho ${cells.length} cell.`, 'ok'); render(); },
+  retryCell(el){ retryAsk(S.messages.find(x => x.id===el.dataset.id), el.dataset.c); },
+  retryOk(el){ const m = S.messages.find(x => x.id===el.dataset.id); const one = el.dataset.c;
+    const cells = one ? [one] : retryable(m);
+    if (!can('retry', m) || !cells.length || (one && !retryable(m).includes(one))){ closeModal(); toast('Không còn cell nào được phép phát lại.', 'warn'); return render(); }
+    const r = sendRound(m, 'retry', cells, me.id, one ? `Cell ${one}` : '');
+    m.history.push({at:now(), by:me.id, act:'Phát lại cho cell lỗi', note:`${cells.length} cell · giữ nguyên Serial ${m.serial} · lượt gửi #${r.no}`});
+    m.updatedAt = now(); log('Phát tin','Phát lại cho cell lỗi', `${m.code} – ${cells.length} cell – Serial ${m.serial}`, 'Quan trọng'); save(); closeModal(); toast(`Đã gửi lại lệnh cho ${cells.length} cell.`, 'ok'); render(); },
+  exportAll(){ exportAll(); },
+  repPick(el){ window.__cellQ = ''; window.__cellSt = ''; go('#/reports?id=' + el.dataset.id); window.scrollTo(0, 0); },
+  exportOne(el){ exportOne(S.messages.find(x => x.id===el.dataset.id)); },
+  reasonOk(){ const v = $('#reasonIn').value.trim(); if (!v){ $('#reasonErr').innerHTML = '<div class="ferr">Nhập lý do.</div>'; return; } const f = window.__reasonOk; closeModal(); f(v); },
+  otpResend(){ otpStart(me, (window.__otpTitle||'').toLowerCase()); $('#otpErr').innerHTML = '<div class="alert info">Đã gửi lại mã OTP mới.</div>'; },
+  otpConfirm(){ const r = otpCheck($('#otpIn').value);
+    if (r.ok){ const f = window.__otpOk; closeModal(); f(); return; }
+    if (r.locked){ log('Phê duyệt','Nhập sai OTP quá số lần cho phép', window.__otpTitle||'', 'Cảnh báo'); save(); closeModal(); toast(r.msg, 'err'); return; }
+    $('#otpErr').innerHTML = `<div class="alert err">${esc(r.msg)}</div>`; $('#otpIn').select(); },
+  tplEdit(el){ tplForm(el.dataset.id ? S.templates.find(t => t.id===el.dataset.id) : null); },
+  tplSave(el){ tplSave(el.dataset.id); },
+  tplToggle(el){ const t = S.templates.find(x => x.id===el.dataset.id); t.active = !t.active; log('Mẫu tin', t.active?'Dùng lại mẫu':'Ngừng sử dụng mẫu', t.code); save(); render(); },
+  tplDel(el){ const t = S.templates.find(x => x.id===el.dataset.id); if (!confirm(`Xoá mẫu ${t.code}?`)) return; S.templates = S.templates.filter(x => x !== t); log('Mẫu tin','Xoá mẫu', t.code); save(); render(); },
+  provEdit(el){ const p = el.dataset.id ? PROV(el.dataset.id) : {code:'', name:''};
+    modal(p.id?'Sửa tỉnh/thành phố':'Thêm tỉnh/thành phố', `<form id="provF" class="grid g2"><div><label class="f">Mã <span class="req">*</span></label><input type="text" name="code" value="${esc(p.code)}"></div><div><label class="f">Tên <span class="req">*</span></label><input type="text" name="name" value="${esc(p.name)}"></div><div id="provErr" style="grid-column:1/-1"></div></form>`,
+      `<button class="btn" data-act="closeModal">Huỷ</button><button class="btn pri" data-act="provSave" data-id="${p.id||''}">Lưu</button>`); },
+  provSave(el){ const d = Object.fromEntries(new FormData($('#provF'))); d.code = d.code.trim().toUpperCase(); d.name = d.name.trim(); const id = el.dataset.id;
+    if (!d.code || !d.name) return $('#provErr').innerHTML = '<div class="ferr">Nhập đủ mã và tên.</div>';
+    if (S.provinces.some(p => p.code===d.code && p.id!==id)) return $('#provErr').innerHTML = '<div class="ferr">Mã đã tồn tại.</div>';
+    if (id) Object.assign(PROV(id), d); else S.provinces.push({id:uid('P'), ...d}); log('Danh mục', id?'Sửa tỉnh':'Thêm tỉnh', d.name); save(); closeModal(); render(); },
+  xaEdit(el){ const x = el.dataset.id ? XA(el.dataset.id) : {code:'', name:'', provinceId:S.provinces[0].id};
+    modal(x.id?'Sửa xã/phường':'Thêm xã/phường', `<form id="xaF" class="grid g2"><div><label class="f">Tỉnh/Thành phố <span class="req">*</span></label><select name="provinceId">${S.provinces.map(p=>`<option value="${p.id}" ${x.provinceId===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div>
+      <div><label class="f">Mã <span class="req">*</span></label><input type="text" name="code" value="${esc(x.code)}"></div><div style="grid-column:1/-1"><label class="f">Tên xã/phường <span class="req">*</span></label><input type="text" name="name" value="${esc(x.name)}"></div><div id="xaErr" style="grid-column:1/-1"></div></form>`,
+      `<button class="btn" data-act="closeModal">Huỷ</button><button class="btn pri" data-act="xaSave" data-id="${x.id||''}">Lưu</button>`); },
+  xaSave(el){ const d = Object.fromEntries(new FormData($('#xaF'))); d.code = d.code.trim().toUpperCase(); d.name = d.name.trim(); const id = el.dataset.id;
+    if (!d.code || !d.name) return $('#xaErr').innerHTML = '<div class="ferr">Nhập đủ mã và tên.</div>';
+    if (S.xas.some(x => x.code===d.code && x.id!==id)) return $('#xaErr').innerHTML = '<div class="ferr">Mã đã tồn tại.</div>';
+    if (id) Object.assign(XA(id), d); else S.xas.push({id:uid('X'), ...d}); log('Danh mục', id?'Sửa xã/phường':'Thêm xã/phường', d.name); save(); closeModal(); render(); },
+  priEdit(el){ const p = el.dataset.id ? PRI(el.dataset.id) : {mi:'', vi:'', en:'', active:true};
+    modal(el.dataset.id?'Sửa mức ưu tiên':'Thêm mức ưu tiên', `<form id="priF" class="grid g2"><div><label class="f">Message ID <span class="req">*</span></label><input type="number" name="mi" value="${p.mi}" ${el.dataset.id?'readonly':''}></div>
+      <div><label class="f">Trạng thái</label><select name="active"><option value="1" ${p.active?'selected':''}>Đang dùng</option><option value="0" ${!p.active?'selected':''}>Ngừng</option></select></div>
+      <div><label class="f">Tên tiếng Việt <span class="req">*</span></label><input type="text" name="vi" value="${esc(p.vi)}"></div><div><label class="f">Tên tiếng Anh</label><input type="text" name="en" value="${esc(p.en)}"></div><div id="priErr" style="grid-column:1/-1"></div></form>`,
+      `<button class="btn" data-act="closeModal">Huỷ</button><button class="btn pri" data-act="priSave" data-id="${el.dataset.id||''}">Lưu</button>`); },
+  priSave(el){ const d = Object.fromEntries(new FormData($('#priF'))); const id = el.dataset.id; const mi = Number(d.mi);
+    if (!(mi >= 4352 && mi <= 6399) || !d.vi.trim()) return $('#priErr').innerHTML = '<div class="ferr">Message ID phải trong dải 4352–6399 và nhập tên tiếng Việt.</div>';
+    if (!id && S.priorities.some(p => p.mi===mi)) return $('#priErr').innerHTML = '<div class="ferr">Message ID đã tồn tại.</div>';
+    if (id && d.active==='0' && Number(id)===S.settings.priority) return $('#priErr').innerHTML = '<div class="ferr">Không ngừng được mức đang là mặc định. Đổi mức mặc định trong Tham số trước.</div>';
+    const rec = {mi, vi:d.vi.trim(), en:d.en.trim(), active:d.active==='1'};
+    if (id) Object.assign(PRI(id), rec); else S.priorities.push(rec); S.priorities.sort((a,b)=>a.mi-b.mi); log('Danh mục', id?'Sửa mức ưu tiên':'Thêm mức ưu tiên', String(mi)); save(); closeModal(); render(); },
+  cellTemplate(){ const rows = [['cell_id','enodeb','ma_xa','cong_nghe','so_tb_uoc_tinh']]; S.cells.filter(c => c.xaId===S.xas[0].id).slice(0,3).forEach(c => rows.push([c.id, c.enb, S.xas[0].code, c.tech, c.subs])); download('mau-du-lieu-xa-cell.csv', csv(rows).replace(/"/g,'')); },
+  userEdit(el){ userForm(el.dataset.id ? S.users.find(u => u.id===el.dataset.id) : null); },
+  userSave(el){ userSave(el.dataset.id); },
+  userToggle(el){ const u = S.users.find(x => x.id===el.dataset.id); u.status = u.status==='active' ? 'locked' : 'active'; u.failLogin = 0; log('Người dùng', u.status==='active'?'Mở khoá tài khoản':'Khoá tài khoản', u.username); save(); render(); },
+  userRole(el){ roleForm(S.users.find(u => u.id===el.dataset.id)); },
+  roleSave(el){ const u = S.users.find(x => x.id===el.dataset.id); const r = (document.querySelector('#modal input[name=role]:checked')||{}).value;
+    if (!r){ $('#roleErr').innerHTML = '<div class="alert err">Chọn vai trò.</div>'; return; }
+    const old = u.role; u.role = r; log('Người dùng','Phân quyền', `${u.username} · ${old?ROLE[old]+' → ':''}${ROLE[r]}`); save(); closeModal(); toast('Đã lưu vai trò.', 'ok'); render(); },
+  userReset(el){ const u = S.users.find(x => x.id===el.dataset.id); if (!confirm(`Đặt lại mật khẩu của ${u.username} về Demo@123?`)) return; u.password = 'Demo@123'; u.failLogin = 0; log('Người dùng','Đặt lại mật khẩu', u.username, 'Quan trọng'); save(); toast('Đã đặt lại mật khẩu.', 'ok'); },
+};
+
+document.addEventListener('click', ev => {
+  if (ev.target.matches('[data-ov]')) { A.closeModal(); return; }
+  const m = $('#umenu'); if (m && m.classList.contains('open') && !ev.target.closest('.who')) m.classList.remove('open');
+  if (ev.target.closest('[data-stop]')) { ev.stopPropagation(); return; }
+  const el = ev.target.closest('[data-act]'); if (!el) return;
+  const f = A[el.dataset.act]; if (f){ if (el.tagName==='BUTTON' && el.type==='submit') ev.preventDefault(); f(el, ev); }
+});
+document.addEventListener('submit', ev => {
+  const f = ev.target.closest('[data-form]'); if (!f) return; ev.preventDefault(); const fd = new FormData(f); const k = f.dataset.form;
+  for (const n of ['from','to']){ const v = (fd.get(n)||'').trim(); if (v && !parseD(v)) return toast('Ngày không hợp lệ. Nhập theo định dạng DD/MM/YYYY, năm 4 chữ số.', 'err'); }
+  if (fd.get('from') && fd.get('to') && dayFrom(fd.get('from')) > dayTo(fd.get('to'))) return toast('Từ ngày phải trước hoặc bằng Đến ngày.', 'err');
+  if (k==='login') return doLogin(fd);
+  if (k==='loginOtp'){ const r = otpCheck(fd.get('otp')||''); if (r.ok) return finishLogin(loginStep.u);
+    loginStep.err = r.msg; if (r.locked){ log('Đăng nhập','Nhập sai OTP quá số lần', loginStep.u.username, 'Cảnh báo', loginStep.u.id); save(); loginStep = {u:null, err:r.msg + ' Đăng nhập lại.'}; } return render(); }
+  if (k==='msgFilter'){ msgFilter = Object.fromEntries(fd); return go('#/messages'); }
+  if (k==='repFilter'){ repFilter = Object.fromEntries(fd); return render(); }
+  if (k==='tplFilter'){ tplFilter = Object.fromEntries(fd); if (!isRole('QT')) tplFilter.st = 'active'; return render(); }
+  if (k==='logFilter'){ logFilter = Object.fromEntries(fd); return render(); }
+  if (k==='settings') return saveSettings(fd);
+});
+document.addEventListener('input', ev => {
+  const t = ev.target;
+  if (t.id === 'cellQ'){ window.__cellQ = t.value; repCellRefresh(); return; }
+  if (!F || route().name !== 'compose') return;
+  if (t.dataset.f && ['campaign','docNo','header','body','repetition','duration','tq'].includes(t.dataset.f)){
+    F[t.dataset.f] = t.value; clearErr(t.dataset.f, t);
+    if (t.dataset.f === 'tq'){ const pos = t.selectionStart; $('#secContent').innerHTML = composeContent(); const n = document.querySelector('[data-f=tq]'); n.focus(); n.setSelectionRange(pos,pos); }
+    composeRefresh();
+  }
+  if (t.dataset.var){ F.vars[t.dataset.var] = t.value; clearErr('var_'+t.dataset.var, t); composeRefresh(); }
+});
+function repCellRefresh(){ const m = S.messages.find(x => x.id===window.__repId); if (!m) return; const r = repCellRows(m); $('#cellTb').innerHTML = r.rows; $('#cellCnt').textContent = `${nf(r.n)}/${nf(m.cells.length)} cell`; }
+document.addEventListener('change', ev => {
+  const t = ev.target;
+  if (t.id === 'repSel'){ window.__cellQ = ''; window.__cellSt = ''; return go('#/reports?id=' + t.value); }
+  if (t.id === 'cellSt'){ window.__cellSt = t.value; return repCellRefresh(); }
+  if (t.id === 'cellFile' && t.files[0]){
+    const rd = new FileReader(); rd.onload = () => { const r = importCells(String(rd.result)); const box = $('#importRes');
+      if (r.err && !r.rows){ box.innerHTML = `<div class="alert err" style="margin-top:10px">${r.err.map(esc).join('<br>')}</div>`; return; }
+      if (r.err.length){ box.innerHTML = `<div class="alert err" style="margin-top:10px"><b>File có ${r.err.length} lỗi, chưa nạp dữ liệu nào.</b><ul>${r.err.slice(0,20).map(e=>`<li>${esc(e)}</li>`).join('')}</ul></div>`; return; }
+      const xaIds = new Set(r.rows.map(x => x.xaId)); S.cells = S.cells.filter(c => !xaIds.has(c.xaId)).concat(r.rows); S.cellsUpdatedAt = now();
+      log('Danh mục','Nạp dữ liệu Xã → Cell', `${r.rows.length} cell · ${xaIds.size} xã`, 'Quan trọng'); save(); render(); toast(`Đã nạp ${r.rows.length} cell cho ${xaIds.size} xã.`, 'ok'); };
+    rd.readAsText(t.files[0]); return;
+  }
+  if (!F || route().name !== 'compose') return;
+  if (t.dataset.f === 'mode'){ F.mode = t.value; F.errors = {}; $('#errBox').innerHTML = ''; $('#secContent').innerHTML = composeContent(); composeRefresh(); }
+  if (t.dataset.f === 'group'){ F.group = t.value; $('#secContent').innerHTML = composeContent(); }
+  if (t.dataset.f === 'templateId'){ F.templateId = t.value; const tm = S.templates.find(x => x.id===t.value); if (tm){ F.header = tm.header; F.body = tm.body; F.priority = tm.mi; const ps = document.querySelector('[data-f=priority]'); if (ps) ps.value = tm.mi; } clearErr('templateId'); $('#secContent').innerHTML = composeContent(); composeRefresh(); }
+  if (t.dataset.f === 'priority'){ F.priority = Number(t.value); clearErr('priority', t); composeRefresh(); }
+  if (t.dataset.f === 'prov'){ F.prov = t.value; $('#secArea').innerHTML = composeArea(); composeRefresh(); }
+  if (t.dataset.xa){ F.areas = t.checked ? [...new Set([...F.areas, t.dataset.xa])] : F.areas.filter(a => a !== t.dataset.xa); clearErr('areas'); areaSoftRefresh(); }
+});
+document.addEventListener('toggle', ev => { if (ev.target.id === 'cellDet') window.__detOpen = ev.target.open; }, true);
+window.addEventListener('hashchange', () => { if (route().name !== 'compose') F = null; render(); });
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && $('#modal').innerHTML) A.closeModal(); if (ev.key === 'Enter' && ev.target.id === 'otpIn'){ ev.preventDefault(); A.otpConfirm(); } });
+
+/* hết phiên khi không thao tác (NF11) */
+let lastAct = now();
+['click','keydown'].forEach(e => document.addEventListener(e, () => lastAct = now(), true));
+setInterval(() => { if (me && now() - lastAct > S.settings.sessionTimeout*60e3){ log('Đăng nhập','Hết phiên do không thao tác', me.username); save(); setSession(null); render(); toast('Phiên làm việc đã hết. Đăng nhập lại.', 'warn'); } }, 15000);
+
+/* ---------- khởi động ---------- */
+(function init(){
+  try{ S = JSON.parse(lsGet(LS_KEY) || 'null'); }catch(e){ S = null; }
+  if (!S || S.v !== 1){ seed(); }
+  migrate(); save();
+  loadSession(); render();
+  setInterval(tick, 500);
+})();
+</script>
+</body>
+</html>
