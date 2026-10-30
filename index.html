@@ -142,6 +142,10 @@ h3.sec{margin:2px 0 10px;font-size:13.5px;text-transform:uppercase;letter-spacin
 .compose{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px;align-items:start}
 .sticky{position:sticky;top:72px}
 .secno{width:24px;height:24px;border-radius:50%;background:var(--pri);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;flex:none}
+.ctabs{display:flex;gap:4px;padding:0 16px;border-bottom:1px solid var(--line);background:#fff}
+.ctabs label{padding:10px 14px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;color:var(--muted);user-select:none}
+.ctabs input{display:none}
+.ctabs label:has(input:checked){border-bottom-color:var(--pri);color:var(--pri);font-weight:600}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
 .seg label{padding:7px 14px;cursor:pointer;border-right:1px solid var(--line);user-select:none}
 .seg label:last-child{border-right:0}
@@ -441,7 +445,7 @@ function nextCode(t){
 function newMsg(o, by, t){
   const tm = S.templates.find(x => x.id === o.templateId);
   const m = {id:uid('M'), code:nextCode(t), campaign:o.campaign, docNo:o.docNo, mode:o.mode, templateId:o.templateId||null, vars:o.vars||{},
-    header: o.mode==='template' && tm ? tm.header : o.header, body: o.mode==='template' && tm ? fill(tm.body,o.vars) : o.body,
+    header: o.header || (tm ? tm.header : ''), body: o.body || (tm ? fill(tm.body,o.vars) : ''), tplBody: o.tplBody || (o.mode==='template' && tm ? tm.body : null),
     areas:o.areas, priority:o.priority, repetition:o.repetition, duration:o.duration, status:'draft', createdBy:by, createdAt:t||now(), updatedAt:t||now(),
     updateNo:0, versions:[], history:[{at:t||now(), by, act:'Tạo bản tin'}], results:{}, cells:[]};
   return m;
@@ -881,7 +885,7 @@ function composeInit(id){
     F = {id:m.id, campaign:m.campaign, docNo:m.docNo, mode:m.mode, templateId:m.templateId, vars:{...m.vars}, header:m.header, body:m.body,
       areas:[...m.areas], priority:m.priority, repetition:m.repetition, duration:m.duration, prov:(XA(m.areas[0])||{}).provinceId || S.provinces[0].id,
       group:'', tq:'', errors:{}, touched:false};
-    if (m.mode==='template'){ const t = S.templates.find(x => x.id===m.templateId); if (t) F.body = t.body; }
+    if (m.mode==='template'){ const t = S.templates.find(x => x.id===m.templateId); F.body = m.tplBody || (t ? t.body : m.body); }
   } else {
     F = {id:null, campaign:'', docNo:'', mode:'template', templateId:'', vars:{}, header:'', body:'', areas:[], priority:st.priority,
       repetition:st.repetition, duration:st.duration, prov:S.provinces[0].id, group:'', tq:'', errors:{}, touched:false};
@@ -903,9 +907,9 @@ function viewCompose(r){
       <div class="${e.campaign?'has-err':''}"><label class="f">Tên chiến dịch <span class="req">*</span></label><input type="text" data-f="campaign" value="${esc(F.campaign)}" maxlength="150" placeholder="VD: Bão số 7 – sơ tán ven biển">${er('campaign')}</div>
       <div class="${e.docNo?'has-err':''}"><label class="f">Số văn bản yêu cầu <span class="req">*</span></label><input type="text" data-f="docNo" value="${esc(F.docNo)}" maxlength="60" placeholder="VD: 125/BCĐ-PCTT">${er('docNo')}<div class="hint">Số công văn của cơ quan chức năng yêu cầu phát tin.</div></div>
     </div></div>
-    <div class="card mb"><div class="hd"><span class="secno">2</span><h2>Nội dung bản tin</h2><div class="sp"></div><div class="seg">
-        <label><input type="radio" name="mode" value="template" data-f="mode" ${F.mode==='template'?'checked':''}><span>Theo mẫu</span></label>
-        <label><input type="radio" name="mode" value="free" data-f="mode" ${F.mode==='free'?'checked':''}><span>Soạn tự do</span></label></div></div><div class="bd" id="secContent">${composeContent()}</div></div>
+    <div class="card mb"><div class="hd"><span class="secno">2</span><h2>Nội dung bản tin</h2></div><div class="ctabs">
+        <label><input type="radio" name="mode" value="template" data-f="mode" ${F.mode==='template'?'checked':''}><span>Theo mẫu trong thư viện</span></label>
+        <label><input type="radio" name="mode" value="free" data-f="mode" ${F.mode==='free'?'checked':''}><span>Soạn tự do</span></label></div><div class="bd" id="secContent">${composeContent()}</div></div>
     <div class="card mb"><div class="hd"><span class="secno">3</span><h2>Vùng phát</h2></div><div class="bd" id="secArea">${composeArea()}</div></div>
     <div class="card mb"><div class="hd"><span class="secno">4</span><h2>Mức ưu tiên và tham số phát</h2></div><div class="bd grid g3">
       <div class="${e.priority?'has-err':''}"><label class="f">Mức ưu tiên (bảng CMAS) <span class="req">*</span></label><select data-f="priority">${S.priorities.filter(p=>p.active||p.mi==F.priority).map(p=>`<option value="${p.mi}" ${F.priority==p.mi?'selected':''}>${p.mi} – ${esc(p.vi)}</option>`).join('')}</select>${er('priority')}<div class="hint" id="priHint">Âm thanh, rung: ${esc(soundOf(F.priority))}</div></div>
@@ -933,21 +937,26 @@ function composeContent(){
     let tl = S.templates.filter(t => t.active && (!F.group || t.group===F.group));
     if (F.tq){ const k = noAccent(F.tq.toLowerCase()); tl = tl.filter(t => noAccent(`${t.code} ${t.name} ${t.body}`.toLowerCase()).includes(k)); }
     const t = S.templates.find(x => x.id===F.templateId);
-    const vs = t ? vars(t.body) : [];
     return `<div class="grid g3 mb">
       <div><label class="f">Nhóm tình huống</label><select data-f="group"><option value="">Tất cả nhóm</option>${groups.map(g=>`<option ${F.group===g?'selected':''}>${esc(g)}</option>`).join('')}</select></div>
       <div style="grid-column:span 2" class="${e.templateId?'has-err':''}"><label class="f">Mẫu tin <span class="req">*</span></label><select data-f="templateId"><option value="">— Chọn mẫu (${tl.length}) —</option>${tl.map(x=>`<option value="${x.id}" ${F.templateId===x.id?'selected':''}>${x.code} · ${esc(x.name)}</option>`).join('')}${t && !tl.includes(t)?`<option value="${t.id}" selected>${t.code} · ${esc(t.name)}</option>`:''}</select>${er('templateId')}</div>
     </div>
     <div class="mb"><input type="text" data-f="tq" value="${esc(F.tq)}" placeholder="Tìm mẫu theo mã, tên, nội dung…"></div>
-    ${t ? `${header}
-      <div class="mb"><label class="f">Nội dung mẫu</label><div class="alert info" style="margin:0">${esc(t.body).replace(/\{([^{}]+)\}/g,'<span class="var">{$1}</span>')}</div></div>
-      ${vs.length ? `<label class="f">Giá trị các biến (${vs.length})</label><div class="grid g2">${vs.map(v => `<div class="${e['var_'+v]?'has-err':''}"><label class="f small" style="font-weight:400">{${esc(v)}} <span class="req">*</span></label><input type="text" data-var="${esc(v)}" value="${esc(F.vars[v]||'')}" placeholder="${/link/i.test(v)?'https://…':''}">${er('var_'+v)}</div>`).join('')}</div>` : `<div class="muted small">Mẫu này không có biến.</div>`}
-      <div id="cnt" style="margin-top:10px"></div>`
-    : `<div class="muted">Chọn một mẫu để nạp tiêu đề, mức ưu tiên và nội dung.</div>`}`;
+    ${t ? `${header}${bodyEditor()}`
+    : `<div class="muted">Chọn một mẫu để nạp tiêu đề, mức ưu tiên và nội dung. Sau khi nạp vẫn sửa được tiêu đề và nội dung.</div>`}`;
   }
-  return `${header}
-    <div class="${e.body?'has-err':''}"><label class="f">Nội dung <span class="req">*</span></label><textarea data-f="body" rows="6" placeholder="Nhập nội dung cảnh báo, có thể kèm số hotline hoặc đường link https://…">${esc(F.body)}</textarea>${er('body')}
-    <div class="row" style="margin-top:6px;gap:6px"><button class="btn sm" type="button" data-act="insLink">Chèn link</button><button class="btn sm" type="button" data-act="toNoAccent">Chuyển sang không dấu</button><div class="sp"></div><span id="cnt"></span></div></div>`;
+  return `${header}${bodyEditor()}`;
+}
+function bodyEditor(){
+  const e = F.errors, tpl = F.mode==='template';
+  return `<div class="${e.body?'has-err':''}"><label class="f">Nội dung <span class="req">*</span></label><textarea data-f="body" rows="6" placeholder="Nhập nội dung cảnh báo, có thể kèm số hotline hoặc đường link https://…">${esc(F.body)}</textarea>${e.body?`<div class="ferr">${esc(e.body)}</div>`:''}
+    ${tpl?'<div class="hint">Nội dung nạp từ mẫu, được sửa trực tiếp. Phần {…} là biến, nhập giá trị ở bên dưới.</div>':''}
+    <div class="row" style="margin-top:6px;gap:6px"><button class="btn sm" type="button" data-act="insLink">Chèn link</button><button class="btn sm" type="button" data-act="toNoAccent">Chuyển sang không dấu</button><div class="sp"></div><span id="cnt"></span></div></div>
+    ${tpl?`<div id="varBox" style="margin-top:10px">${varBox()}</div>`:''}`;
+}
+function varBox(){
+  const e = F.errors, vs = vars(F.body);
+  return vs.length ? `<label class="f">Giá trị các biến (${vs.length})</label><div class="grid g2">${vs.map(v => `<div class="${e['var_'+v]?'has-err':''}"><label class="f small" style="font-weight:400">{${esc(v)}} <span class="req">*</span></label><input type="text" data-var="${esc(v)}" value="${esc(F.vars[v]||'')}" placeholder="${/link/i.test(v)?'https://…':''}">${e['var_'+v]?`<div class="ferr">${esc(e['var_'+v])}</div>`:''}</div>`).join('')}</div>` : '';
 }
 function cntHtml(){
   const ms = measure(composeText()), over = ms.len > MAX_CHARS;
@@ -1012,16 +1021,17 @@ function validate(forSubmit){
     if (F.mode==='template'){
       const t = S.templates.find(x => x.id===F.templateId);
       if (!t) e.templateId = 'Chọn mẫu tin.';
-      else vars(t.body).forEach(v => { if (!(F.vars[v]||'').trim()) e['var_'+v] = 'Nhập giá trị biến.'; });
+      else if (!F.body.trim()) e.body = 'Nhập nội dung.';
+      else vars(F.body).forEach(v => { if (!(F.vars[v]||'').trim()) e['var_'+v] = 'Nhập giá trị biến.'; });
       if (!F.header.trim()) e.header = 'Nhập tiêu đề.';
-      Object.entries(F.vars).forEach(([k,v]) => { if (/link/i.test(k) && v.trim() && !/^https:\/\/\S+\.\S+/.test(v.trim())) e['var_'+k] = 'Link phải dạng https://…'; });
+      vars(F.body).map(k => [k, F.vars[k]||'']).forEach(([k,v]) => { if (/link/i.test(k) && v.trim() && !/^https:\/\/\S+\.\S+/.test(v.trim())) e['var_'+k] = 'Link phải dạng https://…'; });
     } else {
       if (!F.header.trim()) e.header = 'Nhập tiêu đề.';
       if (!F.body.trim()) e.body = 'Nhập nội dung.';
       else if ((F.body.match(/\bhttps?:\/\/\S*/g)||[]).some(u => !/^https:\/\/\S+\.\S+/.test(u))) e.body = 'Link trong nội dung phải dạng https://…';
       else if (vars(F.body).length) e.body = 'Nội dung còn biến {…} chưa thay giá trị.';
     }
-    if (measure(composeText()).len > MAX_CHARS) e[F.mode==='template'?'templateId':'body'] = `Nội dung vượt ${MAX_CHARS} ký tự (tối đa 2 trang CB).`;
+    if (measure(composeText()).len > MAX_CHARS) e.body = `Nội dung vượt ${MAX_CHARS} ký tự (tối đa 2 trang CB).`;
     if (!F.areas.length) e.areas = 'Chọn ít nhất một xã/phường.';
     else if (!areaStats(F.areas).cells) e.areas = 'Vùng đã chọn không có cell nào.';
     if (!PRI(F.priority).active) e.priority = 'Chọn mức ưu tiên.';
@@ -1040,7 +1050,8 @@ function saveCompose(submit){
   }
   const t = S.templates.find(x => x.id===F.templateId);
   const data = {campaign:F.campaign.trim(), docNo:F.docNo.trim(), mode:F.mode, templateId:F.mode==='template'?F.templateId:null,
-    vars:F.mode==='template'?{...F.vars}:{}, header:F.header.trim(), body:F.mode==='template'&&t?fill(t.body,F.vars):F.body.trim(),
+    vars:F.mode==='template'?Object.fromEntries(vars(F.body).map(k => [k, F.vars[k]||''])):{}, header:F.header.trim(), body:F.mode==='template'?fill(F.body.trim(),F.vars):F.body.trim(),
+    tplBody:F.mode==='template'?F.body.trim():null,
     areas:[...F.areas], priority:Number(F.priority), repetition:Number(F.repetition), duration:Number(F.duration)};
   let m;
   if (F.id){ m = S.messages.find(x => x.id===F.id); Object.assign(m, data); m.updatedAt = now(); m.history.push({at:now(), by:me.id, act:'Sửa bản tin'}); if (!submit) m.status = 'draft'; }
@@ -1730,6 +1741,7 @@ document.addEventListener('input', ev => {
   if (!F || route().name !== 'compose') return;
   if (t.dataset.f && ['campaign','docNo','header','body','repetition','duration','tq'].includes(t.dataset.f)){
     F[t.dataset.f] = t.value; clearErr(t.dataset.f, t);
+    if (t.dataset.f === 'body' && F.mode==='template'){ const vb = $('#varBox'), k = vars(F.body).join('|'); if (vb && vb.dataset.k !== k){ vb.dataset.k = k; vb.innerHTML = varBox(); } }
     if (t.dataset.f === 'tq'){ const pos = t.selectionStart; $('#secContent').innerHTML = composeContent(); const n = document.querySelector('[data-f=tq]'); n.focus(); n.setSelectionRange(pos,pos); }
     composeRefresh();
   }
