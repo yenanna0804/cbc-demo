@@ -242,6 +242,7 @@ input:focus,select:focus,textarea:focus{outline:0;border-color:var(--focus);box-
 <div id="sms"></div>
 <div id="modal"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 'use strict';
 /* =========================================================================
@@ -1362,8 +1363,9 @@ function viewCatalog(r){
   const title = {priorities:'Mức độ ưu tiên (bảng CMAS)', areas:'Danh mục Tỉnh/Xã', cells:'Dữ liệu ánh xạ Xã – Cell ID'}[tab] || '';
   let body = '';
   if (tab==='areas'){
-    body = `<div class="row mb"><div class="small muted" style="flex:1">Phân cấp 2 cấp Tỉnh – Xã theo mã hành chính. Dữ liệu trong demo là dữ liệu mẫu.</div><button class="btn" data-act="provEdit">+ Thêm tỉnh</button><button class="btn pri" data-act="xaEdit">+ Thêm xã</button></div>
-    ${S.provinces.map(p => { const xs = S.xas.filter(x => x.provinceId===p.id); return `<div class="card mb"><div class="hd"><h2>${esc(p.name)}</h2><span class="small muted">Mã hành chính <span class="mono">${esc(p.code)}</span> · ${xs.length} xã</span><div class="sp"></div><button class="btn sm" data-act="provEdit" data-id="${p.id}">Sửa</button><button class="btn sm danger" data-act="provDel" data-id="${p.id}">Xoá</button></div>
+    body = `<div class="row mb"><div class="small muted" style="flex:1">Phân cấp 2 cấp Tỉnh – Xã theo mã hành chính. Dữ liệu trong demo là dữ liệu mẫu.</div><button class="btn" data-act="provEdit">+ Thêm tỉnh</button><button class="btn" data-act="xaBulk">+ Thêm xã</button></div>
+    <div class="card mb"><div class="bd"><div class="row"><div><b>Nhập danh mục từ file</b><div class="small muted">File Excel (.xlsx) hoặc CSV gồm các cột: <span class="mono">ma_tinh, ten_tinh, ma_xa, ten_xa</span>. Tỉnh/xã chưa có sẽ được thêm, đã có (trùng mã) sẽ được cập nhật tên.</div></div><div class="sp"></div><button class="btn" data-act="areaTemplate">Tải file mẫu</button><label class="btn pri" style="margin:0">Chọn file…<input type="file" accept=".xlsx,.xls,.csv" id="areaFile" hidden></label></div><div id="areaImportRes"></div></div></div>
+    ${S.provinces.map(p => { const xs = S.xas.filter(x => x.provinceId===p.id); return `<div class="card mb"><div class="hd"><h2>${esc(p.name)}</h2><span class="small muted">Mã hành chính <span class="mono">${esc(p.code)}</span> · ${xs.length} xã</span><div class="sp"></div><button class="btn sm" data-act="xaBulk" data-p="${p.id}">+ Thêm xã</button><button class="btn sm" data-act="provEdit" data-id="${p.id}">Sửa</button><button class="btn sm danger" data-act="provDel" data-id="${p.id}">Xoá</button></div>
       <table class="t"><thead><tr><th>STT</th><th>Mã hành chính</th><th>Tên xã</th><th></th></tr></thead><tbody>${xs.map((x,i) => `<tr><td>${i+1}</td><td class="mono small">${esc(x.code)}</td><td>${esc(x.name)}</td><td class="row" style="flex-wrap:nowrap;justify-content:flex-end"><button class="btn sm" data-act="xaEdit" data-id="${x.id}">Sửa</button><button class="btn sm danger" data-act="xaDel" data-id="${x.id}">Xoá</button></td></tr>`).join('') || '<tr><td colspan="4" class="muted small">Chưa có xã.</td></tr>'}</tbody></table></div>`; }).join('')}`;
   } else if (tab==='cells'){
     const rows = S.xas.map(x => { const cs = S.cells.filter(c => c.xaId===x.id); return {x, c4:cs.filter(c=>c.tech==='4G').length, c5:cs.filter(c=>c.tech==='5G').length, n:cs.length}; });
@@ -1382,6 +1384,32 @@ function viewCatalog(r){
     </tbody></table></div>`;
   }
   return `<div class="ph"><h1>${title}</h1></div>${body}`;
+}
+function readRows(file, cb){
+  const rd = new FileReader();
+  if (/\.xlsx?$/i.test(file.name)){
+    if (!window.XLSX) return cb(null, 'Không đọc được file Excel (cần kết nối mạng để tải thư viện). Hãy dùng file CSV.');
+    rd.onload = () => { try{ const wb = XLSX.read(new Uint8Array(rd.result), {type:'array'}); cb(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1, raw:false, defval:''})); }catch(e){ cb(null, 'File Excel không hợp lệ.'); } };
+    rd.readAsArrayBuffer(file);
+  } else { rd.onload = () => cb(String(rd.result).replace(/^﻿/,'').split(/\r?\n/).filter(l => l.trim()).map(l => l.split(','))); rd.readAsText(file); }
+}
+function importAreas(rows){
+  if (!rows || rows.length < 2) return {err:['File không có dữ liệu.']};
+  const hdr = rows[0].map(x => String(x).trim().toLowerCase()); const need = ['ma_tinh','ten_tinh','ma_xa','ten_xa'];
+  const miss = need.filter(n => !hdr.includes(n)); if (miss.length) return {err:[`Thiếu cột: ${miss.join(', ')}`]};
+  const ix = Object.fromEntries(need.map(n => [n, hdr.indexOf(n)])); const err = [], provs = {}, xas = {};
+  rows.slice(1).forEach((r,i) => { const g = k => String(r[ix[k]]||'').trim(), row = i+2;
+    if (!r.some(v => String(v).trim())) return;
+    const pc = g('ma_tinh').toUpperCase(), pn = g('ten_tinh'), xc = g('ma_xa').toUpperCase(), xn = g('ten_xa');
+    if (!pc || !pn) return err.push(`Dòng ${row}: thiếu mã hoặc tên tỉnh.`);
+    if (provs[pc] && provs[pc] !== pn) return err.push(`Dòng ${row}: mã tỉnh ${pc} có 2 tên khác nhau trong file.`);
+    provs[pc] = pn; if (!xc && !xn) return;
+    if (!xc || !xn) return err.push(`Dòng ${row}: thiếu mã hoặc tên xã.`);
+    if (xas[xc]) return err.push(`Dòng ${row}: trùng mã xã ${xc} trong file.`);
+    const old = S.xas.find(x => x.code===xc); if (old && PROV(old.provinceId).code !== pc) return err.push(`Dòng ${row}: mã xã ${xc} đã thuộc ${PROV(old.provinceId).name}; mỗi xã chỉ thuộc 1 tỉnh.`);
+    xas[xc] = {pc, name:xn}; });
+  Object.keys(xas).forEach(c => { if (provs[c] || S.provinces.some(p => p.code===c)) err.push(`Mã ${c} vừa là mã tỉnh vừa là mã xã.`); });
+  return {provs, xas, err};
 }
 function importCells(text){
   const lines = text.replace(/^﻿/,'').split(/\r?\n/).filter(l => l.trim());
@@ -1606,6 +1634,26 @@ const A = {
     if (!d.code || !d.name) return $('#provErr').innerHTML = '<div class="ferr">Nhập đủ mã hành chính và tên.</div>';
     if (S.provinces.some(p => p.code===d.code && p.id!==id) || S.xas.some(x => x.code===d.code)) return $('#provErr').innerHTML = '<div class="ferr">Mã hành chính đã tồn tại.</div>';
     if (id) Object.assign(PROV(id), d); else S.provinces.push({id:uid('P'), ...d}); log('Danh mục', id?'Sửa tỉnh':'Thêm tỉnh', d.name); save(); closeModal(); render(); },
+  areaTemplate(){ const rows = [['ma_tinh','ten_tinh','ma_xa','ten_xa']]; S.xas.filter(x => x.provinceId===S.provinces[0].id).slice(0,3).forEach(x => rows.push([S.provinces[0].code, S.provinces[0].name, x.code, x.name]));
+    if (window.XLSX){ const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'TinhXa'); XLSX.writeFile(wb, 'mau-danh-muc-tinh-xa.xlsx'); }
+    else download('mau-danh-muc-tinh-xa.csv', csv(rows)); },
+  xaBulk(el){ const pid = el.dataset.p || S.provinces[0].id;
+    const row = () => `<tr><td><input type="text" data-c placeholder="VD: HNI-05"></td><td><input type="text" data-n placeholder="VD: Xã Đông Anh"></td><td><button type="button" class="btn sm" data-act="xaRowDel" aria-label="Bỏ dòng">×</button></td></tr>`;
+    window.__xaRow = row;
+    modal('Thêm xã', `<form novalidate id="xaBF"><div class="mb" style="max-width:340px"><label class="f">Tỉnh/Thành phố <span class="req">*</span></label><select name="provinceId">${S.provinces.map(p=>`<option value="${p.id}" ${pid===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div>
+      <table class="t"><thead><tr><th style="width:35%">Mã hành chính <span class="req">*</span></th><th>Tên xã <span class="req">*</span></th><th style="width:50px"></th></tr></thead><tbody id="xaRows">${row().repeat(5)}</tbody></table>
+      <div class="row" style="margin-top:8px"><button type="button" class="btn sm" data-act="xaRowAdd">+ Thêm dòng</button><span class="hint">Dòng để trống sẽ bỏ qua.</span></div><div id="xaErr" style="margin-top:8px"></div></form>`,
+      `<button class="btn" data-act="closeModal">Huỷ</button><button class="btn pri" data-act="xaBulkSave">Lưu</button>`, true); },
+  xaRowAdd(){ $('#xaRows').insertAdjacentHTML('beforeend', window.__xaRow()); },
+  xaRowDel(el){ const tb = $('#xaRows'); if (tb.children.length > 1) el.closest('tr').remove(); else el.closest('tr').querySelectorAll('input').forEach(i => i.value = ''); },
+  xaBulkSave(){ const pid = $('#xaBF [name=provinceId]').value, e = [], add = [], seen = new Set();
+    [...document.querySelectorAll('#xaRows tr')].forEach((tr,i) => { const c = tr.querySelector('[data-c]').value.trim().toUpperCase(), n = tr.querySelector('[data-n]').value.trim();
+      if (!c && !n) return; if (!c || !n) return e.push(`Dòng ${i+1}: nhập đủ mã hành chính và tên xã.`);
+      if (seen.has(c) || S.xas.some(x => x.code===c) || S.provinces.some(p => p.code===c)) return e.push(`Dòng ${i+1}: mã hành chính ${c} đã tồn tại.`);
+      seen.add(c); add.push({id:uid('X'), code:c, name:n, provinceId:pid}); });
+    if (!e.length && !add.length) e.push('Nhập ít nhất 1 xã.');
+    if (e.length) return $('#xaErr').innerHTML = `<div class="alert err"><ul>${e.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`;
+    S.xas.push(...add); log('Danh mục','Thêm xã', `${PROV(pid).name} · ${add.length} xã`); save(); closeModal(); render(); toast(`Đã thêm ${add.length} xã vào ${PROV(pid).name}.`, 'ok'); },
   xaEdit(el){ const x = el.dataset.id ? XA(el.dataset.id) : {code:'', name:'', provinceId:S.provinces[0].id};
     modal(x.id?'Sửa xã':'Thêm xã', `<form novalidate id="xaF" class="grid g2"><div><label class="f">Tỉnh/Thành phố <span class="req">*</span></label><select name="provinceId">${S.provinces.map(p=>`<option value="${p.id}" ${x.provinceId===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div>
       <div><label class="f">Mã hành chính <span class="req">*</span></label><input type="text" name="code" value="${esc(x.code)}"></div><div style="grid-column:1/-1"><label class="f">Tên xã <span class="req">*</span></label><input type="text" name="name" value="${esc(x.name)}"></div><div id="xaErr" style="grid-column:1/-1"></div></form>`,
@@ -1675,6 +1723,17 @@ document.addEventListener('change', ev => {
   const t = ev.target;
   if (t.id === 'repSel'){ window.__cellQ = ''; window.__cellSt = ''; return go('#/reports?id=' + t.value); }
   if (t.id === 'cellSt'){ window.__cellSt = t.value; return repCellRefresh(); }
+  if (t.id === 'areaFile' && t.files[0]){
+    const box = $('#areaImportRes'); readRows(t.files[0], (rows, e0) => { t.value = '';
+      if (e0) return box.innerHTML = `<div class="alert err" style="margin-top:10px">${esc(e0)}</div>`;
+      const r = importAreas(rows);
+      if (r.err.length) return box.innerHTML = `<div class="alert err" style="margin-top:10px"><b>File có ${r.err.length} lỗi, chưa nhập dữ liệu nào.</b><ul>${r.err.slice(0,20).map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`;
+      let np = 0, up = 0, nx = 0, ux = 0;
+      Object.entries(r.provs).forEach(([code,name]) => { const p = S.provinces.find(x => x.code===code); if (p){ if (p.name!==name){ p.name = name; up++; } } else { S.provinces.push({id:uid('P'), code, name}); np++; } });
+      Object.entries(r.xas).forEach(([code,x]) => { const pid = S.provinces.find(p => p.code===x.pc).id, o = S.xas.find(y => y.code===code); if (o){ if (o.name!==x.name){ o.name = x.name; ux++; } } else { S.xas.push({id:uid('X'), code, name:x.name, provinceId:pid}); nx++; } });
+      const msg = `Thêm ${np} tỉnh, ${nx} xã; cập nhật ${up} tỉnh, ${ux} xã.`; log('Danh mục','Nhập danh mục Tỉnh/Xã từ file', msg); save(); render(); toast(msg, 'ok'); });
+    return;
+  }
   if (t.id === 'cellFile' && t.files[0]){
     const rd = new FileReader(); rd.onload = () => { const r = importCells(String(rd.result)); const box = $('#importRes');
       if (r.err && !r.rows){ box.innerHTML = `<div class="alert err" style="margin-top:10px">${r.err.map(esc).join('<br>')}</div>`; return; }
