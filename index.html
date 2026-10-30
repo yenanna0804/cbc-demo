@@ -299,6 +299,62 @@ function measure(text){
 }
 
 /* ---------- dữ liệu mẫu ---------- */
+const TPL_GROUPS = ['Bão & Gió giật','Lũ & Thủy điện','Sạt lở & Địa chất','Cháy nổ & Hóa chất','Cứu nạn & Dân sự'];
+const SOUND = ['Âm thanh cảnh báo khẩn cấp','Âm thanh thông báo thường'];
+/* 50 mẫu theo Phụ lục tài liệu yêu cầu: [mã, nhóm, tiêu đề, nội dung, Message ID] */
+const TEMPLATES_50 = [
+  ["TMP-01","Bão & Gió giật","[BÃO CỰC KỲ NGUY HIỂM]","Bão số {Ten_Bao} dự kiến đổ bộ vào {Khu_vuc} sức gió cấp {Cap_Gio} vào {Time}. Toàn bộ người dân ở yên trong nhà kiên cố từ {Gio_Bat_Dau}. Hotline: 112."],
+  ["TMP-02","Bão & Gió giật","[SIÊU BÃO ĐỔ BỘ]","SIÊU BÃO {Ten_Bao} dự kiến tàn phá khốc liệt tại {Tinh} vào {Time 1}. Người dân cắt cầu dao điện, chằng chống cửa, không ra ngoài trước {time 2}. Hotline cứu trợ: 112."],
+  ["TMP-03","Bão & Gió giật","[TRIỀU CƯỜNG VEN BIỂN]","Triều cường dâng cao {Do_Cao}m tại {Khu_vuc_Bien} vào {Time}. Nguy cơ vỡ đê biển và sóng đánh trùm bờ kè. Đề nghị nguòi dân sơ tán tàu thuyền và người lên cao. Hotline cứu hộ: 112."],
+  ["TMP-04","Bão & Gió giật","[LỐC XOÁY - GIÓ GIẬT]","Cảnh báo giông lốc xoáy giật cấp {Cap_Giat} tại {Quan_Huyen} vào {Time}. Đề nghị nguòi dân tránh xa cây to, biển quảng cáo, nhà mái tôn. Hotline cứu trợ: 112."],
+  ["TMP-05","Bão & Gió giật","[ÁP THẤP NHIỆT ĐỚI]","Áp thấp gây mưa lớn diện rộng trên {So_Luong_Tinh} tỉnh. Lũ lớn có thể xuất hiện đêm nay vào {Time}. Theo dõi bản tin tại: {Link}. Hotline cứu trợ: 112."],
+  ["TMP-06","Bão & Gió giật","[SÓNG THẦN VEN BIỂN]","CẢNH BÁO SÓNG THẦN: Đề nghị toàn bộ cư dân ven biển {Tinh} lập tức di tản sâu vào đất liền tối thiểu {So_Km}km hoặc lên đồi cao trước {Time}. Hotline cứu trợ: 112."],
+  ["TMP-07","Bão & Gió giật","[LỆNH CẤM BIỂN KHẨN]","UBND {Tinh} ban hành lệnh cấm biển từ {Gio}. Đề nghị toàn bộ tàu thuyền vào nơi neo đậu an toàn, tuyệt đối không ra khơi. Hotline cứu trợ: 112."],
+  ["TMP-08","Bão & Gió giật","[MƯA ĐÁ DIỆN RỘNG]","Dự kiến Mưa đá hạt lớn và giông sét dữ dội tại {Dia_ban} từ {Gio}. Đề nghị người đi đường khẩn trương tìm nơi trú ẩn kiên cố. Người dân tuyệt đối không ra ngoài. Hotline cứu trợ: 112."],
+  ["TMP-09","Bão & Gió giật","[SÉT ĐÁNH CỰC ĐOAN]","Mật độ phóng điện giông sét rất cao tại {Khu_vuc} vào {time}. Đề nghị người dân tắt các thiết bị điện tử, không đứng ngoài đồng trống. Hotline cứu trợ: 112."],
+  ["TMP-10","Bão & Gió giật","[RÉT ĐẬM - RÉT HẠI]","Rét hại nhiệt độ dưới {Nhiet_do} độ C, băng giá tại {Vung_Nui}. Giữ ấm cho người già, trẻ nhỏ, đưa gia súc vào chuồng kín."],
+  ["TMP-11","Lũ & Thủy điện","[THỦY ĐIỆN XẢ LŨ]","Thủy điện {Ten_Dap} xả lũ lưu lượng {Luu_luong}m3/s từ {Gio}. Nước sông dâng nhanh trong {So_phut} phút. Sơ tán khẩn cấp!"],
+  ["TMP-12","Lũ & Thủy điện","[VỠ ĐÊ KHẨN CẤP]","BÁO ĐỘNG ĐỎ: Đê {Ten_De} tại {Vi_tri} bị tràn/vỡ. Nước cuồn cuộn vào khu dân cư. Người dân di chuyển gấp theo hướng {Huong}."],
+  ["TMP-13","Lũ & Thủy điện","[LŨ ĐẠT ĐỈNH BÁO ĐỘNG 3]","Mực nước sông {Ten_Song} đã vượt Báo động 3 là {So_Met}m. Ngập lụt toàn bộ vùng trũng thấp {Xa_Phuong}. Kê cao tài sản."],
+  ["TMP-14","Lũ & Thủy điện","[NGẬP SÂU ĐÔ THỊ]","Ngập sâu từ 0.5m - 1.2m tại các tuyến đường {Danh_sach_duong}. Không cố điều khiển phương tiện giao thông qua điểm ngập."],
+  ["TMP-15","Lũ & Thủy điện","[CÔ LẬP DO LŨ]","Xã {Ten_Xa} đang bị nước lũ cô lập hoàn toàn. Lực lượng cứu nạn đang tiếp cận. Giữ liên lạc hotline cứu hộ: {So_DT}."],
+  ["TMP-16","Lũ & Thủy điện","[HỒ CHỨA ĐẦY NƯỚC]","Hồ chứa {Ten_Ho} mở cửa xả đáy từ {Gio}. Người dân tuyệt đối không đánh bắt cá hoặc vớt củi ven sông."],
+  ["TMP-17","Lũ & Thủy điện","[LŨ CHỒNG LŨ]","Lũ đợt mới đang dâng nhanh trong khi lũ cũ chưa rút tại {Khu_vuc}. Duy trì phương án sơ tán tại chỗ trên tầng cao."],
+  ["TMP-18","Lũ & Thủy điện","[Ô NHIỄM NGUỒN NƯỚC LŨ]","Nguồn nước sinh hoạt tại {Dia_ban} bị ngập ô nhiễm. Thực hiện ăn chín uống sôi, dùng viên khử khuẩn Cloramin B."],
+  ["TMP-19","Lũ & Thủy điện","[TIẾP TẾ LƯƠNG THỰC LŨ]","Ca nô cứu trợ của Quân đội đang phát lương thực tại {Diem_Tap_Trung}. Người dân cần cứu nạn vẫy cờ đỏ hoặc gọi 112."],
+  ["TMP-20","Lũ & Thủy điện","[LŨ RÚT - ĐỀ PHÒNG DỊCH]","Lũ đang rút tại {Xa_Phuong}. Khẩn trương dọn bùn rác, khử trùng giếng nước, cảnh giác sạt trượt taluy sau lũ."],
+  ["TMP-21","Sạt lở & Địa chất","[LŨ QUÉT ĐẶC BIỆT NGUY HIỂM]","Lũ quét kinh hoàng đang đổ về khe suối {Ten_Suoi}. Toàn bộ bà con sống ven suối rời nhà chạy lên đỉnh đồi ngay lập tức!"],
+  ["TMP-22","Sạt lở & Địa chất","[SẠT LỞ NÚI ĐÁ TALUY]","Nguy cơ sạt lở quả đồi phía sau bản {Ten_Ban}. Đã xuất hiện vết nứt lớn {So_Met}m. Lập tức di dời trước {Gio}."],
+  ["TMP-23","Sạt lở & Địa chất","[ĐỘNG ĐẤT DƯ CHẤN]","Động đất {Do_Richter} độ Richter tại {Tam_Chan}. Rời khỏi các tòa nhà cũ, tìm khoảng đất trống, không dùng thang máy."],
+  ["TMP-24","Sạt lở & Địa chất","[ĐỨT GÃY QUỐC LỘ]","Quốc lộ {So_Hieu} qua đèo {Ten_Deo} sạt lở đứt đường, ách tắc giao thông. Các phương tiện dừng hành trình, quay đầu."],
+  ["TMP-25","Sạt lở & Địa chất","[SỤT LÚN ĐẤT ĐÔ THỊ]","Hố sụt lún tử thần xuất hiện tại đường {Ten_Duong}. Phong tỏa bán kính {Ban_Kinh}m. Người dân không lại gần quay phim."],
+  ["TMP-26","Sạt lở & Địa chất","[ĐÁ LĂN ĐƯỜNG ĐÈO]","Mưa lớn gây hiện tượng đá tảng lăn từ vách núi xuống cung đường {Ten_Cung_Duong}. Tuyệt đối không lưu thông."],
+  ["TMP-27","Sạt lở & Địa chất","[BÙN ĐÁ TRÀN KHU DÂN CƯ]","Dòng bùn đất tràn mạnh vào khu dân cư {Xom_Thon}. Sơ tán khẩn cấp người già và trẻ nhỏ về trường học {Ten_Truong}."],
+  ["TMP-28","Sạt lở & Địa chất","[NƯỚC NGẦM PHUN TRÀO]","Phát hiện nước ngầm đục ngầu phun trào chân taluy tại {Vi_tri}. Dấu hiệu đất sắp trượt. Rời đi ngay!"],
+  ["TMP-29","Sạt lở & Địa chất","[SẠT LỞ BỜ SÔNG]","Bờ sông {Ten_Song} sạt lở ăn sâu vào nhà dân. Nguy cơ trôi nhà trong đêm. Lực lượng hỗ trợ di dời: {So_DT}."],
+  ["TMP-30","Sạt lở & Địa chất","[DƯ CHẤN ĐỘNG ĐẤT ĐÊM]","Dự báo có dư chấn cấp {Cap} lúc nửa đêm tại {Dia_Ban}. Khuyến cáo không ngủ trong nhà yếu, mang theo đèn pin."],
+  ["TMP-31","Cháy nổ & Hóa chất","[RÒ RỈ KHÍ ĐỘC / HÓA CHẤT]","Sự cố tràn khí độc {Ten_Chat} tại KCN {Ten_KCN}. Dân cư bán kính {Ban_Kinh}km dùng khăn ướt bịt mũi di tản ngược gió."],
+  ["TMP-32","Cháy nổ & Hóa chất","[CHÁY RỪNG DIỆN RỘNG]","Cháy rừng lan sát khu dân cư {Thon_Ban}. Lệnh sơ tán khẩn cấp. Mọi người di chuyển theo hướng {Huong}."],
+  ["TMP-33","Cháy nổ & Hóa chất","[CHÁY LỚN CHUNG CƯ]","Cháy lớn tại Chung cư {Ten_Toa_Nha}. Người dân bình tĩnh di chuyển theo thang thoát hiểm, không dùng thang máy. Báo tin: 114."],
+  ["TMP-34","Cháy nổ & Hóa chất","[NỔ TRẠM BIẾN ÁP CAO THẾ]","Nổ trạm biến áp {Ten_Tram}. Dây điện đứt rơi xuống đường. Tránh xa bán kính 50m, không chạm vào vũng nước."],
+  ["TMP-35","Cháy nổ & Hóa chất","[SỰ CỐ ĐẬP CHẤT THẢI]","Nguy cơ vỡ hồ chứa bùn thải quặng tại {Mo_Khoang_San}. Nước thải chứa kim loại nặng tràn ra suối. Cấm dùng nước."],
+  ["TMP-36","Cháy nổ & Hóa chất","[CHÁY KHO XĂNG DẦU]","Hỏa hoạn đặc biệt nghiêm trọng tại Tổng kho xăng dầu {Ten_Kho}. Sơ tán cư dân trong bán kính 2km ngay lập tức."],
+  ["TMP-37","Cháy nổ & Hóa chất","[BỨC XẠ HÓA HỌC PHÁT TÁN]","Cảnh báo khói độc phát tán từ đám cháy pin năng lượng/hóa chất tại {Khu_Vuc}. Đóng kín toàn bộ cửa sổ nhà."],
+  ["TMP-38","Cháy nổ & Hóa chất","[SẬP CÔNG TRÌNH XÂY DỰNG]","Sập giàn giáo/công trình tại {Vi_Tri}. Phong tỏa toàn bộ nút giao {Ten_Nut_Giao} phục vụ xe cấp cứu."],
+  ["TMP-39","Cháy nổ & Hóa chất","[CHÁY TÀU DU LỊCH VEN BIỂN]","Cháy tàu biển tại Vịnh {Ten_Vinh}. Các tàu cá gần khu vực hỗ trợ cứu hộ thuyền viên và du khách."],
+  ["TMP-40","Cháy nổ & Hóa chất","[BÃI RÁC BỐC CHÁY Ô NHIỄM]","Bãi rác {Ten_Bai} bốc cháy tỏa khí độc dioxin. Người dân đeo khẩu trang N95, hạn chế hoạt động ngoài trời."],
+  ["TMP-41","Cứu nạn & Dân sự","[LỆNH SƠ TÁN DÂN SỰ KHẨN]","Lệnh của Chủ tịch UBND {Tinh}: Toàn bộ cư dân {Dia_Ban} sơ tán khẩn cấp về địa điểm {Dia_Diem_Tap_Trung} trước {Gio}."],
+  ["TMP-42","Cứu nạn & Dân sự","[CẢNH BÁO DỊCH BỆNH CẤP 1]","Phát hiện ổ dịch truyền nhiễm nguy hiểm tại {Khu_Vuc}. Áp dụng biện pháp cách ly y tế tạm thời. Hotline y tế: {So_DT}."],
+  ["TMP-43","Cứu nạn & Dân sự","[TÌM KIẾM CỨU NẠN MẤT TÍCH]","Khẩn cấp: Tìm kiếm đoàn du khách {So_Nguoi} người mất liên lạc tại rừng {Ten_Rung}. Ai có tin báo ngay về số: {So_DT}."],
+  ["TMP-44","Cứu nạn & Dân sự","[CẢNH BÁO AN NINH TRẬT TỰ]","Tình huống mất an ninh trật tự tại khu vực {Dia_Ban}. Người dân ở yên trong nhà, khóa cửa, không tụ tập đông người."],
+  ["TMP-45","Cứu nạn & Dân sự","[SẬP MỎ THANG / HẦM LÒ]","Sự cố sập hầm lò tại {Cong_Ty_Than}. Ưu tiên toàn bộ làn đường cứu hộ xe cứu thương từ mỏ về Bệnh viện {Ten_BV}."],
+  ["TMP-46","Cứu nạn & Dân sự","[CẢNH BÁO AN TOÀN DU LỊCH]","Khuyến cáo du khách: Nguy hiểm trơn trượt vách đá tại thác {Ten_Thac}. Dừng mọi hoạt động leo núi, chèo sup hôm nay."],
+  ["TMP-47","Cứu nạn & Dân sự","[TAI NẠN GIAO THÔNG LIÊN HOÀN]","Tai nạn liên hoàn trên Cao tốc {Ten_Cao_Toc} km {Vi_Tri}. Tuyến đường tê liệt, các xe đi lối rẽ trạm thu phí {Tram}."],
+  ["TMP-48","Cứu nạn & Dân sự","[MẤT LIÊN LẠC VIỄN THÔNG]","Mạng vô tuyến đang được phục hồi qua xe phát sóng cơ động tại {Huyen}. Điểm phát Wi-Fi miễn phí tại UBND Huyện."],
+  ["TMP-49","Cứu nạn & Dân sự","[THÔNG BÁO TÌM NGƯỜI LẠC]","Tìm trẻ lạc đi lạc tại Lễ hội {Ten_Le_Hoi}: Cháu {Ten_Chau}, {Tuoi} tuổi, mặc áo {Mau_Ao}. Đưa cháu về lán BTC."],
+  ["TMP-50","Cứu nạn & Dân sự","[THỬ NGHIỆM HỆ THỐNG PWS]","[TEST] Bản tin kiểm tra hệ thống cảnh báo khẩn cấp Quốc gia VNPT VinaPhone. Người dân không cần thực hiện hành động nào.",4380]];
+let gnbSeq = 20100;
+function add5G(cells, xaId, r){ const g = ++gnbSeq; for (let c=1; c<=3; c++) cells.push({id:`452-02-${g}-${c}`, enb:g, xaId, tech:'5G', subs: 200 + Math.floor(r()*900)}); }
 function seed(){
   const r = rng(20261028);
   const provinces = [
@@ -322,6 +378,7 @@ function seed(){
         enb++;
         for (let c=1; c<=3; c++) cells.push({id:`452-02-${enb}-${c}`, enb, xaId:id, tech:'4G', subs: 300 + Math.floor(r()*2200)});
       }
+      if (['P01','P05'].includes(p.id)) add5G(cells, id, r);
     });
   }
   const users = [
@@ -337,40 +394,8 @@ function seed(){
     {mi:4373, vi:'Cảnh báo nghiêm trọng', en:'Severe Alert', active:true},
     {mi:4379, vi:'Tìm kiếm cứu nạn khẩn cấp', en:'Amber Alert', active:true},
     {mi:4380, vi:'Bản tin thử nghiệm', en:'Test Alert', active:true}];
-  const T = (code, group, header, body, mi=4370) => ({id:code, code, name:header.replace(/[\[\]]/g,''), group, header, body, mi, active:true, createdAt:now()});
-  const G1='Bão & Gió giật', G2='Lũ & Thủy điện', G3='Sạt lở & Địa chất', G5='Cứu nạn & Dân sự';
-  const templates = [
-    T('TMP-01',G1,'[BÃO CỰC KỲ NGUY HIỂM]','Bão số {Ten_Bao} dự kiến đổ bộ vào {Khu_vuc} sức gió cấp {Cap_Gio} vào {Time}. Toàn bộ người dân ở yên trong nhà kiên cố từ {Gio_Bat_Dau}. Hotline: 112.'),
-    T('TMP-02',G1,'[SIÊU BÃO ĐỔ BỘ]','SIÊU BÃO {Ten_Bao} dự kiến tàn phá khốc liệt tại {Tinh} vào {Time_1}. Người dân cắt cầu dao điện, chằng chống cửa, không ra ngoài trước {Time_2}. Hotline cứu trợ: 112.'),
-    T('TMP-03',G1,'[TRIỀU CƯỜNG VEN BIỂN]','Triều cường dâng cao {Do_Cao}m tại {Khu_vuc_Bien} vào {Time}. Nguy cơ vỡ đê biển và sóng đánh trùm bờ kè. Đề nghị người dân sơ tán tàu thuyền và người lên cao. Hotline cứu hộ: 112.'),
-    T('TMP-04',G1,'[LỐC XOÁY - GIÓ GIẬT]','Cảnh báo giông lốc xoáy giật cấp {Cap_Giat} tại {Khu_vuc} vào {Time}. Đề nghị người dân tránh xa cây to, biển quảng cáo, nhà mái tôn. Hotline cứu trợ: 112.'),
-    T('TMP-05',G1,'[ÁP THẤP NHIỆT ĐỚI]','Áp thấp gây mưa lớn diện rộng trên {So_Luong_Tinh} tỉnh. Lũ lớn có thể xuất hiện đêm nay vào {Time}. Theo dõi bản tin tại: {Link}. Hotline cứu trợ: 112.'),
-    T('TMP-06',G1,'[SÓNG THẦN VEN BIỂN]','CẢNH BÁO SÓNG THẦN: Đề nghị toàn bộ cư dân ven biển {Tinh} lập tức di tản sâu vào đất liền tối thiểu {So_Km}km hoặc lên đồi cao trước {Time}. Hotline cứu trợ: 112.'),
-    T('TMP-07',G1,'[LỆNH CẤM BIỂN KHẨN]','UBND {Tinh} ban hành lệnh cấm biển từ {Gio}. Đề nghị toàn bộ tàu thuyền vào nơi neo đậu an toàn, tuyệt đối không ra khơi. Hotline cứu trợ: 112.'),
-    T('TMP-08',G1,'[MƯA ĐÁ DIỆN RỘNG]','Dự kiến mưa đá hạt lớn và giông sét dữ dội tại {Dia_ban} từ {Gio}. Đề nghị người đi đường khẩn trương tìm nơi trú ẩn kiên cố. Người dân tuyệt đối không ra ngoài. Hotline cứu trợ: 112.'),
-    T('TMP-09',G1,'[SÉT ĐÁNH CỰC ĐOAN]','Mật độ phóng điện giông sét rất cao tại {Khu_vuc} vào {Time}. Đề nghị người dân tắt các thiết bị điện tử, không đứng ngoài đồng trống. Hotline cứu trợ: 112.'),
-    T('TMP-10',G1,'[RÉT ĐẬM - RÉT HẠI]','Rét hại nhiệt độ dưới {Nhiet_do} độ C, băng giá tại {Vung_Nui}. Giữ ấm cho người già, trẻ nhỏ, đưa gia súc vào chuồng kín.'),
-    T('TMP-11',G2,'[THỦY ĐIỆN XẢ LŨ]','Thủy điện {Ten_Dap} xả lũ lưu lượng {Luu_luong}m3/s từ {Gio}. Nước sông dâng nhanh trong {So_phut} phút. Sơ tán khẩn cấp!'),
-    T('TMP-12',G2,'[VỠ ĐÊ KHẨN CẤP]','BÁO ĐỘNG ĐỎ: Đê {Ten_De} tại {Vi_tri} bị tràn/vỡ. Nước cuồn cuộn vào khu dân cư. Người dân di chuyển gấp theo hướng {Huong}.'),
-    T('TMP-13',G2,'[LŨ ĐẠT ĐỈNH BÁO ĐỘNG 3]','Mực nước sông {Ten_Song} đã vượt Báo động 3 là {So_Met}m. Ngập lụt toàn bộ vùng trũng thấp {Xa_Phuong}. Kê cao tài sản.'),
-    T('TMP-14',G2,'[NGẬP SÂU ĐÔ THỊ]','Ngập sâu từ 0.5m - 1.2m tại các tuyến đường {Danh_sach_duong}. Không cố điều khiển phương tiện giao thông qua điểm ngập.'),
-    T('TMP-15',G2,'[CÔ LẬP DO LŨ]','Xã {Ten_Xa} đang bị nước lũ cô lập hoàn toàn. Lực lượng cứu nạn đang tiếp cận. Giữ liên lạc hotline cứu hộ: {So_DT}.'),
-    T('TMP-16',G2,'[HỒ CHỨA ĐẦY NƯỚC]','Hồ chứa {Ten_Ho} mở cửa xả đáy từ {Gio}. Người dân tuyệt đối không đánh bắt cá hoặc vớt củi ven sông.'),
-    T('TMP-17',G2,'[LŨ CHỒNG LŨ]','Lũ đợt mới đang dâng nhanh trong khi lũ cũ chưa rút tại {Khu_vuc}. Duy trì phương án sơ tán tại chỗ trên tầng cao.'),
-    T('TMP-18',G2,'[Ô NHIỄM NGUỒN NƯỚC LŨ]','Nguồn nước sinh hoạt tại {Dia_ban} bị ngập ô nhiễm. Thực hiện ăn chín uống sôi, dùng viên khử khuẩn Cloramin B.'),
-    T('TMP-19',G2,'[TIẾP TẾ LƯƠNG THỰC LŨ]','Ca nô cứu trợ của Quân đội đang phát lương thực tại {Diem_Tap_Trung}. Người dân cần cứu nạn vẫy cờ đỏ hoặc gọi 112.'),
-    T('TMP-20',G2,'[LŨ RÚT - ĐỀ PHÒNG DỊCH]','Lũ đang rút tại {Xa_Phuong}. Khẩn trương dọn bùn rác, khử trùng giếng nước, cảnh giác sạt trượt taluy sau lũ.'),
-    T('TMP-21',G3,'[LŨ QUÉT ĐẶC BIỆT NGUY HIỂM]','Lũ quét kinh hoàng đang đổ về khe suối {Ten_Suoi}. Toàn bộ bà con sống ven suối rời nhà chạy lên đỉnh đồi ngay lập tức!'),
-    T('TMP-22',G3,'[SẠT LỞ NÚI ĐÁ TALUY]','Nguy cơ sạt lở quả đồi phía sau bản {Ten_Ban}. Đã xuất hiện vết nứt lớn {So_Met}m. Lập tức di dời trước {Gio}.'),
-    T('TMP-23',G3,'[ĐỘNG ĐẤT DƯ CHẤN]','Động đất {Do_Richter} độ Richter tại {Tam_Chan}. Rời khỏi các tòa nhà cũ, tìm khoảng đất trống, không dùng thang máy.'),
-    T('TMP-24',G3,'[ĐỨT GÃY QUỐC LỘ]','Quốc lộ {So_Hieu} qua đèo {Ten_Deo} sạt lở đứt đường, ách tắc giao thông. Các phương tiện dừng hành trình, quay đầu.'),
-    T('TMP-25',G3,'[SỤT LÚN ĐẤT ĐÔ THỊ]','Hố sụt lún xuất hiện tại đường {Ten_Duong}. Phong tỏa bán kính {Ban_Kinh}m. Người dân không lại gần quay phim.'),
-    T('TMP-26',G3,'[ĐÁ LĂN ĐƯỜNG ĐÈO]','Mưa lớn gây hiện tượng đá tảng lăn từ vách núi xuống cung đường {Ten_Cung_Duong}. Tuyệt đối không lưu thông.'),
-    T('TMP-27',G3,'[BÙN ĐÁ TRÀN KHU DÂN CƯ]','Dòng bùn đất tràn mạnh vào khu dân cư {Xom_Thon}. Sơ tán khẩn cấp người già và trẻ nhỏ về trường học {Ten_Truong}.'),
-    T('TMP-28',G3,'[NƯỚC NGẦM PHUN TRÀO]','Phát hiện nước ngầm đục ngầu phun trào chân taluy tại {Vi_tri}. Dấu hiệu đất sắp trượt. Rời đi ngay!'),
-    T('TMP-29',G3,'[SẠT LỞ BỜ SÔNG]','Bờ sông {Ten_Song} sạt lở ăn sâu vào nhà dân. Nguy cơ trôi nhà trong đêm. Lực lượng hỗ trợ di dời: {So_DT}.'),
-    T('TMP-30',G3,'[DƯ CHẤN ĐỘNG ĐẤT ĐÊM]','Dự báo có dư chấn cấp {Cap} lúc nửa đêm tại {Dia_Ban}. Khuyến cáo không ngủ trong nhà yếu, mang theo đèn pin.'),
-    T('TMP-50',G5,'[THỬ NGHIỆM HỆ THỐNG PWS]','[TEST] Bản tin kiểm tra hệ thống cảnh báo khẩn cấp Quốc gia VNPT VinaPhone. Người dân không cần thực hiện hành động nào.',4380)];
+  const T = (code, group, header, body, mi=4370) => ({id:code, code, name:header.replace(/[\[\]]/g,''), group, header, body, mi, sound: mi===4380 ? SOUND[1] : SOUND[0], active:true, createdAt:now()});
+    const templates = TEMPLATES_50.map(x => T(...x));
   const settings = {repetition:20, duration:120, priority:4370, maxPages:15, otpTtl:300, otpMaxFail:3, loginOtp:true,
     approveUpdateStop:true, successThreshold:99, retrySend:3, retryMax:3, simFail:2, logRetentionDays:365, sessionTimeout:30};
   S = {v:1, provinces, xas, cells, users, priorities, templates, settings, messages:[], logs:[], seq:{}, cellsUpdatedAt:now()};
@@ -428,10 +453,11 @@ const U = id => (id==='SYS' || id==='system') ? {name:'Hệ thống', username:'
 const PRI = mi => S.priorities.find(p => p.mi == mi) || {mi, vi:'(không rõ)'};
 const XA = id => S.xas.find(x => x.id === id);
 const PROV = id => S.provinces.find(p => p.id === id);
-const cellsOf = areas => S.cells.filter(c => areas.includes(c.xaId)).map(c => c.id);
+const cells4G = () => S.cells.filter(c => c.tech==='4G');
+const cellsOf = areas => cells4G().filter(c => areas.includes(c.xaId)).map(c => c.id);
 function areaStats(areas){
   const t0 = performance.now();
-  const set = new Set(areas); const cs = S.cells.filter(c => set.has(c.xaId));
+  const set = new Set(areas); const cs = cells4G().filter(c => set.has(c.xaId));
   const enbs = new Set(cs.map(c => c.enb));
   const empty = areas.filter(a => !cs.some(c => c.xaId === a));
   return {cells:cs.length, enbs:enbs.size, subs:cs.reduce((s,c)=>s+c.subs,0), empty, ms: performance.now()-t0};
@@ -609,6 +635,13 @@ function tick(){
 }
 /* chuyển dữ liệu demo cũ (chưa có lượt gửi) sang cấu trúc mới */
 function migrate(){
+  if (!S.seed33){ S.seed33 = 1;
+    TEMPLATES_50.forEach(x => { if (!S.templates.some(t => t.id === x[0])) S.templates.push({id:x[0], code:x[0], name:x[2].replace(/[\[\]]/g,''), group:x[1], header:x[2], body:x[3], mi:x[4]||4370, active:true, createdAt:now()}); });
+    S.templates.sort((a,b) => a.code.localeCompare(b.code));
+    S.templates.forEach(t => { t.active = true; if (!t.sound) t.sound = t.mi===4380 ? SOUND[1] : SOUND[0]; });
+    S.priorities.forEach(p => p.active = true);
+    if (!S.cells.some(c => c.tech==='5G')){ const r = rng(5); S.xas.filter(x => ['P01','P05'].includes(x.provinceId) && S.cells.some(c => c.xaId===x.id)).forEach(x => { gnbSeq = Math.max(gnbSeq, ...S.cells.map(c => c.enb)); add5G(S.cells, x.id, r); }); }
+  }
   const st = S.settings; if (st.retryMax == null) st.retryMax = 3; if (st.simFail == null) st.simFail = 2;
   if (!S.seedLink){
     S.seedLink = 1; const x = n => (S.xas.find(z => z.name === n) || {}).id, ar = [x('Phường Hải Châu'), x('Phường Thanh Khê')].filter(Boolean);
@@ -648,7 +681,7 @@ function route(){
   if (h[0]==='messages' && h[1]==='new') return {name:'compose'};
   if (h[0]==='messages' && h[1] && h[2]==='edit') return {name:'compose', id:h[1]};
   if (h[0]==='messages' && h[1]) return {name:'msg', id:h[1]};
-  if (h[0]==='catalog') return {name:'catalog', tab:h[1]||'areas'};
+  if (h[0]==='catalog') return {name:'catalog', tab:h[1]||'priorities'};
   return {name: h[0] || 'dashboard'};
 }
 const go = h => { if (location.hash === h) render(); else location.hash = h; };
@@ -660,8 +693,8 @@ const NAV = [
   {h:'#/reports', n:'reports', t:'Báo cáo chiến dịch', ic:'▤', roles:['SO','PD','QT']},
   {h:'#/templates', n:'templates', t:'Thư viện mẫu tin', ic:'☰', roles:['SO','PD','QT']},
   {g:'Quản trị', roles:['QT']},
-  {h:'#/catalog/areas', n:'catalog', t:'Danh mục & vùng phát', ic:'⌖', roles:['QT']},
-  {h:'#/settings', n:'settings', t:'Tham số hệ thống', ic:'⚙', roles:['QT']},
+  {h:'#/catalog/priorities', n:'catalog', t:'Danh mục', ic:'⌖', roles:['QT']},
+  {h:'#/settings', n:'settings', t:'Tham số phát mặc định', ic:'⚙', roles:['QT']},
   {h:'#/users', n:'users', t:'Người dùng & phân quyền', ic:'👤', roles:['QT']},
   {h:'#/logs', n:'logs', t:'Nhật ký hệ thống', ic:'≡', roles:['QT']}];
 
@@ -716,13 +749,13 @@ function viewLogin(){
     <h1 style="margin-bottom:6px">Xác thực OTP</h1>
     <p class="muted">Mã OTP đã gửi qua SMS tới số ${esc(loginStep.u.phone.slice(0,4))}***${esc(loginStep.u.phone.slice(-3))}.</p>
     ${loginStep.err?`<div class="alert err">${esc(loginStep.err)}</div>`:''}
-    <form data-form="loginOtp"><label class="f">Mã OTP <span class="req">*</span></label><input class="otp" name="otp" maxlength="6" inputmode="numeric" autocomplete="one-time-code" autofocus>
+    <form novalidate data-form="loginOtp"><label class="f">Mã OTP <span class="req">*</span></label><input class="otp" name="otp" maxlength="6" inputmode="numeric" autocomplete="one-time-code" autofocus>
     <div class="row" style="margin-top:14px"><button class="btn" type="button" data-act="loginBack">Quay lại</button><button class="btn link" type="button" data-act="loginResend">Gửi lại mã</button><div class="sp"></div><button class="btn pri">Xác nhận</button></div></form>
   </div></div></div></div>`;
   return `<div class="login"><div class="l">${loginLeft()}</div><div class="r"><div class="box"><div class="card"><div class="bd">
     <h1 style="margin-bottom:4px">Đăng nhập</h1><p class="muted" style="margin-top:0">Hệ thống quản lý phát tin Cell Broadcast</p>
     ${loginStep.err?`<div class="alert err">${esc(loginStep.err)}</div>`:''}
-    <form data-form="login">
+    <form novalidate data-form="login">
       <div class="mb"><label class="f">Tên đăng nhập <span class="req">*</span></label><input type="text" name="username" autocomplete="username" autofocus></div>
       <div class="mb"><label class="f">Mật khẩu <span class="req">*</span></label><input type="password" name="password" autocomplete="current-password"></div>
       <button class="btn pri" style="width:100%;justify-content:center">Đăng nhập</button>
@@ -803,7 +836,7 @@ function viewMessages(){
   if (f.q){ const k = noAccent(f.q.toLowerCase()); list = list.filter(m => noAccent(`${m.code} ${m.campaign} ${m.docNo} ${m.header} ${m.body} ${areaText(m.areas,99)}`.toLowerCase()).includes(k)); }
   const creators = S.users.filter(u => u.role==='SO');
   return `<div class="ph"><h1>Bản tin cảnh báo</h1><span class="sub">${list.length} bản tin</span><div class="sp"></div>${isRole('SO')?`<a class="btn pri" href="#/messages/new">+ Tạo bản tin</a>`:''}</div>
-  <div class="card"><div class="bd" style="padding-bottom:0"><form class="filters" data-form="msgFilter">
+  <div class="card"><div class="bd" style="padding-bottom:0"><form novalidate class="filters" data-form="msgFilter">
     <div style="flex:2;min-width:220px"><label class="f">Tìm kiếm</label><input type="text" name="q" value="${esc(f.q)}" placeholder="Mã, tên chiến dịch, số văn bản, nội dung, vùng phát"></div>
     <div><label class="f">Trạng thái</label><select name="st"><option value="">Tất cả</option>${Object.entries(ST).map(([k,v])=>`<option value="${k}" ${f.st===k?'selected':''}>${v}</option>`).join('')}</select></div>
     <div><label class="f">Mức ưu tiên</label><select name="mi"><option value="">Tất cả</option>${S.priorities.map(p=>`<option value="${p.mi}" ${f.mi==p.mi?'selected':''}>${p.mi} – ${esc(p.vi)}</option>`).join('')}</select></div>
@@ -898,7 +931,7 @@ function composeContent(){
 }
 function composeArea(){
   const p = F.prov; const xs = S.xas.filter(x => x.provinceId===p);
-  const cnt = id => S.cells.filter(c => c.xaId===id).length;
+  const cnt = id => cells4G().filter(c => c.xaId===id).length;
   const allOn = xs.length && xs.every(x => F.areas.includes(x.id));
   return `<div class="grid g2"><div>
     <label class="f">Tỉnh/Thành phố</label><select data-f="prov">${S.provinces.map(x=>`<option value="${x.id}" ${p===x.id?'selected':''}>${esc(x.name)} (${F.areas.filter(a=>XA(a)&&XA(a).provinceId===x.id).length}/${S.xas.filter(y=>y.provinceId===x.id).length} xã)</option>`).join('')}</select>
@@ -1216,7 +1249,7 @@ function viewReports(){
   </div>
 
   <div class="sec-h"><h2>Tổng hợp các chiến dịch</h2><div class="sub">${list.length} chiến dịch đã phát · bấm một dòng để xem báo cáo chi tiết ở trên.</div></div>
-  <div class="card"><div class="bd" style="padding-bottom:0"><form class="filters" data-form="repFilter">
+  <div class="card"><div class="bd" style="padding-bottom:0"><form novalidate class="filters" data-form="repFilter">
     <div style="flex:2;min-width:220px"><label class="f">Tìm kiếm</label><input type="text" name="q" value="${esc(repFilter.q)}" placeholder="Mã, tên chiến dịch, số văn bản, vùng phát"></div>
     <div><label class="f">Từ ngày</label>${dateIn('from', repFilter.from)}</div><div><label class="f">Đến ngày</label>${dateIn('to', repFilter.to)}</div>
     <div style="min-width:auto"><button class="btn pri">Lọc</button></div></form></div>
@@ -1253,51 +1286,55 @@ function exportOne(m){
 let tplFilter = {g:'', q:'', st:'active'};
 function viewTemplates(){
   const admin = isRole('QT');
-  const groups = [...new Set(S.templates.map(t => t.group))];
   let list = S.templates.slice();
-  if (!admin) list = list.filter(t => t.active);
-  else if (tplFilter.st) list = list.filter(t => tplFilter.st==='active' ? t.active : !t.active);
   if (tplFilter.g) list = list.filter(t => t.group===tplFilter.g);
-  if (tplFilter.q){ const k = noAccent(tplFilter.q.toLowerCase()); list = list.filter(t => noAccent(`${t.code} ${t.name} ${t.header} ${t.body}`.toLowerCase()).includes(k)); }
-  const used = id => S.messages.some(m => m.templateId===id);
-  return `<div class="ph"><h1>Thư viện mẫu tin</h1><span class="sub">${list.length} mẫu</span><div class="sp"></div>${admin?`<button class="btn pri" data-act="tplEdit">+ Thêm mẫu</button>`:''}</div>
-  <div class="card"><div class="bd" style="padding-bottom:0"><form class="filters" data-form="tplFilter">
-    <div style="flex:2;min-width:220px"><label class="f">Tìm kiếm</label><input type="text" name="q" value="${esc(tplFilter.q)}" placeholder="Mã, tên, nội dung"></div>
+  if (tplFilter.q){ const k = noAccent(tplFilter.q.toLowerCase()); list = list.filter(t => noAccent(`${t.code} ${t.header} ${t.body}`.toLowerCase()).includes(k)); }
+  const groups = TPL_GROUPS.concat([...new Set(S.templates.map(t => t.group))].filter(g => !TPL_GROUPS.includes(g)));
+  const sec = groups.map(g => { const ts = list.filter(t => t.group===g); if (!ts.length) return ''; return `<div class="card mb"><div class="hd"><h2>${esc(g)}</h2><span class="small muted">${ts.length} mẫu</span></div>
+    <table class="t"><thead><tr><th>STT</th><th>Mã mẫu</th><th>Tiêu đề</th><th style="width:42%">Nội dung</th><th>Mức ưu tiên</th><th>Mức âm thanh</th><th></th></tr></thead><tbody>
+    ${ts.map((t,i) => `<tr><td>${i+1}</td><td class="mono small">${esc(t.code)}</td><td class="small"><b>${esc(t.header)}</b></td><td class="small">${esc(t.body).replace(/\{([^{}]+)\}/g,'<span class="var">{$1}</span>')}</td><td class="small">${t.mi} – ${esc(PRI(t.mi).vi)}</td><td class="small">${esc(t.sound||'')}</td>
+      <td class="row" style="flex-wrap:nowrap;justify-content:flex-end"><button class="btn sm" data-act="tplView" data-id="${t.id}">Xem</button>${admin?`<button class="btn sm" data-act="tplEdit" data-id="${t.id}">Sửa</button><button class="btn sm danger" data-act="tplDel" data-id="${t.id}">Xoá</button>`:''}</td></tr>`).join('')}
+    </tbody></table></div>`; }).join('');
+  return `<div class="ph"><h1>Thư viện mẫu tin</h1><span class="sub">${list.length}/${S.templates.length} mẫu · ${TPL_GROUPS.length} nhóm tình huống</span><div class="sp"></div>${admin?`<button class="btn pri" data-act="tplEdit">+ Thêm mẫu</button>`:''}</div>
+  <div class="card mb"><div class="bd" style="padding-bottom:0"><form novalidate class="filters" data-form="tplFilter">
+    <div style="flex:2;min-width:220px"><label class="f">Tìm kiếm</label><input type="text" name="q" value="${esc(tplFilter.q||'')}" placeholder="Mã, tiêu đề, nội dung"></div>
     <div><label class="f">Nhóm tình huống</label><select name="g"><option value="">Tất cả</option>${groups.map(g=>`<option ${tplFilter.g===g?'selected':''}>${esc(g)}</option>`).join('')}</select></div>
-    ${admin?`<div><label class="f">Trạng thái</label><select name="st"><option value="">Tất cả</option><option value="active" ${tplFilter.st==='active'?'selected':''}>Đang dùng</option><option value="off" ${tplFilter.st==='off'?'selected':''}>Ngừng sử dụng</option></select></div>`:''}
-    <div style="min-width:auto"><button class="btn pri">Lọc</button></div></form></div>
-  ${list.length ? `<table class="t"><thead><tr><th>Mã</th><th>Nhóm</th><th>Tiêu đề</th><th style="width:45%">Nội dung mẫu</th><th>Mức ưu tiên</th>${admin?'<th>Trạng thái</th><th></th>':''}</tr></thead><tbody>
-  ${list.map(t => `<tr><td class="mono small">${t.code}</td><td class="small">${esc(t.group)}</td><td class="small"><b>${esc(t.header)}</b></td><td class="small">${esc(t.body).replace(/\{([^{}]+)\}/g,'<span class="var">{$1}</span>')}</td><td class="small">${t.mi}</td>
-    ${admin?`<td>${t.active?'<span class="badge b-broadcasting">Đang dùng</span>':'<span class="badge b-cancelled">Ngừng</span>'}</td><td class="row" style="flex-wrap:nowrap"><button class="btn sm" data-act="tplEdit" data-id="${t.id}">Sửa</button>
-      ${used(t.id) ? `<button class="btn sm" data-act="tplToggle" data-id="${t.id}">${t.active?'Ngừng':'Dùng lại'}</button>` : `<button class="btn sm danger" data-act="tplDel" data-id="${t.id}">Xoá</button>`}</td>`:''}</tr>`).join('')}
-  </tbody></table>` : `<div class="empty">Không có mẫu phù hợp.</div>`}</div>
-  ${admin?`<p class="small muted">Mẫu đã dùng để phát chỉ được ngừng sử dụng, không xoá, để giữ lịch sử.</p>`:''}`;
+    <div style="min-width:auto"><button class="btn pri">Lọc</button></div></form></div></div>
+  ${sec || '<div class="card"><div class="empty">Không có mẫu phù hợp.</div></div>'}`;
+}
+function tplViewModal(t){
+  modal(`Mẫu tin ${esc(t.code)}`, `<div class="kv2">
+    <div>Mã mẫu</div><div class="mono">${esc(t.code)}</div><div>Nhóm tình huống</div><div>${esc(t.group)}</div>
+    <div>Tiêu đề</div><div><b>${esc(t.header)}</b></div><div>Mức ưu tiên</div><div>${t.mi} – ${esc(PRI(t.mi).vi)}</div>
+    <div>Mức âm thanh</div><div>${esc(t.sound||'')}</div><div>Trường biến</div><div>${vars(t.body).map(v => `<span class="var">{${esc(v)}}</span>`).join(' ') || '–'}</div>
+    <div>Nội dung</div><div>${esc(t.body).replace(/\{([^{}]+)\}/g,'<span class="var">{$1}</span>')}</div></div>`,
+    `<button class="btn" data-act="closeModal">Đóng</button>`, true);
 }
 function tplForm(t){
-  t = t || {code:'', name:'', group:'', header:'', body:'', mi:S.settings.priority};
-  const groups = [...new Set(S.templates.map(x => x.group))];
-  modal(t.id?`Sửa mẫu ${t.code}`:'Thêm mẫu tin', `<form id="tplF" class="grid g2">
+  t = t || {code:'', group:TPL_GROUPS[0], header:'', body:'', mi:S.settings.priority, sound:SOUND[0]};
+  modal(t.id?`Sửa mẫu ${esc(t.code)}`:'Thêm mẫu tin', `<form novalidate id="tplF" class="grid g2">
     <div><label class="f">Mã mẫu <span class="req">*</span></label><input type="text" name="code" value="${esc(t.code)}" ${t.id?'readonly':''} placeholder="TMP-51"></div>
-    <div><label class="f">Nhóm tình huống <span class="req">*</span></label><input type="text" name="group" list="grpl" value="${esc(t.group)}"><datalist id="grpl">${groups.map(g=>`<option value="${esc(g)}">`).join('')}</datalist></div>
-    <div><label class="f">Tiêu đề <span class="req">*</span></label><input type="text" name="header" value="${esc(t.header)}" placeholder="[TIÊU ĐỀ]"></div>
+    <div><label class="f">Nhóm tình huống <span class="req">*</span></label><select name="group">${TPL_GROUPS.map(g=>`<option ${t.group===g?'selected':''}>${esc(g)}</option>`).join('')}</select></div>
+    <div style="grid-column:1/-1"><label class="f">Tiêu đề <span class="req">*</span></label><input type="text" name="header" value="${esc(t.header)}" placeholder="[TIÊU ĐỀ]"></div>
     <div><label class="f">Mức ưu tiên <span class="req">*</span></label><select name="mi">${S.priorities.map(p=>`<option value="${p.mi}" ${t.mi==p.mi?'selected':''}>${p.mi} – ${esc(p.vi)}</option>`).join('')}</select></div>
-    <div style="grid-column:1/-1"><label class="f">Nội dung (biến đặt trong { }) <span class="req">*</span></label><textarea name="body" rows="5">${esc(t.body)}</textarea><div class="hint" id="tplVars"></div></div>
+    <div><label class="f">Mức âm thanh <span class="req">*</span></label><select name="sound">${SOUND.map(x=>`<option ${t.sound===x?'selected':''}>${esc(x)}</option>`).join('')}</select><div class="hint" style="color:#c05000;font-style:italic">[Cần xác nhận] danh sách mức âm thanh: tài liệu yêu cầu chưa nêu giá trị.</div></div>
+    <div style="grid-column:1/-1"><label class="f">Nội dung (trường biến dạng {Ten_bien}) <span class="req">*</span></label><textarea name="body" rows="5">${esc(t.body)}</textarea><div class="hint" id="tplVars"></div></div>
     <div style="grid-column:1/-1" id="tplErr"></div></form>`,
     `<button class="btn" data-act="closeModal">Huỷ</button><button class="btn pri" data-act="tplSave" data-id="${t.id||''}">Lưu</button>`, true);
-  const upd = () => { const b = $('#tplF [name=body]').value; const v = vars(b); $('#tplVars').textContent = v.length ? `Biến: ${v.map(x=>'{'+x+'}').join(', ')}` : 'Chưa có biến.'; };
+  const upd = () => { const b = $('#tplF [name=body]').value; const v = vars(b); $('#tplVars').textContent = v.length ? `Trường biến: ${v.map(x=>'{'+x+'}').join(', ')}` : 'Chưa có trường biến.'; };
   $('#tplF [name=body]').addEventListener('input', upd); upd();
 }
 function tplSave(id){
-  const fd = new FormData($('#tplF')); const d = Object.fromEntries(fd); const errs = [];
-  ['code','group','header','body'].forEach(k => { d[k] = (d[k]||'').trim(); });
-  if (!d.code) errs.push('Nhập mã mẫu.'); if (!d.group) errs.push('Nhập nhóm tình huống.'); if (!d.header) errs.push('Nhập tiêu đề.'); if (!d.body) errs.push('Nhập nội dung.');
+  const d = Object.fromEntries(new FormData($('#tplF'))); const errs = [];
+  ['code','header','body'].forEach(k => { d[k] = (d[k]||'').trim(); });
+  if (!d.code) errs.push('Nhập mã mẫu.'); if (!d.header) errs.push('Nhập tiêu đề.'); if (!d.body) errs.push('Nhập nội dung.');
   if (!id && S.templates.some(t => t.code.toLowerCase()===d.code.toLowerCase())) errs.push('Mã mẫu đã tồn tại.');
   const open = (d.body.match(/\{/g)||[]).length, close = (d.body.match(/\}/g)||[]).length;
-  if (open !== close || /\{[^}]*\{|\{\s*\}/.test(d.body)) errs.push('Cú pháp biến không hợp lệ: mỗi biến phải dạng {Ten_bien}.');
+  if (open !== close || /\{[^}]*\{|\{\s*\}/.test(d.body)) errs.push('Trường biến không hợp lệ: mỗi biến phải dạng {Ten_bien}.');
   if (errs.length){ $('#tplErr').innerHTML = `<div class="alert err"><ul>${errs.map(e=>`<li>${esc(e)}</li>`).join('')}</ul></div>`; return; }
-  const rec = {code:d.code, name:d.header.replace(/[\[\]]/g,''), group:d.group, header:d.header, body:d.body, mi:Number(d.mi)};
+  const rec = {code:d.code, name:d.header.replace(/[\[\]]/g,''), group:d.group, header:d.header, body:d.body, mi:Number(d.mi), sound:d.sound};
   if (id){ Object.assign(S.templates.find(t => t.id===id), rec); log('Mẫu tin','Sửa mẫu tin', d.code); }
-  else { S.templates.push({...rec, id:d.code, active:true, createdAt:now()}); log('Mẫu tin','Thêm mẫu tin', d.code); }
+  else { S.templates.push({...rec, id:d.code, active:true, createdAt:now()}); S.templates.sort((a,b) => a.code.localeCompare(b.code)); log('Mẫu tin','Thêm mẫu tin', d.code); }
   save(); closeModal(); toast('Đã lưu mẫu tin.', 'ok'); render();
 }
 
@@ -1306,44 +1343,47 @@ function tplSave(id){
    ========================================================================= */
 function viewCatalog(r){
   const tab = r.tab;
-  const tabs = `<div class="tabs"><a href="#/catalog/areas" class="${tab==='areas'?'on':''}">Tỉnh/Xã</a><a href="#/catalog/cells" class="${tab==='cells'?'on':''}">Dữ liệu Xã → Cell</a><a href="#/catalog/priorities" class="${tab==='priorities'?'on':''}">Mức ưu tiên</a></div>`;
+  const tabs = `<div class="tabs"><a href="#/catalog/priorities" class="${tab==='priorities'?'on':''}">Mức ưu tiên</a><a href="#/catalog/areas" class="${tab==='areas'?'on':''}">Tỉnh/Xã</a><a href="#/catalog/cells" class="${tab==='cells'?'on':''}">Ánh xạ Xã – Cell ID</a></div>`;
   let body = '';
   if (tab==='areas'){
-    body = `<div class="row mb"><div class="alert info" style="margin:0;flex:1">Dữ liệu mẫu cho demo, chưa phải danh mục hành chính chính thức.</div><button class="btn" data-act="provEdit">+ Thêm tỉnh</button><button class="btn pri" data-act="xaEdit">+ Thêm xã/phường</button></div>
-    ${S.provinces.map(p => { const xs = S.xas.filter(x => x.provinceId===p.id); return `<div class="card mb"><div class="hd"><h2>${esc(p.name)}</h2><span class="small muted mono">${esc(p.code)}</span><span class="small muted">· ${xs.length} xã/phường</span><div class="sp"></div><button class="btn sm" data-act="provEdit" data-id="${p.id}">Sửa</button></div>
-      <table class="t"><thead><tr><th>Mã</th><th>Tên xã/phường</th><th class="num">Số cell</th><th></th></tr></thead><tbody>${xs.map(x => `<tr><td class="mono small">${esc(x.code)}</td><td>${esc(x.name)}</td><td class="num">${S.cells.filter(c=>c.xaId===x.id).length}</td><td style="text-align:right"><button class="btn sm" data-act="xaEdit" data-id="${x.id}">Sửa</button></td></tr>`).join('')}</tbody></table></div>`; }).join('')}`;
+    body = `<div class="row mb"><div class="small muted" style="flex:1">Phân cấp 2 cấp Tỉnh – Xã theo mã hành chính. Dữ liệu trong demo là dữ liệu mẫu.</div><button class="btn" data-act="provEdit">+ Thêm tỉnh</button><button class="btn pri" data-act="xaEdit">+ Thêm xã</button></div>
+    ${S.provinces.map(p => { const xs = S.xas.filter(x => x.provinceId===p.id); return `<div class="card mb"><div class="hd"><h2>${esc(p.name)}</h2><span class="small muted">Mã hành chính <span class="mono">${esc(p.code)}</span> · ${xs.length} xã</span><div class="sp"></div><button class="btn sm" data-act="provEdit" data-id="${p.id}">Sửa</button><button class="btn sm danger" data-act="provDel" data-id="${p.id}">Xoá</button></div>
+      <table class="t"><thead><tr><th>STT</th><th>Mã hành chính</th><th>Tên xã</th><th></th></tr></thead><tbody>${xs.map((x,i) => `<tr><td>${i+1}</td><td class="mono small">${esc(x.code)}</td><td>${esc(x.name)}</td><td class="row" style="flex-wrap:nowrap;justify-content:flex-end"><button class="btn sm" data-act="xaEdit" data-id="${x.id}">Sửa</button><button class="btn sm danger" data-act="xaDel" data-id="${x.id}">Xoá</button></td></tr>`).join('') || '<tr><td colspan="4" class="muted small">Chưa có xã.</td></tr>'}</tbody></table></div>`; }).join('')}`;
   } else if (tab==='cells'){
-    const rows = S.xas.map(x => { const cs = S.cells.filter(c => c.xaId===x.id); return {x, n:cs.length, enb:new Set(cs.map(c=>c.enb)).size, subs:cs.reduce((s,c)=>s+c.subs,0)}; });
-    body = `<div class="card mb"><div class="bd"><div class="row"><div><b>Nạp dữ liệu ánh xạ Xã → Cell</b><div class="small muted">File CSV có cột: <span class="mono">cell_id, enodeb, ma_xa, cong_nghe, so_tb_uoc_tinh</span>. Dữ liệu của các xã có trong file sẽ được thay thế.</div></div><div class="sp"></div>
+    const rows = S.xas.map(x => { const cs = S.cells.filter(c => c.xaId===x.id); return {x, c4:cs.filter(c=>c.tech==='4G').length, c5:cs.filter(c=>c.tech==='5G').length, n:cs.length}; });
+    body = `<div class="card mb"><div class="bd"><div class="row"><div><b>Cập nhật dữ liệu ánh xạ từ VNPT Net</b><div class="small muted">File CSV xuất từ CSDL VNPT Net, gồm các cột: <span class="mono">cell_id, enodeb_gnodeb, ma_xa, cong_nghe</span> (cong_nghe = 4G hoặc 5G). Dữ liệu của các xã có trong file sẽ được thay thế.</div>
+      <div class="small" style="color:#c05000;font-style:italic">[Cần xác nhận] cách lấy dữ liệu từ VNPT Net (file hay kết nối trực tiếp).</div></div><div class="sp"></div>
       <button class="btn" data-act="cellTemplate">Tải file mẫu</button><label class="btn pri" style="margin:0">Chọn file CSV…<input type="file" accept=".csv,text/csv" id="cellFile" hidden></label></div>
-      <div class="small muted" style="margin-top:8px">Tổng ${nf(S.cells.length)} cell · cập nhật gần nhất ${fmt(S.cellsUpdatedAt)}. Nguồn dữ liệu chính thức (CSDL mạng vô tuyến VNPT Net) đang chờ xác nhận.</div><div id="importRes"></div></div></div>
-    <div class="card"><table class="t"><thead><tr><th>Tỉnh</th><th>Xã/Phường</th><th class="num">Trạm</th><th class="num">Cell</th><th class="num">TB ước tính</th></tr></thead><tbody>
-      ${rows.map(r => `<tr><td class="small">${esc(PROV(r.x.provinceId).name)}</td><td>${esc(r.x.name)} <span class="mono small muted">${esc(r.x.code)}</span></td><td class="num">${r.enb}</td><td class="num">${r.n ? r.n : '<span style="color:var(--err)">0 – chưa có dữ liệu</span>'}</td><td class="num">${nf(r.subs)}</td></tr>`).join('')}
+      <div class="small muted" style="margin-top:8px">Tổng ${nf(S.cells.length)} cell (4G: ${nf(S.cells.filter(c=>c.tech==='4G').length)} · 5G: ${nf(S.cells.filter(c=>c.tech==='5G').length)}) · cập nhật gần nhất ${fmt(S.cellsUpdatedAt)}.</div><div id="importRes"></div></div></div>
+    <div class="card"><table class="t"><thead><tr><th>STT</th><th>Tỉnh</th><th>Xã</th><th>Mã hành chính</th><th class="num">Cell 4G</th><th class="num">Cell 5G</th><th></th></tr></thead><tbody>
+      ${rows.map((r,i) => `<tr><td>${i+1}</td><td class="small">${esc(PROV(r.x.provinceId).name)}</td><td>${esc(r.x.name)}</td><td class="mono small">${esc(r.x.code)}</td><td class="num">${nf(r.c4)}</td><td class="num">${nf(r.c5)}</td><td style="text-align:right">${r.n ? `<button class="btn sm" data-act="cellView" data-id="${r.x.id}">Xem Cell ID</button>` : '<span class="small" style="color:var(--err)">Chưa có dữ liệu</span>'}</td></tr>`).join('')}
     </tbody></table></div>`;
   } else {
-    body = `<div class="row mb"><div class="small muted" style="flex:1">Theo bảng cấu hình CMAS Việt Nam (tài liệu yêu cầu mục 3.2.2). Tên hiển thị trong demo là dữ liệu mẫu, cần đối chiếu bảng chính thức.</div><button class="btn pri" data-act="priEdit">+ Thêm mức</button></div>
-    <div class="card"><table class="t"><thead><tr><th>Message ID</th><th>Tên tiếng Việt</th><th>Tên tiếng Anh</th><th>Trạng thái</th><th></th></tr></thead><tbody>
-      ${S.priorities.map(p => `<tr><td class="mono">${p.mi}${p.mi==S.settings.priority?' <span class="badge b-role">Mặc định</span>':''}</td><td>${esc(p.vi)}</td><td>${esc(p.en)}</td><td>${p.active?'<span class="badge b-broadcasting">Đang dùng</span>':'<span class="badge b-cancelled">Ngừng</span>'}</td><td style="text-align:right"><button class="btn sm" data-act="priEdit" data-id="${p.mi}">Sửa</button></td></tr>`).join('')}
+    body = `<div class="row mb"><div class="small muted" style="flex:1">Theo bảng CMAS (tài liệu yêu cầu mục 3.2.2). Mỗi mức ưu tiên ứng với 1 Message ID, không trùng. Tên mức trong demo là dữ liệu mẫu, cần đối chiếu bảng chính thức.</div><button class="btn pri" data-act="priEdit">+ Thêm mức</button></div>
+    <div class="card"><table class="t"><thead><tr><th>STT</th><th>Message ID</th><th>Mức ưu tiên</th><th></th></tr></thead><tbody>
+      ${S.priorities.map((p,i) => `<tr><td>${i+1}</td><td class="mono">${p.mi}</td><td>${esc(p.vi)}${p.mi==S.settings.priority?' <span class="badge b-role">Mặc định cho tin phòng chống thiên tai</span>':''}</td><td class="row" style="flex-wrap:nowrap;justify-content:flex-end"><button class="btn sm" data-act="priEdit" data-id="${p.mi}">Sửa</button><button class="btn sm danger" data-act="priDel" data-id="${p.mi}">Xoá</button></td></tr>`).join('')}
     </tbody></table></div>`;
   }
-  return `<div class="ph"><h1>Danh mục & vùng phát</h1></div>${tabs}${body}`;
+  return `<div class="ph"><h1>Quản lý danh mục</h1></div>${tabs}${body}`;
 }
 function importCells(text){
   const lines = text.replace(/^﻿/,'').split(/\r?\n/).filter(l => l.trim());
   if (lines.length < 2) return {err:['File không có dữ liệu.']};
   const hdr = lines[0].split(',').map(s => s.trim().toLowerCase());
-  const need = ['cell_id','enodeb','ma_xa','cong_nghe','so_tb_uoc_tinh'];
+  const need = ['cell_id','enodeb_gnodeb','ma_xa','cong_nghe'];
   const miss = need.filter(n => !hdr.includes(n)); if (miss.length) return {err:[`Thiếu cột: ${miss.join(', ')}`]};
   const idx = Object.fromEntries(need.map(n => [n, hdr.indexOf(n)]));
   const out = [], err = [], seen = new Set();
   lines.slice(1).forEach((l,i) => {
-    const c = l.split(',').map(s => s.trim()); const row = i+2;
+    const c = l.split(',').map(s => s.trim()); const row = i+2, id = c[idx.cell_id], tech = (c[idx.cong_nghe]||'').toUpperCase();
     const xa = S.xas.find(x => x.code === c[idx.ma_xa]);
-    if (!c[idx.cell_id]) return err.push(`Dòng ${row}: thiếu cell_id.`);
-    if (seen.has(c[idx.cell_id])) return err.push(`Dòng ${row}: trùng cell_id ${c[idx.cell_id]}.`);
-    if (!xa) return err.push(`Dòng ${row}: mã xã "${c[idx.ma_xa]}" không có trong danh mục.`);
-    seen.add(c[idx.cell_id]);
-    out.push({id:c[idx.cell_id], enb:Number(c[idx.enodeb])||0, xaId:xa.id, tech:c[idx.cong_nghe]||'4G', subs:Number(c[idx.so_tb_uoc_tinh])||0});
+    if (!/^\d{3}-\d{2}-\d{1,7}-\d{1,3}$/.test(id||'')) return err.push(`Dòng ${row}: Cell ID "${id||''}" không hợp lệ (dạng MCC-MNC-eNodeB/gNodeB-Cell, VD 452-02-10101-1).`);
+    if (seen.has(id)) return err.push(`Dòng ${row}: trùng Cell ID ${id}.`);
+    if (!xa) return err.push(`Dòng ${row}: mã xã "${c[idx.ma_xa]}" không có trong danh mục Tỉnh/Xã.`);
+    if (!['4G','5G'].includes(tech)) return err.push(`Dòng ${row}: công nghệ phải là 4G hoặc 5G.`);
+    seen.add(id);
+    const old = S.cells.find(x => x.id===id);
+    out.push({id, enb:Number(c[idx.enodeb_gnodeb])||0, xaId:xa.id, tech, subs: old ? old.subs : 0});
   });
   return {rows:out, err};
 }
@@ -1353,29 +1393,25 @@ function importCells(text){
    ========================================================================= */
 function viewSettings(){
   const s = S.settings;
-  const fld = (k,l,h,attr='') => `<div><label class="f">${l}</label><input type="number" name="${k}" value="${s[k]}" ${attr}><div class="hint">${h}</div></div>`;
-  return `<div class="ph"><h1>Tham số hệ thống</h1></div><form data-form="settings">
-  <div class="card mb"><div class="hd"><h2>Giá trị mặc định khi tạo bản tin</h2></div><div class="bd grid g3">
-    <div><label class="f">Mức ưu tiên mặc định</label><select name="priority">${S.priorities.filter(p=>p.active).map(p=>`<option value="${p.mi}" ${s.priority==p.mi?'selected':''}>${p.mi} – ${esc(p.vi)}</option>`).join('')}</select><div class="hint">Cảnh báo thiên tai: Khẩn cấp Quốc gia (4370).</div></div>
-    ${fld('repetition','Chu kỳ lặp lại mặc định (giây)','5–300 giây','min=5 max=300')}${fld('duration','Thời hạn phát mặc định (phút)','15–2880 phút','min=15 max=2880')}
-    ${fld('maxPages','Số trang tối đa của bản tin','1–15 trang; chờ khách hàng chốt','min=1 max=15')}</div></div>
-  <div class="card mb"><div class="hd"><h2>Phê duyệt và bảo mật</h2></div><div class="bd grid g3">
-    ${fld('otpTtl','Hiệu lực mã OTP (giây)','60–600 giây','min=60 max=600')}${fld('otpMaxFail','Số lần nhập sai OTP tối đa','1–10 lần','min=1 max=10')}${fld('sessionTimeout','Thời gian chờ phiên (phút)','5–120 phút','min=5 max=120')}
-    <div><label class="f">OTP khi đăng nhập</label><select name="loginOtp"><option value="1" ${s.loginOtp?'selected':''}>Bật</option><option value="0" ${!s.loginOtp?'selected':''}>Tắt</option></select></div>
-    <div><label class="f">Cập nhật / dừng bản tin cần phê duyệt</label><select name="approveUpdateStop"><option value="1" ${s.approveUpdateStop?'selected':''}>Có (duyệt + OTP)</option><option value="0" ${!s.approveUpdateStop?'selected':''}>Không</option></select><div class="hint">Chờ khách hàng xác nhận.</div></div></div></div>
-  <div class="card mb"><div class="hd"><h2>Kết quả phát và lưu trữ</h2></div><div class="bd grid g3">
-    ${fld('successThreshold','Ngưỡng tỷ lệ phát thành công (%)','Theo tài liệu yêu cầu: ≥ 99%','min=50 max=100 step=0.1')}${fld('retryMax','Số lần phát lại tối đa cho mỗi cell lỗi','1–5 lần; chờ khách hàng xác nhận','min=1 max=5')}${fld('retrySend','Số lần tự gửi lại khi mất kết nối MME','0–5 lần','min=0 max=5')}${fld('logRetentionDays','Thời hạn lưu nhật ký (ngày)','Chờ khách hàng xác nhận','min=30 max=3650')}</div></div>
-  <div class="card mb" style="border-style:dashed"><div class="hd"><h2>Mô phỏng mạng</h2><span class="small muted">chỉ có trong bản demo</span></div><div class="bd grid g3">${fld('simFail','Tỷ lệ cell lỗi giả lập khi phát (%)','0–20%; tăng lên để demo phát lại','min=0 max=20 step=0.5')}</div></div>
-  <div id="setErr"></div><button class="btn pri">Lưu tham số</button></form>`;
+  const fld = (k,l,h,attr='') => `<div><label class="f">${l} <span class="req">*</span></label><input type="number" name="${k}" value="${s[k]}" ${attr}><div class="hint">${h}</div></div>`;
+  return `<div class="ph"><h1>Cấu hình tham số phát mặc định</h1></div><form novalidate data-form="settings">
+  <div class="card mb"><div class="hd"><h2>Tham số phát</h2></div><div class="bd grid g3">
+    ${fld('repetition','Chu kỳ lặp (giây)','5–300 giây, khuyến nghị 15–20 giây/lần','min=5 max=300')}
+    ${fld('duration','Thời hạn phát (phút)','15 phút – 48 giờ (15–2.880 phút)','min=15 max=2880')}
+    ${fld('successThreshold','Ngưỡng tỷ lệ cell phát thành công (%)','Mặc định 99%','min=0 max=100 step=0.1')}
+    ${fld('retryMax','Số lần phát lại tối đa cho mỗi cell lỗi','1–5 lần','min=1 max=5')}
+    ${fld('otpTtl','Thời hạn OTP (giây)','60–600 giây','min=60 max=600')}</div></div>
+  <div class="card mb" style="border-style:dashed"><div class="hd"><h2>Mô phỏng mạng</h2><span class="small muted">chỉ có trong bản demo</span></div><div class="bd grid g3">${fld('simFail','Tỷ lệ cell lỗi giả lập khi phát (%)','0–20%','min=0 max=20 step=0.5')}</div></div>
+  <div id="setErr"></div><button class="btn pri">Lưu</button></form>`;
 }
 function saveSettings(fd){
-  const n = k => Number(fd.get(k)); const e = [];
-  const rules = {repetition:[5,300], duration:[15,2880], maxPages:[1,15], otpTtl:[60,600], otpMaxFail:[1,10], sessionTimeout:[5,120], successThreshold:[50,100], retrySend:[0,5], retryMax:[1,5], simFail:[0,20], logRetentionDays:[30,3650]};
-  Object.entries(rules).forEach(([k,[a,b]]) => { const v = n(k); if (!(v>=a && v<=b)) e.push(`${k}: phải từ ${a} đến ${b}.`); });
+  const e = [];
+  const rules = {repetition:['Chu kỳ lặp',5,300], duration:['Thời hạn phát',15,2880], successThreshold:['Ngưỡng tỷ lệ thành công',0,100], retryMax:['Số lần phát lại tối đa',1,5], otpTtl:['Thời hạn OTP',60,600], simFail:['Tỷ lệ cell lỗi giả lập',0,20]};
+  Object.entries(rules).forEach(([k,[l,a,b]]) => { const raw = (fd.get(k)||'').trim(), v = Number(raw); if (raw === '' || !(v>=a && v<=b)) e.push(`${l}: nhập giá trị từ ${nf(a)} đến ${nf(b)}.`); });
   if (e.length){ $('#setErr').innerHTML = `<div class="alert err"><ul>${e.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`; return; }
-  Object.keys(rules).forEach(k => S.settings[k] = n(k));
-  S.settings.priority = n('priority'); S.settings.loginOtp = fd.get('loginOtp')==='1'; S.settings.approveUpdateStop = fd.get('approveUpdateStop')==='1';
-  log('Tham số','Cập nhật tham số hệ thống', '', 'Quan trọng'); save(); toast('Đã lưu tham số.', 'ok'); render();
+  const ch = Object.keys(rules).filter(k => S.settings[k] !== Number(fd.get(k))).map(k => `${rules[k][0]}: ${S.settings[k]} → ${Number(fd.get(k))}`);
+  Object.keys(rules).forEach(k => S.settings[k] = Number(fd.get(k)));
+  log('Tham số','Cập nhật tham số phát mặc định', ch.join('; ') || 'Không thay đổi'); save(); toast('Đã lưu tham số.', 'ok'); render();
 }
 function viewUsers(){
   const st = u => u.status==='active' ? '<span class="badge b-broadcasting">Hoạt động</span>' : '<span class="badge b-rejected">Khoá</span>';
@@ -1392,7 +1428,7 @@ function viewUsers(){
 }
 function userForm(u){
   u = u || {name:'', username:'', unit:'VNPT-VinaPhone', phone:''};
-  modal(u.id?'Sửa tài khoản':'Thêm tài khoản', `<form id="userF" class="grid g2">
+  modal(u.id?'Sửa tài khoản':'Thêm tài khoản', `<form novalidate id="userF" class="grid g2">
     <div><label class="f">Tên đăng nhập <span class="req">*</span></label><input type="text" name="username" value="${esc(u.username)}" ${u.id?'readonly':''}></div>
     <div><label class="f">Họ tên <span class="req">*</span></label><input type="text" name="name" value="${esc(u.name)}"></div>
     <div><label class="f">Đơn vị <span class="req">*</span></label><input type="text" name="unit" value="${esc(u.unit)}"></div>
@@ -1426,7 +1462,7 @@ function viewLogs(){
   if (f.q){ const k = noAccent(f.q.toLowerCase()); list = list.filter(l => noAccent(`${l.action} ${l.target}`.toLowerCase()).includes(k)); }
   const shown = list.slice(0,300);
   return `<div class="ph"><h1>Nhật ký hệ thống</h1><span class="sub">${nf(list.length)} bản ghi${list.length>300?' · hiển thị 300 bản ghi mới nhất':''} · không ai được sửa, xoá nhật ký</span></div>
-  <div class="card"><div class="bd" style="padding-bottom:0"><form class="filters" data-form="logFilter">
+  <div class="card"><div class="bd" style="padding-bottom:0"><form novalidate class="filters" data-form="logFilter">
     <div style="flex:2;min-width:200px"><label class="f">Tìm kiếm</label><input type="text" name="q" value="${esc(f.q)}" placeholder="Thao tác, đối tượng"></div>
     <div><label class="f">Người thực hiện</label><select name="by"><option value="">Tất cả</option><option value="SYS" ${f.by==='SYS'?'selected':''}>Hệ thống</option>${S.users.map(u=>`<option value="${u.id}" ${f.by===u.id?'selected':''}>${esc(u.name)}</option>`).join('')}</select></div>
     <div><label class="f">Từ ngày</label>${dateIn('from', f.from)}</div><div><label class="f">Đến ngày</label>${dateIn('to', f.to)}</div>
@@ -1535,35 +1571,46 @@ const A = {
     $('#otpErr').innerHTML = `<div class="alert err">${esc(r.msg)}</div>`; $('#otpIn').select(); },
   tplEdit(el){ tplForm(el.dataset.id ? S.templates.find(t => t.id===el.dataset.id) : null); },
   tplSave(el){ tplSave(el.dataset.id); },
+  tplView(el){ tplViewModal(S.templates.find(t => t.id===el.dataset.id)); },
+  cellView(el){ const x = XA(el.dataset.id); const cs = S.cells.filter(c => c.xaId===x.id);
+    const grp = t => { const l = cs.filter(c => c.tech===t); return l.length ? `<div class="mb"><b>Cell ${t}</b> <span class="small muted">(${l.length} cell · ${new Set(l.map(c=>c.enb)).size} ${t==='4G'?'eNodeB':'gNodeB'})</span><div class="mono small" style="margin-top:4px;line-height:1.8">${l.map(c=>esc(c.id)).join(' · ')}</div></div>` : ''; };
+    modal(`Cell ID – ${esc(x.name)}, ${esc(PROV(x.provinceId).name)}`, grp('4G') + grp('5G') + '<div class="small muted">Giai đoạn 1 chỉ phát qua cell 4G.</div>', `<button class="btn" data-act="closeModal">Đóng</button>`, true); },
+  provDel(el){ const p = PROV(el.dataset.id); if (S.xas.some(x => x.provinceId===p.id)) return toast(`Không xoá được ${p.name}: còn xã trực thuộc. Xoá các xã trước.`, 'err');
+    if (!confirm(`Xoá ${p.name}?`)) return; S.provinces = S.provinces.filter(x => x !== p); log('Danh mục','Xoá tỉnh', p.name); save(); render(); },
+  xaDel(el){ const x = XA(el.dataset.id); const n = S.cells.filter(c => c.xaId===x.id).length;
+    if (!confirm(`Xoá ${x.name}?${n ? `\nDữ liệu ánh xạ ${n} Cell ID của xã này cũng bị xoá.` : ''}`)) return;
+    S.xas = S.xas.filter(y => y !== x); S.cells = S.cells.filter(c => c.xaId !== x.id); log('Danh mục','Xoá xã', `${x.name}${n?` · ${n} cell`:''}`); save(); render(); },
+  priDel(el){ const mi = Number(el.dataset.id), p = PRI(mi);
+    if (mi === S.settings.priority) return toast('Không xoá được mức mặc định cho tin phòng chống thiên tai.', 'err');
+    const used = S.templates.filter(t => t.mi === mi).length; if (used) return toast(`Không xoá được: ${used} mẫu tin đang dùng mức ${mi}.`, 'err');
+    if (!confirm(`Xoá mức ${mi} – ${p.vi}?`)) return; S.priorities = S.priorities.filter(x => x !== p); log('Danh mục','Xoá mức ưu tiên', `${mi} – ${p.vi}`); save(); render(); },
   tplToggle(el){ const t = S.templates.find(x => x.id===el.dataset.id); t.active = !t.active; log('Mẫu tin', t.active?'Dùng lại mẫu':'Ngừng sử dụng mẫu', t.code); save(); render(); },
-  tplDel(el){ const t = S.templates.find(x => x.id===el.dataset.id); if (!confirm(`Xoá mẫu ${t.code}?`)) return; S.templates = S.templates.filter(x => x !== t); log('Mẫu tin','Xoá mẫu', t.code); save(); render(); },
+  tplDel(el){ const t = S.templates.find(x => x.id===el.dataset.id); if (!confirm(`Xoá mẫu ${t.code}? Bản tin đã tạo từ mẫu này không bị ảnh hưởng.`)) return; S.templates = S.templates.filter(x => x !== t); log('Mẫu tin','Xoá mẫu', t.code); save(); render(); },
   provEdit(el){ const p = el.dataset.id ? PROV(el.dataset.id) : {code:'', name:''};
-    modal(p.id?'Sửa tỉnh/thành phố':'Thêm tỉnh/thành phố', `<form id="provF" class="grid g2"><div><label class="f">Mã <span class="req">*</span></label><input type="text" name="code" value="${esc(p.code)}"></div><div><label class="f">Tên <span class="req">*</span></label><input type="text" name="name" value="${esc(p.name)}"></div><div id="provErr" style="grid-column:1/-1"></div></form>`,
+    modal(p.id?'Sửa tỉnh/thành phố':'Thêm tỉnh/thành phố', `<form novalidate id="provF" class="grid g2"><div><label class="f">Mã hành chính <span class="req">*</span></label><input type="text" name="code" value="${esc(p.code)}"></div><div><label class="f">Tên <span class="req">*</span></label><input type="text" name="name" value="${esc(p.name)}"></div><div id="provErr" style="grid-column:1/-1"></div></form>`,
       `<button class="btn" data-act="closeModal">Huỷ</button><button class="btn pri" data-act="provSave" data-id="${p.id||''}">Lưu</button>`); },
   provSave(el){ const d = Object.fromEntries(new FormData($('#provF'))); d.code = d.code.trim().toUpperCase(); d.name = d.name.trim(); const id = el.dataset.id;
-    if (!d.code || !d.name) return $('#provErr').innerHTML = '<div class="ferr">Nhập đủ mã và tên.</div>';
-    if (S.provinces.some(p => p.code===d.code && p.id!==id)) return $('#provErr').innerHTML = '<div class="ferr">Mã đã tồn tại.</div>';
+    if (!d.code || !d.name) return $('#provErr').innerHTML = '<div class="ferr">Nhập đủ mã hành chính và tên.</div>';
+    if (S.provinces.some(p => p.code===d.code && p.id!==id) || S.xas.some(x => x.code===d.code)) return $('#provErr').innerHTML = '<div class="ferr">Mã hành chính đã tồn tại.</div>';
     if (id) Object.assign(PROV(id), d); else S.provinces.push({id:uid('P'), ...d}); log('Danh mục', id?'Sửa tỉnh':'Thêm tỉnh', d.name); save(); closeModal(); render(); },
   xaEdit(el){ const x = el.dataset.id ? XA(el.dataset.id) : {code:'', name:'', provinceId:S.provinces[0].id};
-    modal(x.id?'Sửa xã/phường':'Thêm xã/phường', `<form id="xaF" class="grid g2"><div><label class="f">Tỉnh/Thành phố <span class="req">*</span></label><select name="provinceId">${S.provinces.map(p=>`<option value="${p.id}" ${x.provinceId===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div>
-      <div><label class="f">Mã <span class="req">*</span></label><input type="text" name="code" value="${esc(x.code)}"></div><div style="grid-column:1/-1"><label class="f">Tên xã/phường <span class="req">*</span></label><input type="text" name="name" value="${esc(x.name)}"></div><div id="xaErr" style="grid-column:1/-1"></div></form>`,
+    modal(x.id?'Sửa xã':'Thêm xã', `<form novalidate id="xaF" class="grid g2"><div><label class="f">Tỉnh/Thành phố <span class="req">*</span></label><select name="provinceId">${S.provinces.map(p=>`<option value="${p.id}" ${x.provinceId===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div>
+      <div><label class="f">Mã hành chính <span class="req">*</span></label><input type="text" name="code" value="${esc(x.code)}"></div><div style="grid-column:1/-1"><label class="f">Tên xã <span class="req">*</span></label><input type="text" name="name" value="${esc(x.name)}"></div><div id="xaErr" style="grid-column:1/-1"></div></form>`,
       `<button class="btn" data-act="closeModal">Huỷ</button><button class="btn pri" data-act="xaSave" data-id="${x.id||''}">Lưu</button>`); },
   xaSave(el){ const d = Object.fromEntries(new FormData($('#xaF'))); d.code = d.code.trim().toUpperCase(); d.name = d.name.trim(); const id = el.dataset.id;
-    if (!d.code || !d.name) return $('#xaErr').innerHTML = '<div class="ferr">Nhập đủ mã và tên.</div>';
-    if (S.xas.some(x => x.code===d.code && x.id!==id)) return $('#xaErr').innerHTML = '<div class="ferr">Mã đã tồn tại.</div>';
+    if (!d.code || !d.name) return $('#xaErr').innerHTML = '<div class="ferr">Nhập đủ mã hành chính và tên.</div>';
+    if (S.xas.some(x => x.code===d.code && x.id!==id) || S.provinces.some(p => p.code===d.code)) return $('#xaErr').innerHTML = '<div class="ferr">Mã hành chính đã tồn tại.</div>';
     if (id) Object.assign(XA(id), d); else S.xas.push({id:uid('X'), ...d}); log('Danh mục', id?'Sửa xã/phường':'Thêm xã/phường', d.name); save(); closeModal(); render(); },
-  priEdit(el){ const p = el.dataset.id ? PRI(el.dataset.id) : {mi:'', vi:'', en:'', active:true};
-    modal(el.dataset.id?'Sửa mức ưu tiên':'Thêm mức ưu tiên', `<form id="priF" class="grid g2"><div><label class="f">Message ID <span class="req">*</span></label><input type="number" name="mi" value="${p.mi}" ${el.dataset.id?'readonly':''}></div>
-      <div><label class="f">Trạng thái</label><select name="active"><option value="1" ${p.active?'selected':''}>Đang dùng</option><option value="0" ${!p.active?'selected':''}>Ngừng</option></select></div>
-      <div><label class="f">Tên tiếng Việt <span class="req">*</span></label><input type="text" name="vi" value="${esc(p.vi)}"></div><div><label class="f">Tên tiếng Anh</label><input type="text" name="en" value="${esc(p.en)}"></div><div id="priErr" style="grid-column:1/-1"></div></form>`,
+  priEdit(el){ const p = el.dataset.id ? PRI(el.dataset.id) : {mi:'', vi:''};
+    modal(el.dataset.id?'Sửa mức ưu tiên':'Thêm mức ưu tiên', `<form novalidate id="priF" class="grid g2"><div><label class="f">Message ID <span class="req">*</span></label><input type="number" name="mi" value="${p.mi}" ${el.dataset.id?'readonly':''}><div class="hint">Theo bảng CMAS, dải 4352–6399.</div></div>
+      <div><label class="f">Tên mức ưu tiên <span class="req">*</span></label><input type="text" name="vi" value="${esc(p.vi)}"></div><div id="priErr" style="grid-column:1/-1"></div></form>`,
       `<button class="btn" data-act="closeModal">Huỷ</button><button class="btn pri" data-act="priSave" data-id="${el.dataset.id||''}">Lưu</button>`); },
   priSave(el){ const d = Object.fromEntries(new FormData($('#priF'))); const id = el.dataset.id; const mi = Number(d.mi);
-    if (!(mi >= 4352 && mi <= 6399) || !d.vi.trim()) return $('#priErr').innerHTML = '<div class="ferr">Message ID phải trong dải 4352–6399 và nhập tên tiếng Việt.</div>';
+    if (!(mi >= 4352 && mi <= 6399) || !d.vi.trim()) return $('#priErr').innerHTML = '<div class="ferr">Message ID phải trong dải 4352–6399 và nhập tên mức ưu tiên.</div>';
     if (!id && S.priorities.some(p => p.mi===mi)) return $('#priErr').innerHTML = '<div class="ferr">Message ID đã tồn tại.</div>';
-    if (id && d.active==='0' && Number(id)===S.settings.priority) return $('#priErr').innerHTML = '<div class="ferr">Không ngừng được mức đang là mặc định. Đổi mức mặc định trong Tham số trước.</div>';
-    const rec = {mi, vi:d.vi.trim(), en:d.en.trim(), active:d.active==='1'};
-    if (id) Object.assign(PRI(id), rec); else S.priorities.push(rec); S.priorities.sort((a,b)=>a.mi-b.mi); log('Danh mục', id?'Sửa mức ưu tiên':'Thêm mức ưu tiên', String(mi)); save(); closeModal(); render(); },
-  cellTemplate(){ const rows = [['cell_id','enodeb','ma_xa','cong_nghe','so_tb_uoc_tinh']]; S.cells.filter(c => c.xaId===S.xas[0].id).slice(0,3).forEach(c => rows.push([c.id, c.enb, S.xas[0].code, c.tech, c.subs])); download('mau-du-lieu-xa-cell.csv', csv(rows).replace(/"/g,'')); },
+    const rec = {mi, vi:d.vi.trim(), en:'', active:true};
+    if (id) Object.assign(PRI(id), {vi:rec.vi}); else S.priorities.push(rec); S.priorities.sort((a,b)=>a.mi-b.mi); log('Danh mục', id?'Sửa mức ưu tiên':'Thêm mức ưu tiên', `${mi} – ${rec.vi}`); save(); closeModal(); render(); },
+  cellTemplate(){ const rows = [['cell_id','enodeb_gnodeb','ma_xa','cong_nghe']]; S.cells.filter(c => c.xaId===S.xas[0].id).slice(0,3).forEach(c => rows.push([c.id, c.enb, S.xas[0].code, c.tech])); download('mau-du-lieu-xa-cell.csv', csv(rows).replace(/"/g,'')); },
   userEdit(el){ userForm(el.dataset.id ? S.users.find(u => u.id===el.dataset.id) : null); },
   userSave(el){ userSave(el.dataset.id); },
   userToggle(el){ const u = S.users.find(x => x.id===el.dataset.id); u.status = u.status==='active' ? 'locked' : 'active'; u.failLogin = 0; log('Người dùng', u.status==='active'?'Mở khoá tài khoản':'Khoá tài khoản', u.username); save(); render(); },
@@ -1615,7 +1662,7 @@ document.addEventListener('change', ev => {
       if (r.err && !r.rows){ box.innerHTML = `<div class="alert err" style="margin-top:10px">${r.err.map(esc).join('<br>')}</div>`; return; }
       if (r.err.length){ box.innerHTML = `<div class="alert err" style="margin-top:10px"><b>File có ${r.err.length} lỗi, chưa nạp dữ liệu nào.</b><ul>${r.err.slice(0,20).map(e=>`<li>${esc(e)}</li>`).join('')}</ul></div>`; return; }
       const xaIds = new Set(r.rows.map(x => x.xaId)); S.cells = S.cells.filter(c => !xaIds.has(c.xaId)).concat(r.rows); S.cellsUpdatedAt = now();
-      log('Danh mục','Nạp dữ liệu Xã → Cell', `${r.rows.length} cell · ${xaIds.size} xã`, 'Quan trọng'); save(); render(); toast(`Đã nạp ${r.rows.length} cell cho ${xaIds.size} xã.`, 'ok'); };
+      log('Danh mục','Cập nhật ánh xạ Xã – Cell ID', `${r.rows.length} cell · ${xaIds.size} xã`, 'Quan trọng'); save(); render(); toast(`Đã nạp ${r.rows.length} cell cho ${xaIds.size} xã.`, 'ok'); };
     rd.readAsText(t.files[0]); return;
   }
   if (!F || route().name !== 'compose') return;
