@@ -46,7 +46,7 @@ label.f{display:block;font-weight:600;margin:0 0 4px;font-size:13px}
 .mb{margin-bottom:14px}
 .badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
 .b-draft{background:#eef0f3;color:#4a5565}.b-pending{background:var(--warn-l);color:var(--warn)}.b-rejected{background:var(--err-l);color:var(--err)}
-.b-cancelled{background:#f1f1f1;color:#777}.b-broadcasting{background:var(--ok-l);color:var(--ok)}.b-stopped{background:#ece9f7;color:#5b45a6}.b-expired{background:#e9eef4;color:#41546b}
+.b-scheduled{background:#e3eefb;color:#2a5ca8}.b-cancelled{background:#f1f1f1;color:#777}.b-broadcasting{background:var(--ok-l);color:var(--ok)}.b-stopped{background:#ece9f7;color:#5b45a6}.b-expired{background:#e9eef4;color:#41546b}
 .b-role{background:var(--pri-l);color:var(--pri)}
 .alert{padding:10px 14px;border-radius:6px;margin-bottom:14px;border:1px solid}
 .alert.err{background:var(--err-l);border-color:#f2c6bf;color:#7d2215}
@@ -256,7 +256,7 @@ input:focus,select:focus,textarea:focus{outline:0;border-color:var(--focus);box-
    ========================================================================= */
 
 const LS_KEY = 'cbc_demo_data_v1', LS_SES = 'cbc_demo_session_v1';
-const ST = {draft:'Nháp',pending:'Chờ duyệt',rejected:'Bị từ chối',cancelled:'Đã huỷ',broadcasting:'Đang phát',stopped:'Đã dừng',expired:'Hết hạn'};
+const ST = {draft:'Nháp',pending:'Chờ duyệt',rejected:'Bị từ chối',cancelled:'Đã huỷ',scheduled:'Chờ phát',broadcasting:'Đang phát',stopped:'Đã dừng',expired:'Hết hạn'};
 const ROLE = {SO:'Người soạn thảo',PD:'Người phê duyệt',QT:'Quản trị hệ thống'};
 const GSM = "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà";
 const GSM_EXT = "^{}\\[~]|€";
@@ -275,6 +275,8 @@ const fmt = t => { if(!t) return '–'; const d=new Date(t); return `${pad(d.get
 const parseD = v => { const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec((v||'').trim()); if (!m) return null; const d = new Date(+m[3], +m[2]-1, +m[1]); return d.getDate()===+m[1] && d.getMonth()===+m[2]-1 ? d : null; };
 const dayFrom = v => { const d = parseD(v); return d ? d.setHours(0,0,0,0) : null; }, dayTo = v => { const d = parseD(v); return d ? d.setHours(23,59,59,999) : null; };
 const dateIn = (name, v) => `<input type="text" name="${name}" value="${esc(v||'')}" placeholder="DD/MM/YYYY" maxlength="10" inputmode="numeric">`;
+const fmtHM = t => { if(!t) return ''; const d=new Date(t); return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const parseDT = v => { const x = /^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{1,2}):(\d{2})$/.exec((v||'').trim()); if (!x) return null; const d = parseD(`${x[1]}/${x[2]}/${x[3]}`); if (!d || +x[4] > 23 || +x[5] > 59) return null; d.setHours(+x[4], +x[5], 0, 0); return d.getTime(); };
 const fmtD = t => { if(!t) return '–'; const d=new Date(t); return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`; };
 const nf = n => Number(n||0).toLocaleString('vi-VN');
 const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
@@ -446,7 +448,7 @@ function nextCode(t){
 function newMsg(o, by, t){
   const tm = S.templates.find(x => x.id === o.templateId);
   const m = {id:uid('M'), code:nextCode(t), campaign:o.campaign, docNo:o.docNo, mode:o.mode, templateId:o.templateId||null, vars:o.vars||{},
-    header: o.header || (tm ? tm.header : ''), body: o.body || (tm ? fill(tm.body,o.vars) : ''), tplBody: o.tplBody || (o.mode==='template' && tm ? tm.body : null),
+    header: o.header || (tm ? tm.header : ''), body: o.body || (tm ? fill(tm.body,o.vars) : ''), tplBody: o.tplBody || (o.mode==='template' && tm ? tm.body : null), schedAt: o.schedAt || null,
     areas:o.areas, priority:o.priority, repetition:o.repetition, duration:o.duration, status:'draft', createdBy:by, createdAt:t||now(), updatedAt:t||now(),
     updateNo:0, versions:[], history:[{at:t||now(), by, act:'Tạo bản tin'}], results:{}, cells:[]};
   return m;
@@ -589,12 +591,13 @@ function killRetryable(m){ const max = S.settings.retryMax; return m.cells.filte
 function retryable(m){ const max = S.settings.retryMax; return m.cells.filter(c => m.results[c]==='fail' && ((m.cinfo||{})[c]||{}).retries < max); }
 
 function broadcast(m, approver){
-  m.status = 'broadcasting'; m.approvedBy = approver.id; m.approverUnit = approver.unit; m.approvedAt = now();
+  const sched = m.status === 'scheduled';
+  m.status = 'broadcasting'; if (!sched){ m.approvedBy = approver.id; m.approverUnit = approver.unit; m.approvedAt = now(); }
   m.cells = cellsOf(m.areas); m.results = {}; m.cinfo = {}; m.rounds = []; m.serial = serial(m);
   const r = sendRound(m, 'initial', m.cells, 'SYS');
   m.sentAt = r.at; m.startAt = r.at; m.endAt = m.startAt + m.duration*60e3;   // duyệt → gửi lệnh < 2 giây (mục 3.1)
-  m.history.push({at:m.approvedAt, by:approver.id, act:'Duyệt (OTP hợp lệ)'});
-  m.history.push({at:m.sentAt, by:'SYS', act:'Gửi lệnh phát (Write-Replace Warning Request) tới MME', note:`${m.cells.length} cell · Serial ${m.serial} · sau ${((m.sentAt-m.approvedAt)/1000).toFixed(1)} giây kể từ khi duyệt`});
+  if (!sched) m.history.push({at:m.approvedAt, by:approver.id, act:'Duyệt (OTP hợp lệ)'});
+  m.history.push({at:m.sentAt, by:'SYS', act:'Gửi lệnh phát (Write-Replace Warning Request) tới MME', note:`${m.cells.length} cell · Serial ${m.serial} · ${sched ? `theo giờ hẹn ${fmtHM(m.schedAt)}` : `sau ${((m.sentAt-m.approvedAt)/1000).toFixed(1)} giây kể từ khi duyệt`}`});
   log('Phát tin','Gửi lệnh phát tới MME', `${m.code} – ${m.cells.length} cell`, 'Quan trọng', 'SYS');
 }
 function applyUpdate(m, a, approver){
@@ -631,6 +634,7 @@ function tick(){
   if (!S) return;
   let changed = false; const t = now();
   for (const m of S.messages){
+    if (m.status==='scheduled' && t >= m.schedAt){ broadcast(m, U(m.approvedBy)); log('Phát tin','Đến giờ hẹn – gửi lệnh phát', m.code, 'Quan trọng', 'SYS'); changed = true; continue; }
     if (!['broadcasting','stopped','expired'].includes(m.status) || !m.rounds) continue;
     if (m.status==='broadcasting' && t >= m.endAt){
       m.status = 'expired'; m.endedAt = m.endAt; m.pendingAction = null; endBroadcast(m, 'expire', 'SYS', '');
@@ -870,7 +874,7 @@ function viewMessages(){
   if (dayFrom(f.from)) base = base.filter(m => m.createdAt >= dayFrom(f.from));
   if (dayTo(f.to)) base = base.filter(m => m.createdAt <= dayTo(f.to));
   if (f.q){ const k = noAccent(f.q.toLowerCase()); base = base.filter(m => noAccent(`${m.code} ${m.campaign} ${m.docNo} ${m.header} ${m.body} ${areaText(m.areas,99)}`.toLowerCase()).includes(k)); }
-  const TABS = [['','Tất cả',()=>true],['draft','Nháp',m=>['draft','rejected'].includes(m.status)],['pending','Chờ duyệt',m=>m.status==='pending'],['broadcasting','Đang phát',m=>m.status==='broadcasting'],['ended','Đã kết thúc',m=>['stopped','expired','cancelled'].includes(m.status)]];
+  const TABS = [['','Tất cả',()=>true],['draft','Nháp',m=>['draft','rejected'].includes(m.status)],['pending','Chờ duyệt',m=>m.status==='pending'],['scheduled','Chờ phát',m=>m.status==='scheduled'],['broadcasting','Đang phát',m=>m.status==='broadcasting'],['ended','Đã kết thúc',m=>['stopped','expired','cancelled'].includes(m.status)]];
   const tab = TABS.find(t => t[0]===f.st) || TABS[0]; const list = base.filter(tab[2]);
   const creators = S.users.filter(u => u.role==='SO');
   return `<div class="ph"><h1>Bản tin cảnh báo</h1><span class="sub">${list.length} bản tin</span></div>
@@ -899,12 +903,12 @@ function composeInit(id){
   if (id){
     const m = S.messages.find(x => x.id===id);
     if (!m || !can('edit', m)) return null;
-    F = {id:m.id, campaign:m.campaign, docNo:m.docNo, mode:m.mode, templateId:m.templateId, vars:{...m.vars}, header:m.header, body:m.body,
+    F = {id:m.id, sendMode:m.schedAt?'schedule':'now', schedAt:m.schedAt?fmtHM(m.schedAt):'', campaign:m.campaign, docNo:m.docNo, mode:m.mode, templateId:m.templateId, vars:{...m.vars}, header:m.header, body:m.body,
       areas:[...m.areas], priority:m.priority, repetition:m.repetition, duration:m.duration, prov:(XA(m.areas[0])||{}).provinceId || S.provinces[0].id,
       group:'', tq:'', errors:{}, touched:false};
     if (m.mode==='template'){ const t = S.templates.find(x => x.id===m.templateId); F.body = m.tplBody || (t ? t.body : m.body); }
   } else {
-    F = {id:null, campaign:'', docNo:'', mode:'template', templateId:'', vars:{}, header:'', body:'', areas:[], priority:st.priority,
+    F = {id:null, sendMode:'now', schedAt:'', campaign:'', docNo:'', mode:'template', templateId:'', vars:{}, header:'', body:'', areas:[], priority:st.priority,
       repetition:st.repetition, duration:st.duration, prov:S.provinces[0].id, group:'', tq:'', errors:{}, touched:false};
   }
   return F;
@@ -938,6 +942,12 @@ function viewCompose(r){
       <div class="${e.duration?'has-err':''}"><label class="f">Thời hạn phát (phút) <span class="req">*</span></label><input type="number" min="15" max="2880" data-f="duration" value="${F.duration}">${er('duration')}
         <div class="hint" id="durHint">${dur(F.duration||0)} · 15 phút – 48 giờ</div>
         <div class="row" style="gap:4px;margin-top:4px">${[30,60,120,360,720,1440,2880].map(v=>`<button class="btn sm" type="button" data-act="setDur" data-v="${v}">${dur(v)}</button>`).join('')}</div></div>
+      <div style="grid-column:1/-1" class="${e.schedAt?'has-err':''}"><label class="f">Thời điểm phát <span class="req">*</span></label>
+        <div class="row" style="gap:16px;align-items:center;flex-wrap:wrap">
+          <label class="row" style="gap:6px;cursor:pointer"><input type="radio" name="sendMode" value="now" data-f="sendMode" ${F.sendMode!=='schedule'?'checked':''}> Phát ngay sau khi duyệt</label>
+          <label class="row" style="gap:6px;cursor:pointer"><input type="radio" name="sendMode" value="schedule" data-f="sendMode" ${F.sendMode==='schedule'?'checked':''}> Hẹn giờ</label>
+          <input type="text" data-f="schedAt" autocomplete="off" placeholder="DD/MM/YYYY HH:mm" value="${esc(F.schedAt)}" style="width:170px;${F.sendMode==='schedule'?'':'display:none'}"></div>${er('schedAt')}
+        <div class="hint">Hẹn giờ: hệ thống tự gửi lệnh phát đúng thời điểm hẹn sau khi bản tin được duyệt. Nếu duyệt sau giờ hẹn thì phát ngay. Thời hạn phát tính từ lúc phát.</div></div>
     </div></div>
   </div>
   <div class="sticky">
@@ -1057,6 +1067,7 @@ function validate(forSubmit){
     if (!F.areas.length) e.areas = 'Chọn ít nhất một xã/phường.';
     else if (!areaStats(F.areas).cells) e.areas = 'Vùng đã chọn không có cell nào.';
     if (!PRI(F.priority).active) e.priority = 'Chọn mức ưu tiên.';
+    if (F.sendMode==='schedule'){ const ts = parseDT(F.schedAt); if (!ts) e.schedAt = 'Nhập thời điểm phát dạng DD/MM/YYYY HH:mm.'; else if (ts <= now()) e.schedAt = 'Thời điểm phát phải sau thời điểm hiện tại.'; }
   }
   const rp = Number(F.repetition), du = Number(F.duration);
   if (!(rp >= 5 && rp <= 300)) e.repetition = 'Chu kỳ lặp phải từ 5 đến 300 giây.';
@@ -1073,7 +1084,7 @@ function saveCompose(submit){
   const t = S.templates.find(x => x.id===F.templateId);
   const data = {campaign:F.campaign.trim(), docNo:F.docNo.trim(), mode:F.mode, templateId:F.mode==='template'?F.templateId:null,
     vars:F.mode==='template'?Object.fromEntries(vars(F.body).map(k => [k, F.vars[k]||''])):{}, header:F.header.trim(), body:F.mode==='template'?fill(F.body.trim(),F.vars):F.body.trim(),
-    tplBody:F.mode==='template'?F.body.trim():null,
+    tplBody:F.mode==='template'?F.body.trim():null, schedAt:F.sendMode==='schedule' ? parseDT(F.schedAt) : null,
     areas:[...F.areas], priority:Number(F.priority), repetition:Number(F.repetition), duration:Number(F.duration)};
   let m;
   if (F.id){ m = S.messages.find(x => x.id===F.id); Object.assign(m, data); m.updatedAt = now(); m.history.push({at:now(), by:me.id, act:'Sửa bản tin'}); if (!submit) m.status = 'draft'; }
@@ -1114,6 +1125,7 @@ function viewMsg(r){
       <div>Cách soạn</div><div>${m.mode==='template'?`Theo mẫu ${esc(m.templateId)}`:'Soạn tự do'}</div>
       <div>Mức ưu tiên</div><div>${m.priority} – ${esc(PRI(m.priority).vi)}</div>
       <div>Chu kỳ lặp / thời hạn</div><div>${m.repetition} giây · ${dur(m.duration)}</div>
+      <div>Thời điểm phát</div><div>${m.schedAt ? `Hẹn giờ ${fmtHM(m.schedAt)}${m.status==='scheduled' ? ` <span class="muted">(còn ${left(m.schedAt-t)})</span>` : ''}` : 'Phát ngay sau khi duyệt'}</div>
       <div>Người soạn</div><div>${esc(U(m.createdBy).name)} · ${fmt(m.createdAt)}</div>
       <div>Người duyệt</div><div>${m.approvedBy?`${esc(U(m.approvedBy).name)} (${esc(m.approverUnit)}) · ${fmt(m.approvedAt)}`:'–'}</div>
       ${m.startAt?`<div>Thời gian phát</div><div>${fmt(m.startAt)} → ${fmt(m.endAt)}${live?` <span class="muted">(còn ${left(m.endAt-t)})</span>`:''}</div>`:''}
@@ -1616,8 +1628,10 @@ const A = {
       () => { rebroadcast(m, me.id, ''); save(); toast(`Đã gửi lệnh phát lại ${m.code} tới ${nf(m.cells.length)} cell.`, 'ok'); render(); }); },
   approve(el){ const m = S.messages.find(x => x.id===el.dataset.id); const s = areaStats(m.areas);
     otpModal('Duyệt và phát bản tin', `<div class="kv small"><div>Bản tin</div><div class="mono">${m.code}</div><div>Chiến dịch</div><div>${esc(m.campaign)}</div><div>Mức ưu tiên</div><div>${m.priority} – ${esc(PRI(m.priority).vi)}</div><div>Vùng phát</div><div>${esc(areaText(m.areas,5))} · ${nf(s.cells)} cell</div><div>Thời hạn</div><div>${dur(m.duration)}</div></div>
-      <div class="alert warn" style="margin:12px 0 0">Sau khi xác nhận, lệnh phát được gửi ngay xuống mạng.</div>`,
-      () => { broadcast(m, me); m.updatedAt = now(); log('Phê duyệt','Duyệt bản tin (OTP hợp lệ)', m.code, 'Quan trọng'); save(); toast(`Đã duyệt. ${m.code} đang phát tới ${nf(m.cells.length)} cell.`, 'ok'); render(); }); },
+      ${m.schedAt?`<div class="kv small" style="margin-top:6px"><div>Thời điểm phát</div><div><b>Hẹn giờ ${fmtHM(m.schedAt)}</b></div></div>`:''}
+      <div class="alert warn" style="margin:12px 0 0">${m.schedAt && m.schedAt > now() ? `Sau khi xác nhận, bản tin chuyển sang Chờ phát và tự gửi lệnh phát lúc ${fmtHM(m.schedAt)}.` : m.schedAt ? 'Giờ hẹn đã qua, sau khi xác nhận lệnh phát được gửi ngay xuống mạng.' : 'Sau khi xác nhận, lệnh phát được gửi ngay xuống mạng.'}</div>`,
+      () => { if (m.schedAt && m.schedAt > now()){ m.status = 'scheduled'; m.approvedBy = me.id; m.approverUnit = me.unit; m.approvedAt = now(); m.updatedAt = now(); m.history.push({at:now(), by:me.id, act:'Duyệt (OTP hợp lệ)', note:`Chờ phát lúc ${fmtHM(m.schedAt)}`}); log('Phê duyệt','Duyệt bản tin hẹn giờ (OTP hợp lệ)', `${m.code} – ${fmtHM(m.schedAt)}`, 'Quan trọng'); save(); toast(`Đã duyệt. ${m.code} sẽ phát lúc ${fmtHM(m.schedAt)}.`, 'ok'); return render(); }
+        broadcast(m, me); m.updatedAt = now(); log('Phê duyệt','Duyệt bản tin (OTP hợp lệ)', m.code, 'Quan trọng'); save(); toast(`Đã duyệt. ${m.code} đang phát tới ${nf(m.cells.length)} cell.`, 'ok'); render(); }); },
   reject(el){ const m = S.messages.find(x => x.id===el.dataset.id);
     reasonModal(`Từ chối bản tin ${m.code}`, 'Lý do từ chối (gửi cho Người soạn thảo)', 'Từ chối', 'dangerfill', r => { m.status='rejected'; m.rejectReason=r; m.rejectedBy=me.id; m.rejectedAt=now(); m.updatedAt=now(); m.history.push({at:now(), by:me.id, act:'Từ chối', note:r}); log('Phê duyệt','Từ chối bản tin', m.code, 'Quan trọng'); save(); toast('Đã từ chối và trả về Người soạn thảo.'); render(); }); },
   updateMsg(el){ const m = S.messages.find(x => x.id===el.dataset.id);
@@ -1771,7 +1785,7 @@ document.addEventListener('input', ev => {
   const t = ev.target;
   if (t.id === 'cellQ'){ window.__cellQ = t.value; repCellRefresh(); return; }
   if (!F || route().name !== 'compose') return;
-  if (t.dataset.f && ['campaign','docNo','header','body','repetition','duration','tq'].includes(t.dataset.f)){
+  if (t.dataset.f && ['campaign','docNo','header','body','repetition','duration','tq','schedAt'].includes(t.dataset.f)){
     F[t.dataset.f] = t.value; clearErr(t.dataset.f, t);
     if (t.dataset.f === 'body' && F.mode==='template'){ const vb = $('#varBox'), k = vars(F.body).join('|'); if (vb && vb.dataset.k !== k){ vb.dataset.k = k; vb.innerHTML = varBox(); } }
     if (t.dataset.f === 'tq'){ const pos = t.selectionStart; $('#secContent').innerHTML = composeContent(); const n = document.querySelector('[data-f=tq]'); n.focus(); n.setSelectionRange(pos,pos); }
@@ -1804,6 +1818,7 @@ document.addEventListener('change', ev => {
     rd.readAsText(t.files[0]); return;
   }
   if (!F || route().name !== 'compose') return;
+  if (t.dataset.f === 'sendMode'){ F.sendMode = t.value; clearErr('schedAt'); const i = document.querySelector('[data-f=schedAt]'); if (i){ i.style.display = t.value==='schedule' ? '' : 'none'; if (t.value==='schedule') i.focus(); } }
   if (t.dataset.f === 'mode'){ F.mode = t.value; F.errors = {}; $('#errBox').innerHTML = ''; $('#secContent').innerHTML = composeContent(); composeRefresh(); }
   if (t.dataset.f === 'group'){ F.group = t.value; $('#secContent').innerHTML = composeContent(); }
   if (t.dataset.f === 'templateId'){ F.templateId = t.value; const tm = S.templates.find(x => x.id===t.value); if (tm){ F.header = tm.header; F.body = tm.body; F.priority = tm.mi; const ps = document.querySelector('[data-f=priority]'); if (ps) ps.value = tm.mi; } clearErr('templateId'); $('#secContent').innerHTML = composeContent(); composeRefresh(); }
