@@ -413,7 +413,7 @@ function seed(){
   const T = (code, group, header, body, mi=4370) => ({id:code, code, name:header.replace(/[\[\]]/g,''), group, header, body, mi, active:true, createdAt:now()});
     const templates = TEMPLATES_50.map(x => T(...x));
   const settings = {repetition:20, duration:120, priority:4370, maxPages:15, otpTtl:300, otpMaxFail:3, loginOtp:true,
-    approveUpdateStop:false, successThreshold:99, retrySend:3, retryMax:3, simFail:2, logRetentionDays:365, sessionTimeout:30};
+    approveUpdateStop:false, retrySend:3, retryMax:3, simFail:2, logRetentionDays:365, sessionTimeout:30};
   S = {v:1, provinces, xas, cells, users, priorities, templates, settings, messages:[], logs:[], seq:{}, cellsUpdatedAt:now()};
   seedMessages();
   log('Hệ thống','Khởi tạo dữ liệu demo','','Thông tin','SYS');
@@ -552,7 +552,7 @@ function can(act, m){
     case 'cancelAction': return m.pendingAction && m.pendingAction.by === me.id;
     case 'retry': return me.role==='SO' && m.status==='broadcasting' && !roundPending(m) && retryable(m).length > 0;
     case 'rebroadcast': return me.role==='SO' && m.status==='stopped' && !roundPending(m);
-    case 'retryKill': return me.role==='SO' && ['stopped','expired'].includes(m.status) && !roundPending(m) && killRetryable(m).length > 0;
+    case 'retryKill': return me.role==='SO' && m.status==='stopped' && !roundPending(m) && killRetryable(m).length > 0;
     case 'admin': return me.role==='QT';
   }
   return false;
@@ -618,9 +618,12 @@ function rebroadcast(m, by, reason){
   m.history.push({at:r.at, by:'SYS', act:'Gửi lệnh phát lại (Write-Replace Warning Request) tới MME', note:`${m.cells.length} cell · Serial ${m.serial}`});
   log('Phát tin','Phát lại bản tin sau khi dừng', `${m.code} – Serial ${m.serial}`, 'Quan trọng');
 }
-function endBroadcast(m, type, by, note){
+function closePending(m){
   m.cells.forEach(c => { if (m.results[c]==='pending') m.results[c]='fail'; });
   (m.rounds||[]).forEach(r => Object.keys(r.res).forEach(c => { if (r.res[c]==='pending') r.res[c]='fail'; }));
+}
+function endBroadcast(m, type, by, note){
+  closePending(m);
   sendRound(m, type, m.cells.filter(c => m.results[c]==='ok'), by, note); finalizeCounts(m);
 }
 function applyStop(m, a, approver){
@@ -637,9 +640,9 @@ function tick(){
     if (m.status==='scheduled' && t >= m.schedAt){ broadcast(m, U(m.approvedBy)); log('Phát tin','Đến giờ hẹn – gửi lệnh phát', m.code, 'Quan trọng', 'SYS'); changed = true; continue; }
     if (!['broadcasting','stopped','expired'].includes(m.status) || !m.rounds) continue;
     if (m.status==='broadcasting' && t >= m.endAt){
-      m.status = 'expired'; m.endedAt = m.endAt; m.pendingAction = null; endBroadcast(m, 'expire', 'SYS', '');
-      m.history.push({at:m.endAt, by:'SYS', act:'Hết thời hạn phát – tự gửi lệnh dừng (Kill Request)'});
-      log('Phát tin','Tự dừng khi hết thời hạn', m.code, 'Thông tin', 'SYS'); changed = true; continue;
+      m.status = 'expired'; m.endedAt = m.endAt; m.pendingAction = null; closePending(m); finalizeCounts(m);
+      m.history.push({at:m.endAt, by:'SYS', act:'Hết thời hạn phát – mạng VNPT Net tự dừng phát'});
+      log('Phát tin','Hết thời hạn phát', m.code, 'Thông tin', 'SYS'); changed = true; continue;
     }
     for (const r of m.rounds || []){
       if (t < r.at) continue;
@@ -656,7 +659,6 @@ function tick(){
           changed = true; continue;
         }
         m.history.push({at:t, by:'SYS', act:`Nhận đủ kết quả lượt gửi #${r.no} (${RTYPE[r.type].toLowerCase()})`, note:`${ok}/${r.cells.length} cell thành công · tổng ${s.ok}/${s.total} (${s.rate.toFixed(2)}%)`});
-        if (s.rate < S.settings.successThreshold) log('Phát tin','Tỷ lệ phát thành công dưới ngưỡng', `${m.code} – ${s.rate.toFixed(2)}%`, 'Cảnh báo', 'SYS');
       }
       changed = true;
     }
@@ -683,7 +685,7 @@ function migrate(){
       d.status='expired'; d.submittedAt=t0+60e3; d.approvedBy='U3'; d.approverUnit='VNPT-VinaPhone'; d.approvedAt=t0+150e3;
       d.sentAt=d.approvedAt+700; d.startAt=d.sentAt; d.endAt=d.startAt+60*60e3; d.endedAt=d.endAt; d.cells=cellsOf(d.areas);
       const rr = rng(11); d.results={}; d.cells.forEach(c => d.results[c] = rr() < 0.995 ? 'ok':'fail'); d.doneAt=d.sentAt+1600; d.serial=serial(d);
-      d.history.push({at:d.submittedAt,by:'U1',act:'Gửi duyệt'},{at:d.approvedAt,by:'U3',act:'Duyệt (OTP hợp lệ)'},{at:d.sentAt,by:'SYS',act:'Gửi lệnh phát tới MME',note:`${d.cells.length} cell`},{at:d.endAt,by:'SYS',act:'Hết thời hạn phát – tự gửi lệnh dừng'});
+      d.history.push({at:d.submittedAt,by:'U1',act:'Gửi duyệt'},{at:d.approvedAt,by:'U3',act:'Duyệt (OTP hợp lệ)'},{at:d.sentAt,by:'SYS',act:'Gửi lệnh phát tới MME',note:`${d.cells.length} cell`},{at:d.endAt,by:'SYS',act:'Hết thời hạn phát – mạng VNPT Net tự dừng phát'});
       S.messages.push(d);
     }
   }
@@ -694,14 +696,21 @@ function migrate(){
     if (!m.sentAt || m.rounds) return;
     m.rounds = [{no:1, type:'initial', at:m.sentAt, by:'SYS', serial:m.serial, cells:[...m.cells], res:{...m.results}, doneAt:m.doneAt, note:''}];
     m.cinfo = {}; m.cells.forEach(c => m.cinfo[c] = {sends:1, lastAt:m.sentAt, okAt: m.results[c]==='ok' ? m.sentAt+1000 : null, retries:0, count:null});
-    if (m.endedAt){ const kc = m.cells.filter(c => m.results[c]==='ok'); m.kres = {}; const res = {}; kc.forEach(c => { res[c] = 'ok'; m.kres[c] = 'ok'; });
-      m.rounds.push({no:2, type: m.status==='stopped'?'kill':'expire', at:m.endedAt, by:'SYS', serial:m.serial, cells:kc, res, doneAt:m.endedAt+1400, note:m.stopReason||''}); finalizeCounts(m); }
+    if (m.endedAt && m.status==='stopped'){ const kc = m.cells.filter(c => m.results[c]==='ok'); m.kres = {}; const res = {}; kc.forEach(c => { res[c] = 'ok'; m.kres[c] = 'ok'; });
+      m.rounds.push({no:2, type:'kill', at:m.endedAt, by:'SYS', serial:m.serial, cells:kc, res, doneAt:m.endedAt+1400, note:m.stopReason||''}); finalizeCounts(m); }
   });
+}
+function migrateMap3(){
+  S.messages.forEach(m => {
+    if (m.rounds && m.rounds.some(r => r.type==='expire')){ m.rounds = m.rounds.filter(r => r.type!=='expire'); m.rounds.forEach((r,i) => r.no = i+1); if (m.status==='expired') m.kres = {}; m.cells.forEach(c => { const ci = (m.cinfo||{})[c]; if (ci && ci.kills) ci.kills = 0; }); }
+    m.history.forEach(h => { if (/^Hết thời hạn phát – tự gửi lệnh dừng/.test(h.act)) h.act = 'Hết thời hạn phát – mạng VNPT Net tự dừng phát'; });
+  });
+  delete S.settings.successThreshold;
 }
 function liveRefresh(){
   if (!me || $('#modal').innerHTML) return;
   const a = document.activeElement; if (a && ['INPUT','TEXTAREA','SELECT'].includes(a.tagName) && a.type !== 'checkbox') return;
-  const r = route(); if (['dashboard','msg','reports','messages','approvals'].includes(r.name)) render();
+  const r = route(); if (['messages','approvals'].includes(r.name)) render();
   else renderNavCounts();
 }
 
@@ -836,7 +845,7 @@ function viewDashboard(){
   <div class="kpis">${kpi(live.length,'Bản tin đang phát','#/messages?st=broadcasting')}${kpi(pend.length,'Bản tin chờ duyệt', '#/messages?st=pending')}
     ${kpi(mine.length,'Nháp / bị từ chối của tôi','#/messages?mine=1')}${kpi(d24.length,'Kết thúc trong 24 giờ','#/reports')}</div>
   ${pend.length && isRole('PD') ? `<div class="alert warn">Có <b>${pendingCount()}</b> yêu cầu đang chờ bạn phê duyệt. <a href="#/messages?st=pending">Xem ngay</a></div>`:''}
-  <div class="card mb"><div class="hd"><h2>Bản tin đang phát</h2></div>
+  <div class="card mb"><div class="hd"><h2>Bản tin đang phát</h2><div class="sp"></div><span class="small muted">Cập nhật lúc ${fmt(t)}</span><button class="btn sm" data-act="refresh">Làm mới</button></div>
   ${live.length ? `<table class="t"><thead><tr><th>Mã</th><th>Chiến dịch / tiêu đề</th><th>Vùng phát</th><th style="width:220px">Kết quả phát</th><th>Còn lại</th></tr></thead><tbody>
     ${live.map(m => { const s = resStats(m); return `<tr class="click" data-act="open" data-id="${m.id}"><td class="mono">${m.code}</td><td><b>${esc(m.campaign)}</b><div class="small muted">${esc(m.header||'')}</div>${m.pendingAction?`<span class="badge b-pending">Có yêu cầu ${m.pendingAction.type==='update'?'cập nhật':'dừng'} chờ duyệt</span>`:''}</td>
       <td class="small">${esc(areaText(m.areas,2))}</td><td>${progBar(s)}<div class="small muted">${s.ok}/${s.total} cell thành công · ${s.rate.toFixed(1)}%</div></td><td class="small">${left(m.endAt-t)}</td></tr>`; }).join('')}
@@ -1019,7 +1028,7 @@ function areaSoftRefresh(){
 function areaResult(){
   if (!F.areas.length) return F.errors.areas ? `<div class="ferr">${esc(F.errors.areas)}</div>` : '';
   const s = areaStats(F.areas);
-  return `${s.cells ? `<div class="alert ok" style="margin:0 0 8px"><b>${nf(s.enbs)} trạm · ${nf(s.cells)} cell</b> thuộc vùng · ước tính ${nf(s.subs)} thuê bao<div class="small">Xác định từ dữ liệu Xã → Cell trong ${s.ms < 1 ? 'dưới 1' : Math.round(s.ms)} ms (yêu cầu &lt; 3 giây).</div></div>`
+  return `${s.cells ? `<div class="alert ok" style="margin:0 0 8px"><b>${nf(s.enbs)} trạm · ${nf(s.cells)} cell</b> thuộc vùng<div class="small">Xác định từ dữ liệu Xã → Cell trong ${s.ms < 1 ? 'dưới 1' : Math.round(s.ms)} ms (yêu cầu &lt; 3 giây).</div></div>`
     : `<div class="alert err" style="margin:0 0 8px">Không xác định được cell nào trong vùng đã chọn. Chọn lại vùng phát.</div>`}
     ${s.empty.length ? `<div class="alert warn" style="margin:0">Chưa có dữ liệu cell: ${s.empty.map(a=>esc(XA(a).name)).join(', ')}. Các xã này sẽ không được phát.</div>`:''}`;
 }
@@ -1134,7 +1143,7 @@ function viewMsg(r){
     </div></div>
     <div class="card mb"><div class="hd"><h2>Vùng phát</h2><span class="small muted">${m.areas.length} xã/phường</span></div><div class="bd">
       ${m.areas.map(a => `<span class="chip" style="padding-right:10px">${esc(XA(a).name)}, ${esc(PROV(XA(a).provinceId).name)}</span>`).join('')}
-      ${(()=>{ const as = areaStats(m.areas); const n = m.cells.length || as.cells; return `<div class="small muted" style="margin-top:8px">${nf(as.enbs)} trạm · ${nf(n)} cell · ước tính ${nf(m.cells.length?subsOf(m):as.subs)} thuê bao trong vùng</div>`; })()}
+      ${(()=>{ const as = areaStats(m.areas); const n = m.cells.length || as.cells; return `<div class="small muted" style="margin-top:8px">${nf(as.enbs)} trạm · ${nf(n)} cell trong vùng</div>`; })()}
     </div></div>
     ${m.sentAt ? resultCard(m, s) : ''}
     ${m.versions.length ? `<div class="card mb"><div class="hd"><h2>Các phiên bản nội dung</h2></div><div class="bd">${m.versions.slice().reverse().map(v => `<div class="small muted">Lần cập nhật ${v.updateNo} · thay thế lúc ${fmt(v.at)}</div><pre style="white-space:pre-wrap;margin:4px 0 12px;font:inherit;background:#f7f8fa;padding:8px;border-radius:6px">${esc(v.body)}</pre>`).join('')}</div></div>`:''}
@@ -1150,6 +1159,7 @@ function resultCard(m, s){
   const subsIn = cs => S.cells.filter(c => cs.includes(c.id)).reduce((a,c) => a + c.subs, 0);
   const rounds = m.rounds || [];
   const stateTxt = live ? `<b>${nf(okCells.length)}/${nf(s.total)} cell đang phát</b>${s.pending?` · ${nf(s.pending)} cell chờ phản hồi`:''}${s.fail?` · <span style="color:var(--err)">${nf(s.fail)} cell lỗi</span>`:''}`
+    : m.status==='expired' ? `<b>Đã kết thúc</b> · hết thời hạn phát, mạng VNPT Net tự dừng phát (CBC không gửi lệnh huỷ)`
     : `<b>Đã kết thúc</b> · ${nf(m.cells.filter(c => (m.kres||{})[c]==='ok').length)} cell dừng thành công${kfail.length?` · <span style="color:var(--err)">${nf(kfail.length)} cell huỷ lỗi (có thể vẫn đang phát)</span>`:''}`;
   const cmd = r => {
     const v = Object.values(r.res), ok = v.filter(x => x==='ok').length, fl = v.filter(x => x==='fail').length, pd = v.filter(x => x==='pending').length, k = isKill(r.type);
@@ -1160,9 +1170,9 @@ function resultCard(m, s){
       <div class="small" style="margin:4px 0 6px">${r.note?`Lý do: ${esc(r.note)} · `:''}${k ? (r.type==='killretry' ? `Gửi lại tới ${nf(r.cells.length)} cell chưa huỷ được` : `Gửi tới ${nf(r.cells.length)} cell đang phát`) : `Gửi tới ${nf(r.cells.length)} cell · ${serialTxt}`}</div>
       ${progBar({total:r.cells.length, ok, fail:fl, pending:pd})}
       <div class="small" style="margin-top:6px"><b style="color:var(--ok)">${nf(ok)}</b> ${okTxt}${fl?` · <b style="color:var(--err)">${nf(fl)}</b> cell lỗi`:''}${pd?` · ${nf(pd)} cell chờ phản hồi`:''}
-        ${r.doneAt?` · hoàn thành sau ${((r.doneAt-r.at)/1000).toFixed(1)} giây`:''}${!k && ok ? ` · ước tính ${nf(subsIn(r.cells.filter(c => r.res[c]==='ok')))} thiết bị trong vùng phủ các cell này` : ''}</div></div>`;
+        ${r.doneAt?` · hoàn thành sau ${((r.doneAt-r.at)/1000).toFixed(1)} giây`:''}</div></div>`;
   };
-  return `<div class="card mb"><div class="hd"><h2>Lệnh gửi tới mạng và kết quả theo cell</h2></div><div class="bd">
+  return `<div class="card mb"><div class="hd"><h2>Lệnh gửi tới mạng và kết quả theo cell</h2><div class="sp"></div><span class="small muted">Cập nhật lúc ${fmt(now())}</span><button class="btn sm" data-act="refresh">Làm mới</button></div><div class="bd">
     <div class="howto small">CBC gửi <b>một lệnh</b> xuống mạng; sau đó trạm <b>tự phát lặp lại mỗi ${m.repetition} giây</b> trong suốt thời hạn ${dur(m.duration)} (khoảng ${nf(per)} lần mỗi cell), không cần CBC gửi thêm. Mạng chỉ trả kết quả thành công/lỗi cho <b>từng lệnh</b>, không trả kết quả cho từng lần lặp. Mỗi lần phát lại, cập nhật hay huỷ là một lệnh mới, được liệt kê bên dưới theo thứ tự.</div>
     <div class="row" style="margin:12px 0"><div>${stateTxt}</div><div class="sp"></div>
       ${okCells.length ? `<span class="small muted">${live?'Đến giờ':'Tổng cộng'} mỗi cell đã phát trên sóng khoảng <b>${nf(done1)}</b>/${nf(per)} lần${live?` · còn ${left(m.endAt-t)}`:''}</span>` : ''}</div>
@@ -1180,30 +1190,15 @@ function resultCard(m, s){
           <td class="num small">${n==null?'–':(ci.count!=null?nf(n):'~'+nf(n))}</td>
           <td style="text-align:right">${canOne?`<button class="btn sm" data-act="retryCell" data-id="${m.id}" data-c="${c}">Thử lại</button>`:''}</td></tr>`; }).join('')}
       </tbody></table></div>
-      <div class="small muted" style="margin-top:6px">"Số lần đã phát trên sóng": khi đang phát là số ước tính theo chu kỳ ${m.repetition} giây (dấu ~); khi đã dừng là số mạng trả về trong kết quả lệnh huỷ.</div></details>
+      <div class="small muted" style="margin-top:6px">"Số lần đã phát trên sóng": khi đang phát là số ước tính theo chu kỳ ${m.repetition} giây (dấu ~); khi dừng thủ công là số mạng trả về trong kết quả lệnh huỷ; khi hết thời hạn là số tính theo thời hạn phát.</div></details>
   </div></div>`;
 }
 
 /* =========================================================================
-   DASHBOARD CHIẾN DỊCH (Màn hình 4 + mục báo cáo 1–2 của tài liệu yêu cầu)
-   Hạ tầng: số liệu từ phản hồi của MME. Thuê bao/tương tác: chỉ có khi có nguồn ngoài CBC
-   (VNPT Net, dịch vụ rút gọn link) – trong demo là số giả lập, ghi rõ trên giao diện.
+   BÁO CÁO CHIẾN DỊCH: số liệu hạ tầng từ phản hồi của MME (URD 3.2)
    ========================================================================= */
 const linkOf = m => { const x = fullText(m).match(/https?:\/\/[^\s]+/i); return x ? x[0].replace(/[.,;:)]+$/,'') : null; };
 const hm = t => { const d = new Date(t); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
-function simEngage(m){
-  const r = rng(parseInt(m.code.replace(/\D/g,''), 10) || 1), reach = subsOf(m);
-  const end = Math.min(now(), m.endedAt || m.endAt), el = Math.max(0, (end - m.startAt)/60000);
-  const ctr = 0.15 + r()*0.1, tau = 6 + r()*6;
-  const cum = t => Math.round(reach * ctr * (1 - Math.exp(-t/tau)));
-  const step = m.duration <= 60 ? 5 : 15, buckets = [];
-  for (let a = 0; a < el; a += step){
-    const b = Math.min(a + step, el);
-    if (buckets.length === 7){ buckets.push({from:m.startAt + a*60e3, to:end, n: cum(el) - cum(a), rest:true}); break; }
-    buckets.push({from:m.startAt + a*60e3, to:m.startAt + b*60e3, n: cum(b) - cum(a)});
-  }
-  return {reach, clicks:cum(el), buckets, calls:Math.round(reach*0.0004*(1 - Math.exp(-el/20))), base:Math.round(reach*0.000004*el)};
-}
 
 /* =========================================================================
    CHỜ PHÊ DUYỆT (YC009)
@@ -1270,7 +1265,7 @@ function viewReports(){
   return m ? viewReport(m) : viewReportList();
 }
 function viewReportList(){
-  const list = reportRows(), thr = S.settings.successThreshold, f = repFilter;
+  const list = reportRows(), f = repFilter;
   return `<div class="ph"><h1>Báo cáo chiến dịch</h1><span class="sub">${list.length} chiến dịch đã phát</span></div>
   <div class="card"><div class="bd" style="padding-bottom:0"><form novalidate class="filters" data-form="repFilter">
     <div style="flex:2;min-width:220px"><label class="f">Tìm kiếm</label><input type="text" name="q" value="${esc(f.q)}" placeholder="Mã, tên chiến dịch, số văn bản, tiêu đề"></div>
@@ -1281,27 +1276,24 @@ function viewReportList(){
   ${list.length ? `<div style="overflow:auto"><table class="t"><thead><tr><th>STT</th><th>Mã</th><th>Tên chiến dịch</th><th>Khởi tạo</th><th>Vùng phát</th><th class="num">Trạm thành công</th><th class="num">Cell thành công</th><th class="num">Tỷ lệ kích hoạt</th><th>Trạng thái</th></tr></thead><tbody>
   ${list.map((x,i) => { const d = repData(x), st = d.s;
     return `<tr class="click" data-act="repPick" data-id="${x.id}"><td class="num small">${i+1}</td><td class="mono small">${x.code}</td><td><b>${esc(x.campaign)}</b><div class="small muted">${esc(x.docNo)}</div></td><td class="small">${fmt(x.createdAt)}</td><td class="small">${esc(areaText(x.areas,2))}</td>
-    <td class="num small">${nf(d.enbOk)}/${nf(d.enbAll)}</td><td class="num small">${nf(st.ok)}/${nf(st.total)}</td><td class="num"><b style="color:${st.pending?'inherit':(st.rate>=thr?'var(--ok)':'var(--err)')}">${pct(st.rate)}</b></td><td>${badge(x.status)}</td></tr>`; }).join('')}
+    <td class="num small">${nf(d.enbOk)}/${nf(d.enbAll)}</td><td class="num small">${nf(st.ok)}/${nf(st.total)}</td><td class="num"><b>${pct(st.rate)}</b></td><td>${badge(x.status)}</td></tr>`; }).join('')}
   </tbody></table></div>` : `<div class="empty">Không có chiến dịch phù hợp.</div>`}</div>`;
 }
 function viewReport(m){
-  const thr = S.settings.successThreshold, live = m.status==='broadcasting', d = repData(m), s = d.s;
+  const live = m.status==='broadcasting', d = repData(m), s = d.s;
   window.__repId = m.id;
   const w = v => s.total ? v/s.total*100 : 0, r0 = (m.rounds||[])[0];
-  const low = !s.pending && s.rate < thr;
   const tile = (l, v, sub, color) => `<div class="tile"><div class="l">${l}</div><div class="v ${color||''}">${v}</div><div class="s">${sub}</div></div>`;
   const kv = (k, v) => `<div><div class="k">${k}</div><div class="v">${esc(v)}</div></div>`, kvh = (k, v) => `<div><div class="k">${k}</div><div class="v">${v}</div></div>`;
   const cr = repCellRows(m);
-  const lk = linkOf(m), e = simEngage(m), mx = Math.max(1, ...e.buckets.map(b => b.n)), ctr = e.reach ? (e.clicks/e.reach*100).toFixed(2).replace('.', ',') : '0,00';
   const pill = (t, c) => `<span class="pill ${c}">${t}</span>`;
   const tileP = (l, v, sub, color, pl) => `<div class="tile"><div class="l">${l}${pl||''}</div><div class="v ${color||''}">${v}</div><div class="s">${sub}</div></div>`;
   return `<div class="ph"><a href="#/reports" class="btn sm">← Danh sách</a><h1>${esc(m.campaign)}</h1>${badge(m.status)}<div class="sp"></div>
     <a class="btn" href="#/messages/${m.id}">Xem bản tin</a><button class="btn pri" data-act="exportOne" data-id="${m.id}">Xuất báo cáo</button></div>
-  <div class="small muted" style="margin:-6px 0 12px">${live ? '● Đang phát, số liệu tự cập nhật khi có phản hồi mới từ mạng.' : 'Số liệu chốt lúc kết thúc phát'} · Cập nhật lúc ${fmt(Math.min(now(), m.endedAt||m.endAt))}</div>
-  ${low ? `<div class="alert err row"><div><b>Tỷ lệ cell phát thành công ${pct(s.rate)}, dưới ngưỡng ${thr}%.</b> Có ${nf(s.fail)} cell lỗi.</div><div class="sp"></div><button class="btn sm" data-act="repShowFail">Xem cell lỗi</button></div>` : ''}
+  <div class="row small muted" style="margin:-6px 0 12px">${live ? 'Số liệu tại thời điểm mở báo cáo, bấm Làm mới để xem phản hồi mới' : 'Số liệu chốt lúc kết thúc phát'} · Cập nhật lúc ${fmt(live ? now() : (m.endedAt||m.endAt))}${live ? ' <button class="btn sm" data-act="refresh">Làm mới</button>' : ''}</div>
   <div class="sec-h"><h2>01 · Tổng quan chiến dịch</h2><div class="sub">Thông tin lệnh phát và kết quả phản hồi theo cell/trạm.</div></div>
   <div class="tiles t3">
-    ${tile('Tỷ lệ kích hoạt trạm', pct(s.rate), `Cell thành công / cell chỉ định · ngưỡng ${thr}%`, s.pending ? 'c-pri' : (s.rate>=thr ? 'c-ok' : 'c-err'))}
+    ${tile('Tỷ lệ kích hoạt trạm', pct(s.rate), 'Cell thành công / cell chỉ định', 'c-pri')}
     ${tile('Cell phát thành công', `${nf(s.ok)}/${nf(s.total)}`, `${nf(s.fail)} lỗi · ${nf(s.pending)} chờ phản hồi`)}
     ${tile('Trạm phát thành công', `${nf(d.enbOk)}/${nf(d.enbAll)}`, 'Trạm có ít nhất 1 cell phát thành công')}
   </div>
@@ -1317,39 +1309,18 @@ function viewReport(m){
       <select id="cellSt" style="width:auto"><option value="">Tất cả trạng thái</option>${[['ok','Thành công'],['fail','Lỗi'],['pending','Chờ phản hồi']].map(([v,t]) => `<option value="${v}" ${window.__cellSt===v?'selected':''}>${t}</option>`).join('')}</select>
       <input type="text" id="cellQ" autocomplete="off" placeholder="Tìm Cell ID, trạm, xã…" value="${esc(window.__cellQ||'')}" style="width:220px"></div>
     <div style="max-height:400px;overflow:auto"><table class="t"><thead><tr><th class="num">STT</th><th>Cell ID</th><th>Trạm (eNodeB)</th><th>Xã/Phường</th><th>Thời điểm phản hồi</th><th>Trạng thái</th></tr></thead><tbody id="cellTb">${cr.rows}</tbody></table></div></div>
-  <div class="sec-h"><h2>02 · Tiếp cận và tương tác</h2><div class="sub">Các chỉ số này cần nguồn đo riêng ngoài CBC; phân biệt số ước tính với số thực sự quan sát được.</div></div>
-  <div class="tiles">
-    ${tileP('Thuê bao hiện diện ước tính', nf(e.reach), `Đang bám cell lúc phát (${fmt(m.startAt).slice(0,16)}); không phải số đã nhận tin.`, 'c-pri', pill('VNPT Net','p-net'))}
-    ${tileP('Lượt click link', lk ? nf(e.clicks) : 'Không có link', lk ? 'Lượt mở link rút gọn; có thể lặp hoặc từ người được chia sẻ.' : 'Bản tin không chứa link nên không có số click.', lk ? '' : 'na', pill('Link rút gọn VNPT','p-ext'))}
-    ${tileP('Tỷ lệ click tham chiếu (CTR)', lk ? ctr + '%' : '–', 'Lượt click / thuê bao hiện diện ước tính; không phải tỷ lệ người nhận đã click.', lk ? '' : 'na', pill('Ước tính','p-net'))}
-    ${tileP('Cuộc gọi 112 / 114', nf(e.calls), `Từ vùng phát sau thời điểm phát · cùng khung giờ ngày thường: ${nf(e.base)}`, '', pill('VNPT Net','p-net'))}
-  </div>
-  <div style="margin-top:14px">
-    <div class="card"><div class="bd"><div class="row"><div><h2>Link trong bản tin</h2><div class="small muted">Chỉ có số liệu khi bản tin chứa link rút gọn được theo dõi</div></div><div class="sp"></div>${pill('Ngoài CBC','p-ext')}</div>
-      ${lk ? `<div class="kv2">${kvh('Mẫu bản tin', m.mode==='template' ? esc(m.templateId) : 'Soạn tự do')}${kvh('Link', `<span class="mono" style="font-weight:600">${esc(lk)}</span>`)}${kvh('Lượt click', nf(e.clicks))}${kvh('Nguồn', 'Dịch vụ rút gọn link của VNPT')}</div>
-        <div class="formula"><b>CTR tham chiếu = ${nf(e.clicks)} / ${nf(e.reach)} = ${ctr}%.</b> Đây là tỷ lệ lượt click trên số thuê bao hiện diện ước tính. Link được chia sẻ hoặc một người bấm nhiều lần vẫn làm tăng tử số.</div>
-        <div class="small" style="margin:14px 0 6px"><b>Phân bổ click theo thời gian</b></div>
-        ${e.buckets.length ? e.buckets.map(b => `<div class="hb"><span class="mono">${hm(b.from)}–${hm(b.to)}${b.rest?' (còn lại)':''}</span><span class="bar"><i style="width:${b.n/mx*100}%"></i></span><span>${nf(b.n)} <span class="muted">(${e.clicks?Math.round(b.n/e.clicks*100):0}%)</span></span></div>`).join('') : '<div class="small muted">Chưa có lượt click.</div>'}`
-      : `<div class="empty">Bản tin không chứa link nên không có số liệu click.</div>`}</div></div>
-
-  </div>`;
+`;
 }
 function csv(rows){ return '﻿' + rows.map(r => r.map(v => `"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\r\n'); }
 function download(name, content){
   const b = new Blob([content], {type:'text/csv;charset=utf-8'}); const a = document.createElement('a');
   a.href = URL.createObjectURL(b); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
 }
-function engageRows(m){
-  const e = simEngage(m), lk = linkOf(m), ctr = e.reach ? (e.clicks/e.reach*100).toFixed(2).replace('.', ',') : '';
-  return [['Chỉ số','Giá trị','Nguồn'],['Thuê bao hiện diện ước tính', e.reach, 'VNPT Net (ước tính)'],['Link trong bản tin', lk || 'Không có link', ''],['Lượt click link', lk ? e.clicks : '', 'Link rút gọn VNPT'],['CTR tham chiếu (%)', lk ? ctr : '', 'Ước tính'],
-    ['Cuộc gọi 112/114 từ vùng phát sau thời điểm phát', e.calls, 'VNPT Net']];
-}
 function exportOne(m){
   const d = repData(m), s = d.s;
   const rows = [['BÁO CÁO CHIẾN DỊCH'], [], ['THÔNG TIN CHIẾN DỊCH'], ...d.info, [],
     ['KẾT QUẢ KÍCH HOẠT'], ['Tỷ lệ kích hoạt trạm (%)', s.rate.toFixed(2).replace('.', ',')], ['Cell phát thành công / chỉ định', `${s.ok}/${s.total}`], ['Cell lỗi', s.fail], ['Cell chờ phản hồi', s.pending],
     ['Trạm phát thành công / tổng', `${d.enbOk}/${d.enbAll}`], [],
-    ['TIẾP CẬN VÀ TƯƠNG TÁC'], ...engageRows(m), [],
     ['DANH SÁCH CELL ID'], ['STT','Cell ID','Trạm (eNodeB)','Xã/Phường','Thời điểm phản hồi','Trạng thái']];
   m.cells.forEach((c,i) => { const cc = S.cells.find(x=>x.id===c)||{}, ci = (m.cinfo||{})[c]||{}, at = ci.respAt || ci.okAt || (m.results[c]==='fail' ? ci.lastAt : null);
     rows.push([i+1, c, cc.enb, (XA(cc.xaId)||{}).name, at && m.results[c]!=='pending' ? fmt(at) : '', repCellState(m, c)[0]]); });
@@ -1419,15 +1390,21 @@ function tplSave(id){
 /* =========================================================================
    DANH MỤC (YC027–YC029)
    ========================================================================= */
+function areaListHtml(){
+  const k = noAccent((window.__areaQ||'').trim().toLowerCase()), hit = x => !k || noAccent(`${x.code} ${x.name}`.toLowerCase()).includes(k);
+  const out = S.provinces.map(p => { const pHit = hit(p), xs = S.xas.filter(x => x.provinceId===p.id && (pHit || hit(x))); if (!pHit && !xs.length) return '';
+    return `<div class="card mb"><div class="hd"><h2>${esc(p.name)}</h2><span class="small muted">Mã hành chính <span class="mono">${esc(p.code)}</span> · ${xs.length} xã</span></div>
+      <table class="t"><thead><tr><th>STT</th><th>Mã hành chính</th><th>Tên xã</th></tr></thead><tbody>${xs.map((x,i) => `<tr><td>${i+1}</td><td class="mono small">${esc(x.code)}</td><td>${esc(x.name)}</td></tr>`).join('') || '<tr><td colspan="3" class="muted small">Chưa có xã.</td></tr>'}</tbody></table></div>`; }).join('');
+  return out || '<div class="empty">Không có Tỉnh/Xã phù hợp.</div>';
+}
 function viewCatalog(r){
   const tab = r.tab;
   const title = {priorities:'Mức độ ưu tiên (bảng CMAS)', areas:'Danh mục Tỉnh/Xã', cells:'Dữ liệu ánh xạ Xã – Cell ID'}[tab] || '';
   let body = '';
   if (tab==='areas'){
-    body = `<div class="row mb"><div class="small muted" style="flex:1">Phân cấp 2 cấp Tỉnh – Xã theo mã hành chính. Dữ liệu trong demo là dữ liệu mẫu.</div><button class="btn" data-act="provEdit">+ Thêm tỉnh</button><button class="btn" data-act="xaBulk">+ Thêm xã</button></div>
-    <div class="card mb"><div class="bd"><div class="row"><div><b>Nhập danh mục từ file</b><div class="small muted">File Excel (.xlsx) hoặc CSV gồm các cột: <span class="mono">ma_tinh, ten_tinh, ma_xa, ten_xa</span>. Tỉnh/xã chưa có sẽ được thêm, đã có (trùng mã) sẽ được cập nhật tên.</div></div><div class="sp"></div><button class="btn" data-act="areaTemplate">Tải file mẫu</button><label class="btn pri" style="margin:0">Chọn file…<input type="file" accept=".xlsx,.xls,.csv" id="areaFile" hidden></label></div><div id="areaImportRes"></div></div></div>
-    ${S.provinces.map(p => { const xs = S.xas.filter(x => x.provinceId===p.id); return `<div class="card mb"><div class="hd"><h2>${esc(p.name)}</h2><span class="small muted">Mã hành chính <span class="mono">${esc(p.code)}</span> · ${xs.length} xã</span><div class="sp"></div><button class="btn sm" data-act="xaBulk" data-p="${p.id}">+ Thêm xã</button><button class="btn sm" data-act="provEdit" data-id="${p.id}">Sửa</button><button class="btn sm danger" data-act="provDel" data-id="${p.id}">Xoá</button></div>
-      <table class="t"><thead><tr><th>STT</th><th>Mã hành chính</th><th>Tên xã</th><th></th></tr></thead><tbody>${xs.map((x,i) => `<tr><td>${i+1}</td><td class="mono small">${esc(x.code)}</td><td>${esc(x.name)}</td><td class="row" style="flex-wrap:nowrap;justify-content:flex-end"><button class="btn sm" data-act="xaEdit" data-id="${x.id}">Sửa</button><button class="btn sm danger" data-act="xaDel" data-id="${x.id}">Xoá</button></td></tr>`).join('') || '<tr><td colspan="4" class="muted small">Chưa có xã.</td></tr>'}</tbody></table></div>`; }).join('')}`;
+    body = `<div class="small muted mb">Phân cấp 2 cấp Tỉnh – Xã theo mã hành chính. Chỉ tra cứu, không thêm, sửa, xoá trên CBC. <span style="color:#c05000;font-style:italic">[Cần xác nhận] nguồn dữ liệu.</span> Dữ liệu trong demo là dữ liệu mẫu.</div>
+    <div class="card mb"><div class="bd"><div class="row"><input type="text" id="areaQ" autocomplete="off" placeholder="Nhập mã hoặc tên Tỉnh/Xã" value="${esc(window.__areaQ||'')}" style="flex:1;min-width:220px"><button class="btn" data-act="areaClear">Xoá tìm kiếm</button></div></div></div>
+    <div id="areaList">${areaListHtml()}</div>`;
   } else if (tab==='cells'){
     const rows = S.xas.map(x => { const cs = S.cells.filter(c => c.xaId===x.id); return {x, c4:cs.filter(c=>c.tech==='4G').length, c5:cs.filter(c=>c.tech==='5G').length, n:cs.length}; });
     body = `<div class="card mb"><div class="bd"><div class="row"><div><b>Cập nhật dữ liệu ánh xạ từ VNPT Net</b><div class="small muted">File CSV xuất từ CSDL VNPT Net, gồm các cột: <span class="mono">cell_id, enodeb_gnodeb, ma_xa, cong_nghe</span> (cong_nghe = 4G hoặc 5G). Dữ liệu của các xã có trong file sẽ được thay thế.</div>
@@ -1504,7 +1481,6 @@ function viewSettings(){
   <div class="card mb"><div class="hd"><h2>Tham số phát</h2></div><div class="bd grid g3">
     ${fld('repetition','Chu kỳ lặp (giây)','5–300 giây, khuyến nghị 15–20 giây/lần','min=5 max=300')}
     ${fld('duration','Thời hạn phát (phút)','15 phút – 48 giờ (15–2.880 phút)','min=15 max=2880')}
-    ${fld('successThreshold','Ngưỡng tỷ lệ cell phát thành công (%)','Mặc định 99%','min=0 max=100 step=0.1')}
     ${fld('retryMax','Số lần phát lại tối đa cho mỗi cell lỗi','1–5 lần','min=1 max=5')}
     ${fld('otpTtl','Thời hạn OTP (giây)','60–600 giây','min=60 max=600')}</div></div>
   <div class="card mb" style="border-style:dashed"><div class="hd"><h2>Mô phỏng mạng</h2><span class="small muted">chỉ có trong bản demo</span></div><div class="bd grid g3">${fld('simFail','Tỷ lệ cell lỗi giả lập khi phát (%)','0–20%','min=0 max=20 step=0.5')}</div></div>
@@ -1512,7 +1488,7 @@ function viewSettings(){
 }
 function saveSettings(fd){
   const e = [];
-  const rules = {repetition:['Chu kỳ lặp',5,300], duration:['Thời hạn phát',15,2880], successThreshold:['Ngưỡng tỷ lệ thành công',0,100], retryMax:['Số lần phát lại tối đa',1,5], otpTtl:['Thời hạn OTP',60,600], simFail:['Tỷ lệ cell lỗi giả lập',0,20]};
+  const rules = {repetition:['Chu kỳ lặp',5,300], duration:['Thời hạn phát',15,2880], retryMax:['Số lần phát lại tối đa',1,5], otpTtl:['Thời hạn OTP',60,600], simFail:['Tỷ lệ cell lỗi giả lập',0,20]};
   Object.entries(rules).forEach(([k,[l,a,b]]) => { const raw = (fd.get(k)||'').trim(), v = Number(raw); if (raw === '' || !(v>=a && v<=b)) e.push(`${l}: nhập giá trị từ ${nf(a)} đến ${nf(b)}.`); });
   if (e.length){ $('#setErr').innerHTML = `<div class="alert err"><ul>${e.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`; return; }
   const ch = Object.keys(rules).filter(k => S.settings[k] !== Number(fd.get(k))).map(k => `${rules[k][0]}: ${S.settings[k]} → ${Number(fd.get(k))}`);
@@ -1676,6 +1652,8 @@ const A = {
     const r = sendRound(m, 'retry', cells, me.id, one ? `Cell ${one}` : '');
     m.history.push({at:now(), by:me.id, act:'Phát lại cho cell lỗi', note:`${cells.length} cell · giữ nguyên Serial ${m.serial} · lượt gửi #${r.no}`});
     m.updatedAt = now(); log('Phát tin','Phát lại cho cell lỗi', `${m.code} – ${cells.length} cell – Serial ${m.serial}`, 'Quan trọng'); save(); closeModal(); toast(`Đã gửi lại lệnh cho ${cells.length} cell.`, 'ok'); render(); },
+  refresh(){ render(); },
+  areaClear(){ window.__areaQ = ''; render(); },
   repClear(){ repFilter = {q:'', prov:'', st:'', from:'', to:''}; render(); },
   repShowFail(){ window.__cellSt = 'fail'; window.__cellQ = ''; render(); const c = $('#cellCard'); if (c) c.scrollIntoView({behavior:'smooth'}); },
   repPick(el){ window.__cellQ = ''; window.__cellSt = ''; go('#/reports?id=' + el.dataset.id); window.scrollTo(0, 0); },
@@ -1783,6 +1761,7 @@ document.addEventListener('compositionend', ev => ev.target.dispatchEvent(new Ev
 document.addEventListener('input', ev => {
   if (ev.isComposing) return;
   const t = ev.target;
+  if (t.id === 'areaQ'){ window.__areaQ = t.value; $('#areaList').innerHTML = areaListHtml(); return; }
   if (t.id === 'cellQ'){ window.__cellQ = t.value; repCellRefresh(); return; }
   if (!F || route().name !== 'compose') return;
   if (t.dataset.f && ['campaign','docNo','header','body','repetition','duration','tq','schedAt'].includes(t.dataset.f)){
@@ -1839,7 +1818,7 @@ setInterval(() => { if (me && now() - lastAct > S.settings.sessionTimeout*60e3){
 (function init(){
   try{ S = JSON.parse(lsGet(LS_KEY) || 'null'); }catch(e){ S = null; }
   if (!S || S.v !== 1){ seed(); }
-  migrate(); save();
+  migrate(); migrateMap3(); save();
   loadSession(); render();
   setInterval(tick, 500);
 })();
