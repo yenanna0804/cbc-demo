@@ -5,8 +5,8 @@ The UI conventions for the CMS of the Cell Broadcast (CBC) system, phase 1. Ever
 - **Stack:** [shadcn/ui](https://ui.shadcn.com) (Radix UI) + Tailwind CSS v3 + React 18 + TypeScript + lucide-react icons.
 - **Source code:** folder [`ui/`](ui/).
 - **Sample page:** [`ui/index.html`](ui/index.html), online at https://yenanna0804.github.io/cbc-demo/ui/. It renders the real components from `ui/components`.
-- **Basis:** the UI style anna settled on 29/10/2026 for the demo:
-  - Arial font, 12px text, bold labels.
+- **Basis:** the UI style anna settled on 29/10/2026 for the demo, updated 12/11/2026:
+  - System font stack, 14px text, bold labels.
   - Input fields with a 1px light-grey border, very slightly rounded corners and a light-blue border when focused.
   - White background, very light grey title bar, #5879B9 buttons, dark-grey text.
 
@@ -84,24 +84,24 @@ Always use `<StatusBadge status="..." />`. Do not build a status badge by hand.
 
 ## 3. Type, spacing, corners
 
-- **Font:** `Arial, Helvetica, sans-serif` everywhere, including buttons and inputs.
-- **Type scale:** the Tailwind classes are overridden so that `text-sm` = 12px is the default size.
+- **Font:** `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif` everywhere, including buttons and inputs. Each OS uses its own system font (San Francisco on macOS/iOS, Segoe UI on Windows, Roboto on Android); Arial is the fallback.
+- **Type scale:** the Tailwind classes are overridden so that `text-sm` = 14px is the default size.
 
 | Class | Size | Use |
 |---|---|---|
-| `text-xs` | 11.5px | Hints, notes, table headers, small badges |
-| `text-sm` / `text-base` | **12px** | Body text, labels, buttons, inputs |
-| `text-md` | 14px | h2, card and dialog titles |
-| `text-lg` | 16px | h1, page title |
-| `text-xl` | 22px | KPI figures |
-| `text-2xl` | 28px | Large figures |
+| `text-xs` | 12.5px | Hints, notes, badges, menu group headings |
+| `text-sm` / `text-base` | **14px** | Body text, labels, buttons, inputs, table headers |
+| `text-md` | 16px | h2, card and dialog titles |
+| `text-lg` | 20px | h1, page title |
+| `text-xl` | 26px | KPI figures |
+| `text-2xl` | 32px | Large figures |
 
 - **Weights:** labels (`<Label>`), table headers and card titles are **bold**. Input values and body text are regular.
-- **Control height:** inputs, selects and buttons are `h-control` = 28px. Small buttons are `h-control-sm` = 24px.
+- **Control height:** inputs, selects and buttons are `h-control` = 34px. Small buttons are `h-control-sm` = 28px.
 - **Corners:** buttons, inputs and badges use `rounded-md` = 2px. Cards and dialogs use `rounded-lg` = 3px. Do not use large radii.
 - **Shadows:** cards have **no shadow**, only a 1px border. Only dialogs and popovers have a shadow.
 - **Spacing:** card padding is 14px (`p-3.5`), the gap between fields is 12px (`gap-3`), and the gap between label and input is 6px (`gap-1.5`).
-- **Icons:** lucide-react at 14px (`size-3.5`), placed before the button text.
+- **Icons:** lucide-react at 16px (`size-4`), placed before the button text.
 
 ## 4. Components
 
@@ -111,12 +111,12 @@ Always use `<StatusBadge status="..." />`. Do not build a status badge by hand.
 |---|---|
 | `Button` | `variant`:<br>• `default`: primary button, #5879B9<br>• `outline`: secondary button with white background and border<br>• `secondary`<br>• `destructive`: red outline (Dừng, Từ chối)<br>• `destructive-solid`: solid red, for confirming inside a dialog<br>• `success`<br>• `ghost`<br>• `link`<br>`size`: `default`, `sm`, `lg`, `icon`. Supports `asChild` to wrap `<a>`. |
 | `Input`, `Textarea` | 1px grey border. Focus gives a light-blue border with a light halo. `readOnly` gives a grey background. `aria-invalid` gives a red border. |
-| `Label` | Bold, 12px. |
+| `Label` | Bold, 14px. |
 | `Select` | Radix Select. Put the `id` on `SelectTrigger`. |
-| `Checkbox`, `RadioGroup` | 14px, primary colour when checked. |
+| `Checkbox`, `RadioGroup` | 16px, primary colour when checked. |
 | `Card` (+ `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter`) | Very light grey header, buttons in the footer aligned right. |
 | `Badge` | `default`, `neutral`, `success`, `warning`, `destructive`, `info`, `violet`, `slate`, `muted`, `outline`. |
-| `Table` (+ `TableHeader`, `TableBody`, `TableRow`, `TableHead`, `TableCell`) | Light grey header with bold 11.5px text, thin row lines, row hover. |
+| `Table` (+ `TableHeader`, `TableBody`, `TableRow`, `TableHead`, `TableCell`) | Light grey header with bold 14px text, thin row lines, row hover. |
 | `Dialog` (+ `DialogHeader`, `DialogBody`, `DialogFooter`, `DialogTitle`, `DialogDescription`, `DialogClose`) | Header, body and footer split like a card. |
 | `Tabs` | Underline style: the active tab has primary-colour text and a 2px underline. |
 | `Alert` | `info`, `success`, `warning`, `destructive`. |
@@ -135,7 +135,7 @@ Always use `<StatusBadge status="..." />`. Do not build a status badge by hand.
 ### 4.3 Usage example
 
 ```tsx
-import { Button, Input, FormField, StatusBadge, PageHeader } from "@/components"
+import { Button, Input, FormField, StatusBadge, PageHeader } from "@/components/index"
 
 <PageHeader title="Soạn bản tin"
   actions={<><Button variant="outline">Lưu nháp</Button><Button>Gửi duyệt</Button></>} />
@@ -150,7 +150,7 @@ A fuller example is in `ui/examples/compose-message.tsx`.
 ## 5. Layout rules
 
 1. **Screen frame:**
-   - A 240px left menu (`SidebarNav`).
+   - A 256px left menu (`SidebarNav`).
    - A 44px title bar on a `bg-muted` background.
    - Content padded 16–20px.
    - Below 800px the menu is hidden behind a hamburger button.
@@ -191,7 +191,7 @@ After adding, change it to fit CBC:
 
 - Use the `h-control` height.
 - Use `rounded-md` (2px).
-- Use `text-sm` (12px).
+- Use `text-sm` (14px).
 - Remove the `shadow` unless it is a popover or dialog.
 - Use colour tokens only, never hex.
 
@@ -213,6 +213,6 @@ npx tailwindcss -c tailwind.config.ts -i styles/globals.css -o preview/app.css -
 
 ## 9. Relationship to the current demo
 
-- The current HTML demo (`index.html` at the repo root) is written in plain JS and plain CSS. It **uses the same colours and sizes** as this document; its CSS variables are `--pri`, `--line`, `--head` and so on.
+- The current HTML demo (`index.html` at the repo root) is written in plain JS and plain CSS. It **uses the same colours, font and 14px type scale** as this document; its CSS variables are `--pri`, `--line`, `--head` and so on.
 - When the CMS is rebuilt in React, use `ui/` directly and stop copying CSS from the demo.
 - Dark mode: not defined for phase 1.

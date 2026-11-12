@@ -25,7 +25,7 @@ export function SidebarNav({ brand, subtitle, groups, activeKey, footer }: Sideb
       <nav className="flex-1 overflow-y-auto px-2 pb-3">
         {groups.map((g) => (
           <div key={g.title}>
-            <div className="mb-1 mt-3 border-l-[3px] border-primary bg-nav-group px-2.5 py-1.5 text-sm font-bold uppercase tracking-wide text-nav-group-foreground">
+            <div className="mb-1 mt-3 border-l-[3px] border-primary bg-nav-group px-2.5 py-1.5 text-xs font-bold uppercase tracking-wide text-nav-group-foreground">
               {g.title}
             </div>
             {g.items.map((it) => (
@@ -34,7 +34,7 @@ export function SidebarNav({ brand, subtitle, groups, activeKey, footer }: Sideb
                 href={it.href}
                 aria-current={it.key === activeKey ? "page" : undefined}
                 className={cn(
-                  "flex items-center justify-between rounded-sm px-2.5 py-1.5 text-sm text-foreground hover:bg-accent",
+                  "flex items-center justify-between rounded-sm px-2.5 py-2 text-sm text-foreground hover:bg-accent",
                   it.key === activeKey && "bg-primary text-primary-foreground hover:bg-primary"
                 )}
               >

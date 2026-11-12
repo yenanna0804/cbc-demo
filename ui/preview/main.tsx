@@ -46,7 +46,7 @@ function App() {
     <div className="mx-auto grid max-w-[1100px] grid-cols-[minmax(0,1fr)] gap-8 px-4 py-6">
       <header>
         <h1>CBC CMS – Design system</h1>
-        <p className="text-muted-foreground">shadcn/ui + Tailwind v3 · Arial 12px · nút chính #5879B9. Hướng dẫn đầy đủ: DESIGN.md.</p>
+        <p className="text-muted-foreground">shadcn/ui + Tailwind v3 · font hệ thống 14px · nút chính #5879B9. Hướng dẫn đầy đủ: DESIGN.md.</p>
       </header>
 
       <Section id="colors" title="1. Màu chủ đạo">
@@ -72,12 +72,12 @@ function App() {
 
       <Section id="type" title="2. Chữ">
         <div className="grid content-start gap-1.5">
-          <div className="text-2xl font-bold">28px · số lớn</div>
-          <div className="text-xl font-bold">22px · text-xl · số KPI</div>
-          <div className="text-lg font-bold">16px · text-lg · h1 tiêu đề trang</div>
-          <div className="text-md font-bold">14px · text-md · h2 tiêu đề card</div>
-          <div className="text-sm"><b>12px · text-sm · nhãn (đậm)</b> và chữ thân (thường) – cỡ mặc định</div>
-          <div className="text-xs text-muted-foreground">11.5px · text-xs · gợi ý, ghi chú, header bảng</div>
+          <div className="text-2xl font-bold">32px · số lớn</div>
+          <div className="text-xl font-bold">26px · text-xl · số KPI</div>
+          <div className="text-lg font-bold">20px · text-lg · h1 tiêu đề trang</div>
+          <div className="text-md font-bold">16px · text-md · h2 tiêu đề card</div>
+          <div className="text-sm"><b>14px · text-sm · nhãn (đậm)</b> và chữ thân (thường) – cỡ mặc định</div>
+          <div className="text-xs text-muted-foreground">12.5px · text-xs · gợi ý, ghi chú, badge</div>
         </div>
       </Section>
 
@@ -190,7 +190,7 @@ function App() {
       </Section>
 
       <Section id="layout" title="9. Bố cục màn hình mẫu">
-        <div className="flex h-[360px] overflow-x-auto rounded-lg border">
+        <div className="flex h-[400px] overflow-x-auto rounded-lg border">
           <SidebarNav brand="CMS Cell Broadcast" subtitle="VNPT" activeKey="list" footer="Người soạn thảo"
             groups={[{ title: "Phát tin cảnh báo", items: [{ key: "new", label: "Soạn bản tin", href: "#" }, { key: "list", label: "Danh sách bản tin", href: "#" }, { key: "ap", label: "Chờ duyệt", href: "#", count: 2 }] },
                      { title: "Báo cáo", items: [{ key: "rp", label: "Báo cáo chiến dịch", href: "#" }] }]} />

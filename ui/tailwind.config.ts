@@ -8,16 +8,18 @@ export default {
   theme: {
     container: { center: true, padding: "16px" },
     extend: {
-      fontFamily: { sans: ["Arial", "Helvetica", "sans-serif"] },
-      // Ghi đè thang chữ: giao diện CMS dùng chữ 12px làm chuẩn
+      fontFamily: {
+        sans: ["-apple-system", "BlinkMacSystemFont", "\"Segoe UI\"", "Roboto", "\"Helvetica Neue\"", "Arial", "sans-serif"],
+      },
+      // Ghi đè thang chữ: giao diện CMS dùng chữ 14px làm chuẩn (anna 12/11/2026)
       fontSize: {
-        xs: ["11.5px", { lineHeight: "1.5" }],   // ghi chú, gợi ý, header bảng
-        sm: ["12px", { lineHeight: "1.5" }],     // chữ thân, nhãn, nút, ô nhập (MẶC ĐỊNH)
-        base: ["12px", { lineHeight: "1.5" }],
-        md: ["14px", { lineHeight: "1.4" }],     // h2, tiêu đề card
-        lg: ["16px", { lineHeight: "1.4" }],     // h1 tiêu đề trang
-        xl: ["22px", { lineHeight: "1.2" }],     // số KPI
-        "2xl": ["28px", { lineHeight: "1.2" }],
+        xs: ["12.5px", { lineHeight: "1.5" }],   // ghi chú, gợi ý, badge
+        sm: ["14px", { lineHeight: "1.5" }],     // chữ thân, nhãn, nút, ô nhập, header bảng (MẶC ĐỊNH)
+        base: ["14px", { lineHeight: "1.5" }],
+        md: ["16px", { lineHeight: "1.4" }],     // h2, tiêu đề card
+        lg: ["20px", { lineHeight: "1.3" }],     // h1 tiêu đề trang
+        xl: ["26px", { lineHeight: "1.2" }],     // số KPI
+        "2xl": ["32px", { lineHeight: "1.2" }],
       },
       colors: {
         border: { DEFAULT: hsl("border"), subtle: hsl("border-subtle") },
@@ -52,7 +54,7 @@ export default {
         md: "2px",           // nút, ô nhập, badge
         sm: "2px",
       },
-      height: { control: "28px", "control-sm": "24px" },
+      height: { control: "34px", "control-sm": "28px" },
     },
   },
   plugins: [],
