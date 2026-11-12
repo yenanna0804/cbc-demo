@@ -1,0 +1,54 @@
+/* CBC CMS – design tokens (shadcn/ui, Tailwind v3). Giá trị HSL không có hsl() theo quy ước shadcn. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Nền & chữ */
+    --background: 0 0% 100%;          /* #ffffff */
+    --foreground: 0 0% 20%;           /* #333333 chữ chính */
+    --muted: 220 18% 97%;             /* #f5f6f8 thanh tiêu đề, header bảng, sidebar */
+    --muted-foreground: 0 0% 40%;     /* #666666 chữ phụ */
+    --faint: 0 0% 55%;                /* #8c8c8c gợi ý, placeholder */
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 20%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 20%;
+
+    /* Màu chủ đạo */
+    --primary: 220 41% 54%;           /* #5879B9 nút chính, mục menu đang chọn */
+    --primary-hover: 219 40% 46%;     /* #4767a4 */
+    --primary-foreground: 0 0% 100%;
+    --primary-soft: 218 48% 95%;      /* #eef2f9 nền nhấn nhẹ */
+    --secondary: 0 0% 100%;           /* nút phụ: nền trắng + viền */
+    --secondary-foreground: 0 0% 20%;
+    --accent: 217 22% 93%;            /* #e9ecf1 hover menu / dòng */
+    --accent-foreground: 0 0% 20%;
+    --nav-group: 218 40% 92%;         /* #e3e9f3 nhóm menu */
+    --nav-group-foreground: 217 46% 23%; /* #1f3354 */
+
+    /* Viền & focus */
+    --border: 216 14% 85%;            /* #d5d9df viền ô nhập, card, bảng */
+    --border-subtle: 220 15% 92%;     /* #e8eaee kẻ dòng bảng */
+    --input: 216 14% 85%;
+    --ring: 218 56% 75%;              /* #9db7e3 viền ô đang chọn */
+
+    /* Trạng thái ngữ nghĩa */
+    --success: 146 61% 30%;  --success-soft: 146 39% 93%;   /* #1e7b46 / #e6f4ec */
+    --warning: 34 100% 32%;  --warning-soft: 39 100% 94%;   /* #a15c00 / #fff4e0 */
+    --destructive: 8 71% 41%; --destructive-soft: 6 83% 95%; /* #b4321f / #fdecea */
+    --destructive-foreground: 0 0% 100%;
+    --info: 216 60% 41%;     --info-soft: 212 75% 94%;      /* #2a5ca8 / #e3eefb */
+
+    --radius: 3px;
+  }
+
+  * { @apply border-border; }
+  body {
+    @apply bg-background text-foreground font-sans text-sm antialiased;
+  }
+  h1 { @apply text-lg font-bold; }
+  h2 { @apply text-md font-bold; }
+  h3 { @apply text-sm font-bold; }
+}

@@ -251,7 +251,7 @@ input:focus,select:focus,textarea:focus{outline:0;border-color:var(--focus);box-
 <script>
 'use strict';
 /* =========================================================================
-   CMS Cell Broadcast VNPT – bản demo theo URD GĐ1 (YC001–YC031)
+   CMS Cell Broadcast VNPT – bản demo theo URD GĐ1 v1.0
    Dữ liệu lưu trên trình duyệt (localStorage). Kết nối mạng (MME/AMF) và SMS OTP là mô phỏng.
    ========================================================================= */
 
@@ -814,7 +814,7 @@ function viewLogin(){
 function loginLeft(){
   return `<h1>CMS Cell Broadcast VNPT</h1><p style="max-width:460px">Soạn, phê duyệt và phát bản tin cảnh báo khẩn cấp tới mọi thiết bị di động trong vùng ảnh hưởng.</p>
   <ul style="max-width:460px;padding-left:18px;color:#c3d2e6"><li>Chọn vùng phát theo Tỉnh/Xã, hệ thống tự xác định trạm và cell.</li><li>Soạn từ thư viện mẫu hoặc soạn tự do.</li><li>Phê duyệt 2 người, xác thực OTP trước khi phát.</li><li>Theo dõi kết quả phát theo từng cell.</li></ul>
-  <p class="small" style="color:#8fa1b8;margin-top:30px">Bản demo GĐ1 theo URD v0.1. Kết nối mạng (MME) và SMS là mô phỏng; dữ liệu lưu trên trình duyệt.</p>`;
+  <p class="small" style="color:#8fa1b8;margin-top:30px">Bản demo GĐ1 theo Tài liệu yêu cầu tính năng người dùng (URD) v1.0. Kết nối mạng (MME) và SMS là mô phỏng; dữ liệu lưu trên trình duyệt.</p>`;
 }
 function doLogin(fd){
   const un = (fd.get('username')||'').trim(), pw = fd.get('password')||'';
