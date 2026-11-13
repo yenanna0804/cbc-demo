@@ -25,14 +25,17 @@ const meta = JSON.parse(fs.readFileSync('meta.json', 'utf8')); // [{i, title, gr
     .replace('__BADGES__', Object.entries(ST).map(([k, v]) => `<span class="badge b-${k}">${v}</span>`).join(''));
   const kept = meta.filter(m => m.keep);
   const groups = [...new Set(kept.map(m => m.group))];
-  let no = 0; const toc = [], body = [];
+  let no = 0; const toc = [], body = [], pages = [];
+  const slug = t => t.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60);
   for (const g of groups) {
     body.push(`<h2 class="g-h">${g}</h2>`);
     for (const m of kept.filter(x => x.group === g)) { const f = frames[m.i]; no++;
       toc.push(`<tr><td>${no}</td><td>${g}</td><td><a href="#f${no}">${m.title}</a></td><td>${f.kind === 'modal' ? 'Popup' : f.kind === 'state' ? 'Trạng thái' : 'Màn hình'}</td><td>${m.role || ''}</td></tr>`);
+      pages.push({no, g, title: m.title, kind: f.kind, role: m.role, h: f.h, cls: f.cls, html: f.html, file: String(no).padStart(2,'0') + '-' + slug(m.title) + '.html'});
       body.push(`<section class="fr" id="f${no}"><div class="fr-t"><span class="fr-no">${no}</span>${m.title}<span class="fr-k">${f.kind === 'modal' ? 'Popup' : f.kind === 'state' ? 'Trạng thái' : 'Màn hình'}${m.role ? ' · ' + m.role : ''}</span></div>
 <div class="vp ${f.cls}" style="height:${f.h}px">${f.html.replace(/ name="/g, " name=\"f" + no + "_")}</div></section>`); }
   }
+  pages.push({no: no+1, g: 'Thành phần giao diện', title: 'Bảng trạng thái thành phần', kind: 'board', role: '', html: states, file: String(no+1).padStart(2,'0') + '-bang-trang-thai-thanh-phan.html'});
   no++; toc.push(`<tr><td>${no}</td><td>Thành phần giao diện</td><td><a href="#f${no}">Bảng trạng thái: nút, ô nhập, tooltip, nhãn, thông báo, tab</a></td><td>Bảng trạng thái</td><td></td></tr>`);
   body.push(`<h2 class="g-h">Thành phần giao diện</h2><section class="fr" id="f${no}"><div class="fr-t"><span class="fr-no">${no}</span>Bảng trạng thái thành phần<span class="fr-k">Hover / Focus / Lỗi / Khoá</span></div><div class="vp sboard" style="width:1440px">${states}</div></section>`);
   const html = `<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=1600">
@@ -59,5 +62,33 @@ html,body{background:#e9ecf1}
 ${body.join('\n')}
 </body></html>`;
   fs.writeFileSync(require('path').join(__dirname,'../../screens.html'), html);
+
+  // ---- mỗi màn hình 1 trang riêng (screens/) ----
+  const path = require('path'); const outDir = path.join(__dirname, '../../screens'); fs.mkdirSync(outDir, { recursive: true });
+  for (const f of fs.readdirSync(outDir)) if (f.endsWith('.html')) fs.unlinkSync(path.join(outDir, f));
+  const KIND = { modal: 'Popup', state: 'Trạng thái', page: 'Màn hình', board: 'Bảng trạng thái' };
+  const head = t => `<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=1440"><title>${t}</title><link rel="stylesheet" href="../fonts/public-sans.css"><style>${style2}
+.vp.sboard{background:#fff;padding:28px 32px;box-sizing:border-box;width:1440px}
+.sb-h{font-size:20px;margin:28px 0 12px}.sb-h:first-child{margin-top:0}.sb-s{font-size:16px;margin:18px 0 8px}
+.sb-t{border-collapse:collapse}.sb-t th,.sb-t td{border:1px solid #e1e4e8;padding:12px 14px;text-align:left;vertical-align:middle}.sb-t th{background:#f5f6f8;font-size:14px}
+html,body{min-width:1440px}</style></head>`;
+  for (const pg of pages) {
+    const t = `${String(pg.no).padStart(2,'0')} ${pg.title}`;
+    const bodyHtml = pg.kind === 'board' ? `<body style="background:#fff"><div class="vp sboard">${pg.html}</div></body>` : `<body class="${pg.cls}" style="min-height:${pg.h}px">${pg.html}</body>`;
+    fs.writeFileSync(path.join(outDir, pg.file), head(t) + bodyHtml + '</html>');
+  }
+  const base = 'https://yenanna0804.github.io/cbc-demo/screens/';
+  const rows = pages.map(pg => `<tr><td>${pg.no}</td><td>${pg.g}</td><td><a href="${pg.file}">${pg.title}</a></td><td>${KIND[pg.kind]}</td><td>${pg.role||''}</td><td>${pg.kind==='modal'?'1440 × 900':'1440'}</td></tr>`).join('');
+  fs.writeFileSync(path.join(outDir, 'index.html'), `<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Danh sách màn hình</title><link rel="stylesheet" href="../fonts/public-sans.css"><style>
+body{font:16px/1.5 "Public Sans",Arial,sans-serif;color:#1b2330;background:#fff;margin:0;padding:24px 16px}main{max-width:1100px;margin:0 auto}h1{margin:0 0 8px}
+table{border-collapse:collapse;width:100%;margin:12px 0 24px}td,th{border:1px solid #d5d9df;padding:6px 10px;text-align:left;font-size:15px;vertical-align:top}th{background:#f5f6f8}a{color:#4767a4}
+textarea{width:100%;box-sizing:border-box;height:220px;font:13px/1.5 Consolas,monospace;border:1px solid #858d9b;padding:8px}.n{color:#555}
+@media (max-width:700px){td:nth-child(2),th:nth-child(2),td:nth-child(6),th:nth-child(6){display:none}}</style></head><body><main>
+<h1>Danh sách màn hình CMS Cell Broadcast</h1>
+<p class="n">Mỗi màn hình, popup, trạng thái là 1 trang riêng (${pages.length} trang). Nhập vào Figma bằng html.to.design: dán từng link, độ rộng 1440, chiều cao để tự động (popup: 900).</p>
+<table><tr><th>STT</th><th>Nhóm</th><th>Màn hình</th><th>Loại</th><th>Vai trò</th><th>Khung</th></tr>${rows}</table>
+<h2>Toàn bộ link (để sao chép)</h2><textarea readonly>${pages.map(pg => base + pg.file).join('\n')}</textarea>
+</main></body></html>`);
+  console.log('pages', pages.length);
   console.log('frames kept', kept.length, 'bytes', html.length);
 })();
