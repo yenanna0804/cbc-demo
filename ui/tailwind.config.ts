@@ -9,17 +9,17 @@ export default {
     container: { center: true, padding: "16px" },
     extend: {
       fontFamily: {
-        sans: ["-apple-system", "BlinkMacSystemFont", "\"Segoe UI\"", "Roboto", "\"Helvetica Neue\"", "Arial", "sans-serif"],
+        sans: ["\"Public Sans\"", "-apple-system", "BlinkMacSystemFont", "\"Segoe UI\"", "Roboto", "\"Helvetica Neue\"", "Arial", "sans-serif"],
       },
-      // Ghi đè thang chữ: giao diện CMS dùng chữ 14px làm chuẩn (anna 12/11/2026)
+      // Ghi đè thang chữ: chữ chuẩn 16px theo USWDS (anna chốt 13/11/2026)
       fontSize: {
-        xs: ["12.5px", { lineHeight: "1.5" }],   // ghi chú, gợi ý, badge
-        sm: ["14px", { lineHeight: "1.5" }],     // chữ thân, nhãn, nút, ô nhập, header bảng (MẶC ĐỊNH)
-        base: ["14px", { lineHeight: "1.5" }],
-        md: ["16px", { lineHeight: "1.4" }],     // h2, tiêu đề card
-        lg: ["20px", { lineHeight: "1.3" }],     // h1 tiêu đề trang
-        xl: ["26px", { lineHeight: "1.2" }],     // số KPI
-        "2xl": ["32px", { lineHeight: "1.2" }],
+        xs: ["14px", { lineHeight: "1.5" }],   // ghi chú, gợi ý, badge
+        sm: ["16px", { lineHeight: "1.5" }],     // chữ thân, nhãn, nút, ô nhập, header bảng (MẶC ĐỊNH)
+        base: ["16px", { lineHeight: "1.5" }],
+        md: ["18px", { lineHeight: "1.4" }],     // h2, tiêu đề card
+        lg: ["24px", { lineHeight: "1.3" }],     // h1 tiêu đề trang
+        xl: ["30px", { lineHeight: "1.2" }],     // số KPI
+        "2xl": ["36px", { lineHeight: "1.2" }],
       },
       colors: {
         border: { DEFAULT: hsl("border"), subtle: hsl("border-subtle") },
@@ -54,7 +54,7 @@ export default {
         md: "2px",           // nút, ô nhập, badge
         sm: "2px",
       },
-      height: { control: "34px", "control-sm": "28px" },
+      height: { control: "40px", "control-sm": "32px" },
     },
   },
   plugins: [],

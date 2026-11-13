@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CMS Cell Broadcast VNPT – Demo</title>
+<link rel="stylesheet" href="fonts/public-sans.css">
 <style>
 :root{
   --bg:#f4f6f9; --panel:#fff; --line:#dfe3ea; --line2:#eef1f5; --text:#1b2330; --muted:#5d6878; --faint:#8a94a3;
@@ -199,52 +200,56 @@ h3.sec{margin:2px 0 10px;font-size:13.5px;text-transform:uppercase;letter-spacin
 .demo-acc{margin-top:18px}
 .demo-acc button{display:flex;width:100%;text-align:left;gap:8px;border:1px solid var(--line);background:#fff;border-radius:6px;padding:8px 10px;margin-bottom:6px;cursor:pointer}
 .demo-acc button:hover{background:#f7f9fc}
-/* ===== giao diện chuẩn: system font 14px, nhãn đậm, viền xám 1px bo nhẹ, nút #5879B9 ===== */
-:root{--bg:#fff;--panel:#fff;--line:#d5d9df;--line2:#e8eaee;--text:#333;--muted:#666;--faint:#8c8c8c;
-  --pri:#5879B9;--pri-d:#4767a4;--pri-l:#eef2f9;--head:#f5f6f8;--focus:#9db7e3;--r:3px;--sh:none}
-body,button,input,select,textarea{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
-body{font-size:14px;line-height:1.5;color:var(--text);background:#fff}
-h1{font-size:20px} h2{font-size:16px} h3{font-size:14px} .sec-h h2{font-size:17px}
-.small,.hint,.ferr,.ph .sub,.sec-h .sub,.tile .s,.note,.formula,.howto,.trow,.hb,.chip,.kv2 .k{font-size:12.5px}
+/* ===== giao diện chuẩn (13/11): Public Sans 16px, nhãn đậm, màu đạt WCAG 2.2 AA, nút #4767a4 ===== */
+:root{--bg:#fff;--panel:#fff;--line:#d5d9df;--line2:#e8eaee;--text:#333;--muted:#666;--faint:#767676;--input:#858d9b;
+  --pri:#4767a4;--pri-d:#3a5791;--pri-l:#eef2f9;--head:#f5f6f8;--focus:#4767a4;--r:3px;--sh:none}
+body,button,input,select,textarea{font-family:"Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+body{font-size:16px;line-height:1.5;color:var(--text);background:#fff}
+h1{font-size:24px} h2{font-size:18px} h3{font-size:16px} .sec-h h2{font-size:19px}
+.small,.hint,.ferr,.ph .sub,.sec-h .sub,.tile .s,.note,.formula,.howto,.trow,.hb,.chip,.kv2 .k{font-size:14px}
 label.f,.kv>div:nth-child(odd),.kv2 .k,.tile .l,.t th,.legend{font-weight:700;color:var(--text)}
 .kv2 .v{font-weight:400}
-.kpi .l{font-weight:700;color:var(--text);font-size:14px}
+.kpi .l{font-weight:700;color:var(--text);font-size:16px}
 input[type=text],input[type=password],input[type=number],input[type=date],input[type=email],input[type=tel],select,textarea{
-  border:1px solid var(--line);border-radius:2px;padding:6px 9px;font-size:14px;background:#fff}
-input:focus,select:focus,textarea:focus{outline:0;border-color:var(--focus);box-shadow:0 0 0 2px #e6eefa}
-.btn{border-radius:2px;padding:6px 14px;font-size:14px;border-color:var(--line)}
-.btn.sm{padding:3px 9px;font-size:12.5px}
+  border:1px solid var(--input);border-radius:2px;padding:8px 10px;font-size:16px;background:#fff}
+input:focus,select:focus,textarea:focus{outline:0;border-color:var(--focus);box-shadow:0 0 0 1px var(--focus)}
+.btn{border-radius:2px;padding:8px 16px;font-size:16px;border-color:var(--line)}
+.btn.sm{padding:4px 10px;font-size:14px}
 .btn.pri{background:var(--pri);border-color:var(--pri)} .btn.pri:hover{background:var(--pri-d)}
 .card,.tile,.modal,.menu,.dt,.cmd,.note,.howto,.xalist,.seg,.diff pre,.alert,.toast,.demo-acc button,.stats div,.formula{border-radius:var(--r)}
 .card,.tile{box-shadow:none;border-color:var(--line)}
 .card>.hd,.modal .hd,.t th,#sms .hd{background:var(--head)}
 .top{background:var(--head)}
 .badge,.sb,.pill,.chip,.nav .cnt{border-radius:2px}
-.tile{padding:12px 14px} .tile .v{font-size:26px;margin:6px 0 2px} .tile .v.na{font-size:20px}
-.kpi .v{font-size:26px} .big{font-size:32px} .dt .v{font-size:20px}
+.tile{padding:12px 14px} .tile .v{font-size:30px;margin:6px 0 2px} .tile .v.na{font-size:24px}
+.kpi .v{font-size:30px} .big{font-size:36px} .dt .v{font-size:24px}
 .c-pri{color:var(--pri)} .formula{border-left-color:var(--pri)}
-.t th,.t td{padding:7px 9px} .t th{font-size:12.5px}
+.t th,.t td{padding:7px 9px} .t th{font-size:14px}
 .card>.hd{padding:10px 14px} .card>.bd{padding:14px}
 /* thanh điều hướng nền sáng */
 .side{background:var(--head);color:var(--text);border-right:1px solid var(--line)}
-.brand{border-bottom:1px solid var(--line)} .brand b{color:var(--text);font-size:16px} .brand span{color:var(--muted);font-size:12px}
+.brand{border-bottom:1px solid var(--line)} .brand b{color:var(--text);font-size:18px} .brand span{color:var(--muted);font-size:12px}
 .nav .grp{color:var(--muted);font-weight:700}
 .nav a{color:var(--text);border-radius:2px} .nav a:hover{background:#e9ecf1}
 .nav a.on{background:var(--pri);color:#fff}
 .side .foot{color:var(--muted);border-top:1px solid var(--line)}
 .login .l{background:var(--pri)}
-.otp{font-size:20px}
-.toast,.diff pre{font-size:14px} .dt .v small{font-size:14px}
+.otp{font-size:24px}
+.toast,.diff pre{font-size:16px} .dt .v small{font-size:16px}
 .seg label{padding:5px 12px} .xalist{border-color:var(--line)}
 @media (max-width:1100px){.compose{grid-template-columns:1fr}.sticky{position:static}.kpis{grid-template-columns:repeat(2,1fr)}.dk,.tiles,.tiles.t3{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}}
-@media (max-width:800px){.side{display:none;position:fixed;top:0;bottom:0;left:0;z-index:40;box-shadow:0 0 40px rgba(0,0,0,.4)}.side.open{display:flex}.hamb{display:inline-flex}.top{padding:0 12px}.login{grid-template-columns:1fr}.login .l{display:none}.g2,.g3,.g4,.dk,.tiles,.tiles.t3,.kv2{grid-template-columns:1fr}.trow{grid-template-columns:54px 1fr 120px}#cellQ{width:100%!important}.hb{grid-template-columns:118px 1fr 84px}.hb .mono{font-size:12.5px}.content{padding:16px}.kv{grid-template-columns:1fr}.diff{grid-template-columns:1fr}}
-.nav .grp{margin:12px 0 4px;padding:7px 10px;background:#e3e9f3;border-left:3px solid var(--pri);color:#1f3354;font-weight:700;font-size:14px;letter-spacing:.04em;text-transform:uppercase}
+@media (max-width:800px){.side{display:none;position:fixed;top:0;bottom:0;left:0;z-index:40;box-shadow:0 0 40px rgba(0,0,0,.4)}.side.open{display:flex}.hamb{display:inline-flex}.top{padding:0 12px}.login{grid-template-columns:1fr}.login .l{display:none}.g2,.g3,.g4,.dk,.tiles,.tiles.t3,.kv2{grid-template-columns:1fr}.trow{grid-template-columns:54px 1fr 120px}#cellQ{width:100%!important}.hb{grid-template-columns:118px 1fr 84px}.hb .mono{font-size:14px}.content{padding:16px}.kv{grid-template-columns:1fr}.diff{grid-template-columns:1fr}}
+.nav .grp{margin:12px 0 4px;padding:7px 10px;background:#e3e9f3;border-left:3px solid var(--pri);color:#1f3354;font-weight:700;font-size:16px;letter-spacing:.04em;text-transform:uppercase}
 
 /* cỡ chữ lớn (anna 12/11): chuẩn 14px */
-label.f,.tile .l,.kpi .l,.ph .sub,.alertbox .ttl,.alertbox .msg,.alertbox .okb{font-size:14px}
-.badge,.brand span,.cmd .no,.secno,.dt .v small{font-size:12.5px}
-h3.sec{font-size:14px}
-.nav a{font-size:14px}
+label.f,.tile .l,.kpi .l,.ph .sub,.alertbox .ttl,.alertbox .msg,.alertbox .okb{font-size:16px}
+.badge,.brand span,.cmd .no,.secno,.dt .v small{font-size:14px}
+h3.sec{font-size:16px}
+.nav a{font-size:16px}
+/* WCAG 2.2 AA (13/11): chữ phụ, badge Đã huỷ, viền focus nút */
+.b-cancelled{background:#f1f1f1;color:#666}
+.faint,.hint,input::placeholder,textarea::placeholder{color:var(--faint)}
+.btn:focus-visible,.nav a:focus-visible,a:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 </style>
 </head>
 <body>

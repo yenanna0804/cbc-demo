@@ -15,7 +15,7 @@ const badgeVariants = cva(
         info: "bg-info-soft text-info",
         violet: "bg-[#ece9f7] text-[#5b45a6]",
         slate: "bg-[#e9eef4] text-[#41546b]",
-        muted: "bg-[#f1f1f1] text-[#777777]",
+        muted: "bg-[#f1f1f1] text-[#666666]",
         outline: "border border-border bg-background text-foreground font-normal",
       },
     },

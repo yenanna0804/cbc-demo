@@ -5,16 +5,30 @@ The UI conventions for the CMS of the Cell Broadcast (CBC) system, phase 1. Ever
 - **Stack:** [shadcn/ui](https://ui.shadcn.com) (Radix UI) + Tailwind CSS v3 + React 18 + TypeScript + lucide-react icons.
 - **Source code:** folder [`ui/`](ui/).
 - **Sample page:** [`ui/index.html`](ui/index.html), online at https://yenanna0804.github.io/cbc-demo/ui/. It renders the real components from `ui/components`.
-- **Basis:** the UI style anna settled on 29/10/2026 for the demo, updated 12/11/2026:
-  - System font stack, 14px text, bold labels.
-  - Input fields with a 1px light-grey border, very slightly rounded corners and a light-blue border when focused.
-  - White background, very light grey title bar, #5879B9 buttons, dark-grey text.
+- **Basis:** the UI style anna settled on 29/10/2026 for the demo, updated 13/11/2026 to follow public standards (§0):
+  - Public Sans font, 16px body text, bold labels.
+  - Input fields with a 1px grey border, very slightly rounded corners and a primary-colour border when focused.
+  - White background, very light grey title bar, #4767a4 buttons, dark-grey text.
+  - Every colour pair meets WCAG 2.2 AA.
+
+## 0. Standards referenced
+
+| Source | What we take from it |
+|---|---|
+| [U.S. Web Design System – Typography](https://designsystem.digital.gov/components/typography/) | Body text at least 16px; line height at least 1.5; 45–90 characters per line; Public Sans recommended for interfaces. |
+| [GOV.UK Design System – Type scale](https://design-system.service.gov.uk/styles/type-scale) | Comparison: body 19px, small text 16px. |
+| WCAG 2.2 AA ([target size SC 2.5.8](https://kb.daisy.org/publishing/docs/wcag/target-size-minimum.html)) | Text contrast ≥ 4.5:1; borders of inputs and focus indicators ≥ 3:1; click targets ≥ 24×24px. |
+| [FCC findings on the 2018 Hawaii false missile alert](https://techcrunch.com/2018/01/30/details-and-solutions-emerge-for-missile-threat-false-alarm-in-hawaii/) | Test and live must look clearly different; confirmation wording must differ between test and live; two-person validation; correction template. |
+| [SAFECOM/NCSWIC – Ten Keys to Improving Alerts, Warnings and Notifications](https://www.cyber.gov/sites/default/files/publications/safecom-ncswic_ten_keys_to_improving_awns_4.26.19_-_final_section_508_compliant.pdf) | Preview and cancel before sending; history and logs; prepared templates; separate drafting and approval roles; test environment visually distinct (colour + TEST label). |
+
+The operational items (test mode, correction template) are **not** in the customer requirements for phase 1. They are listed here as reference only and are not added to the URD.
 
 ## 1. Folder layout
 
 ```
 DESIGN.md                  ← this document
 ui/
+├── fonts/                ← Public Sans woff2 + public-sans.css + OFL licence
 ├── styles/globals.css     ← colour tokens (CSS variables) + base styles
 ├── tailwind.config.ts     ← maps tokens to Tailwind classes, type scale, radius
 ├── components.json        ← shadcn CLI config (run `npx shadcn add ...` here)
@@ -40,17 +54,18 @@ All colours are declared once in `ui/styles/globals.css` as HSL variables, follo
 
 | Token / Tailwind class | Hex | Use |
 |---|---|---|
-| `primary` | **#5879B9** | Primary button, selected menu item, links, active tab |
-| `primary-hover` | #4767a4 | Primary button on hover |
+| `primary` | **#4767a4** | Primary button, selected menu item, links, active tab, focus ring (5.61:1 on white) |
+| `primary-hover` | #3a5791 | Primary button on hover |
 | `primary-soft` | #eef2f9 | Light highlight background, role badge, focus halo |
 | `foreground` | #333333 | Main text |
 | `muted-foreground` | #666666 | Secondary text, descriptions |
-| `faint` | #8c8c8c | Hints, placeholders |
+| `faint` | #767676 | Hints, placeholders (4.54:1) |
 | `muted` | #f5f6f8 | Title bar, table and card headers, sidebar |
 | `accent` | #e9ecf1 | Menu or row hover |
-| `border` | #d5d9df | Borders of inputs, cards and tables |
+| `border` | #d5d9df | Borders of cards and tables, dividers (decorative only) |
+| `input` | #858d9b | Borders of inputs, selects, checkboxes, radios (3.34:1) |
 | `border-subtle` | #e8eaee | Table row lines |
-| `ring` | #9db7e3 | Border of the focused input |
+| `ring` | #4767a4 | Focus border / ring |
 | `background` | #ffffff | Page background |
 | `nav-group` / `nav-group-foreground` | #e3e9f3 / #1f3354 | Menu group heading |
 
@@ -74,7 +89,7 @@ The labels and colours match the demo exactly.
 | `draft` | Nháp | `neutral` | #4a5565 / #eef0f3 |
 | `pending` | Chờ duyệt | `warning` | #a15c00 / #fff4e0 |
 | `rejected` | Bị từ chối | `destructive` | #b4321f / #fdecea |
-| `cancelled` | Đã huỷ | `muted` | #777777 / #f1f1f1 |
+| `cancelled` | Đã huỷ | `muted` | #666666 / #f1f1f1 |
 | `scheduled` | Chờ phát | `info` | #2a5ca8 / #e3eefb |
 | `broadcasting` | Đang phát | `success` | #1e7b46 / #e6f4ec |
 | `stopped` | Đã dừng | `violet` | #5b45a6 / #ece9f7 |
@@ -84,20 +99,20 @@ Always use `<StatusBadge status="..." />`. Do not build a status badge by hand.
 
 ## 3. Type, spacing, corners
 
-- **Font:** `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif` everywhere, including buttons and inputs. Each OS uses its own system font (San Francisco on macOS/iOS, Segoe UI on Windows, Roboto on Android); Arial is the fallback.
-- **Type scale:** the Tailwind classes are overridden so that `text-sm` = 14px is the default size.
+- **Font:** `"Public Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif` everywhere, including buttons and inputs. Public Sans (SIL OFL 1.1, by USWDS) is **self-hosted** in `ui/fonts/` and `fonts/` (latin, latin-ext, vietnamese subsets, weights 400–700, normal + italic). Do not load it from Google Fonts: the CMS may run on an internal network. Include `fonts/public-sans.css` in every page before the app CSS.
+- **Type scale:** the Tailwind classes are overridden so that `text-sm` = 16px is the default size (USWDS minimum).
 
 | Class | Size | Use |
 |---|---|---|
-| `text-xs` | 12.5px | Hints, notes, badges, menu group headings |
-| `text-sm` / `text-base` | **14px** | Body text, labels, buttons, inputs, table headers |
-| `text-md` | 16px | h2, card and dialog titles |
-| `text-lg` | 20px | h1, page title |
-| `text-xl` | 26px | KPI figures |
-| `text-2xl` | 32px | Large figures |
+| `text-xs` | 14px | Hints, notes, badges, menu group headings |
+| `text-sm` / `text-base` | **16px** | Body text, labels, buttons, inputs, table headers |
+| `text-md` | 18px | h2, card and dialog titles |
+| `text-lg` | 24px | h1, page title |
+| `text-xl` | 30px | KPI figures |
+| `text-2xl` | 36px | Large figures |
 
 - **Weights:** labels (`<Label>`), table headers and card titles are **bold**. Input values and body text are regular.
-- **Control height:** inputs, selects and buttons are `h-control` = 34px. Small buttons are `h-control-sm` = 28px.
+- **Control height:** inputs, selects and buttons are `h-control` = 40px. Small buttons are `h-control-sm` = 32px (both above the 24px WCAG minimum).
 - **Corners:** buttons, inputs and badges use `rounded-md` = 2px. Cards and dialogs use `rounded-lg` = 3px. Do not use large radii.
 - **Shadows:** cards have **no shadow**, only a 1px border. Only dialogs and popovers have a shadow.
 - **Spacing:** card padding is 14px (`p-3.5`), the gap between fields is 12px (`gap-3`), and the gap between label and input is 6px (`gap-1.5`).
@@ -109,14 +124,14 @@ Always use `<StatusBadge status="..." />`. Do not build a status badge by hand.
 
 | Component | Variants / notes |
 |---|---|
-| `Button` | `variant`:<br>• `default`: primary button, #5879B9<br>• `outline`: secondary button with white background and border<br>• `secondary`<br>• `destructive`: red outline (Dừng, Từ chối)<br>• `destructive-solid`: solid red, for confirming inside a dialog<br>• `success`<br>• `ghost`<br>• `link`<br>`size`: `default`, `sm`, `lg`, `icon`. Supports `asChild` to wrap `<a>`. |
+| `Button` | `variant`:<br>• `default`: primary button, #4767a4<br>• `outline`: secondary button with white background and border<br>• `secondary`<br>• `destructive`: red outline (Dừng, Từ chối)<br>• `destructive-solid`: solid red, for confirming inside a dialog<br>• `success`<br>• `ghost`<br>• `link`<br>`size`: `default`, `sm`, `lg`, `icon`. Supports `asChild` to wrap `<a>`. |
 | `Input`, `Textarea` | 1px grey border. Focus gives a light-blue border with a light halo. `readOnly` gives a grey background. `aria-invalid` gives a red border. |
-| `Label` | Bold, 14px. |
+| `Label` | Bold, 16px. |
 | `Select` | Radix Select. Put the `id` on `SelectTrigger`. |
-| `Checkbox`, `RadioGroup` | 16px, primary colour when checked. |
+| `Checkbox`, `RadioGroup` | 18px, primary colour when checked. |
 | `Card` (+ `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter`) | Very light grey header, buttons in the footer aligned right. |
 | `Badge` | `default`, `neutral`, `success`, `warning`, `destructive`, `info`, `violet`, `slate`, `muted`, `outline`. |
-| `Table` (+ `TableHeader`, `TableBody`, `TableRow`, `TableHead`, `TableCell`) | Light grey header with bold 14px text, thin row lines, row hover. |
+| `Table` (+ `TableHeader`, `TableBody`, `TableRow`, `TableHead`, `TableCell`) | Light grey header with bold 16px text, thin row lines, row hover. |
 | `Dialog` (+ `DialogHeader`, `DialogBody`, `DialogFooter`, `DialogTitle`, `DialogDescription`, `DialogClose`) | Header, body and footer split like a card. |
 | `Tabs` | Underline style: the active tab has primary-colour text and a 2px underline. |
 | `Alert` | `info`, `success`, `warning`, `destructive`. |
@@ -130,7 +145,7 @@ Always use `<StatusBadge status="..." />`. Do not build a status badge by hand.
 | `FormField` | Bold label + `*` for a required field + input + hint (grey) or error (red). Sets `id`, `aria-invalid` and `aria-describedby` automatically. |
 | `PageHeader` | Page title + description + action buttons on the right. |
 | `StatTile` | Figure tile for reports and dashboards (`tone`: default, success, warning, destructive). |
-| `SidebarNav` | Light left menu: group headings with a primary-colour left bar, the selected item on a #5879B9 background with white text, and a red counter badge. |
+| `SidebarNav` | Light left menu: group headings with a primary-colour left bar, the selected item on a #4767a4 background with white text, and a red counter badge. |
 
 ### 4.3 Usage example
 
@@ -150,7 +165,7 @@ A fuller example is in `ui/examples/compose-message.tsx`.
 ## 5. Layout rules
 
 1. **Screen frame:**
-   - A 256px left menu (`SidebarNav`).
+   - A 288px left menu (`SidebarNav`).
    - A 44px title bar on a `bg-muted` background.
    - Content padded 16–20px.
    - Below 800px the menu is hidden behind a hamburger button.
@@ -176,7 +191,8 @@ A fuller example is in `ui/examples/compose-message.tsx`.
 ## 6. Accessibility
 
 - Every input has a `Label` linked to it by `htmlFor`/`id`. `FormField` does this for you.
-- Focus is always visible (`ring`). Do not remove the outline without providing a replacement.
+- Focus is always visible (`ring`, #4767a4, ≥ 3:1). Do not remove the outline without providing a replacement.
+- New colours must be checked: text ≥ 4.5:1 against its background, control borders ≥ 3:1.
 - Never use colour as the only signal: a status badge always carries its text label.
 - An icon-only button must have an `aria-label`.
 
@@ -191,7 +207,7 @@ After adding, change it to fit CBC:
 
 - Use the `h-control` height.
 - Use `rounded-md` (2px).
-- Use `text-sm` (14px).
+- Use `text-sm` (16px).
 - Remove the `shadow` unless it is a popover or dialog.
 - Use colour tokens only, never hex.
 
@@ -213,6 +229,6 @@ npx tailwindcss -c tailwind.config.ts -i styles/globals.css -o preview/app.css -
 
 ## 9. Relationship to the current demo
 
-- The current HTML demo (`index.html` at the repo root) is written in plain JS and plain CSS. It **uses the same colours, font and 14px type scale** as this document; its CSS variables are `--pri`, `--line`, `--head` and so on.
+- The current HTML demo (`index.html` at the repo root) is written in plain JS and plain CSS. It **uses the same colours, font and 16px type scale** as this document; its CSS variables are `--pri`, `--line`, `--head` and so on.
 - When the CMS is rebuilt in React, use `ui/` directly and stop copying CSS from the demo.
 - Dark mode: not defined for phase 1.

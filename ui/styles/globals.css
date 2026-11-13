@@ -1,4 +1,5 @@
-/* CBC CMS – design tokens (shadcn/ui, Tailwind v3). Giá trị HSL không có hsl() theo quy ước shadcn. */
+/* CBC CMS – design tokens (shadcn/ui, Tailwind v3). Giá trị HSL không có hsl() theo quy ước shadcn.
+   13/11/2026: màu đạt WCAG 2.2 AA (chữ ≥4.5:1, viền điều khiển ≥3:1). */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -10,15 +11,15 @@
     --foreground: 0 0% 20%;           /* #333333 chữ chính */
     --muted: 220 18% 97%;             /* #f5f6f8 thanh tiêu đề, header bảng, sidebar */
     --muted-foreground: 0 0% 40%;     /* #666666 chữ phụ */
-    --faint: 0 0% 55%;                /* #8c8c8c gợi ý, placeholder */
+    --faint: 0 0% 46%;                /* #767676 gợi ý, placeholder (4.54:1) */
     --card: 0 0% 100%;
     --card-foreground: 0 0% 20%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 20%;
 
     /* Màu chủ đạo */
-    --primary: 220 41% 54%;           /* #5879B9 nút chính, mục menu đang chọn */
-    --primary-hover: 219 40% 46%;     /* #4767a4 */
+    --primary: 219 40% 46%;           /* #4767a4 nút chính, link, menu đang chọn (5.61:1 với trắng) */
+    --primary-hover: 220 43% 40%;     /* #3a5791 */
     --primary-foreground: 0 0% 100%;
     --primary-soft: 218 48% 95%;      /* #eef2f9 nền nhấn nhẹ */
     --secondary: 0 0% 100%;           /* nút phụ: nền trắng + viền */
@@ -31,8 +32,8 @@
     /* Viền & focus */
     --border: 216 14% 85%;            /* #d5d9df viền ô nhập, card, bảng */
     --border-subtle: 220 15% 92%;     /* #e8eaee kẻ dòng bảng */
-    --input: 216 14% 85%;
-    --ring: 218 56% 75%;              /* #9db7e3 viền ô đang chọn */
+    --input: 218 10% 56%;             /* #858d9b viền ô nhập, checkbox (3.34:1) */
+    --ring: 219 40% 46%;              /* #4767a4 viền/vòng focus (5.61:1) */
 
     /* Trạng thái ngữ nghĩa */
     --success: 146 61% 30%;  --success-soft: 146 39% 93%;   /* #1e7b46 / #e6f4ec */

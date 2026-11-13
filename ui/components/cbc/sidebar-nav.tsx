@@ -17,7 +17,7 @@ interface SidebarNavProps {
 /** Thanh điều hướng trái nền sáng: nhóm có vạch trái màu chủ đạo, mục đang chọn nền #5879B9 chữ trắng. */
 export function SidebarNav({ brand, subtitle, groups, activeKey, footer }: SidebarNavProps) {
   return (
-    <aside className="flex h-full w-60 shrink-0 flex-col border-r bg-muted">
+    <aside className="flex h-full w-72 shrink-0 flex-col border-r bg-muted">
       <div className="border-b px-4 py-3">
         <b className="block text-md">{brand}</b>
         {subtitle && <span className="text-xs text-muted-foreground">{subtitle}</span>}

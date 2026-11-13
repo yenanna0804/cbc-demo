@@ -12,17 +12,18 @@ import {
 } from "@/components/index"
 
 const colors: [string, string, string][] = [
-  ["primary", "#5879B9", "Nút chính, menu đang chọn, link, tab đang chọn"],
-  ["primary-hover", "#4767a4", "Hover nút chính"],
-  ["primary-soft", "#eef2f9", "Nền nhấn nhẹ, badge vai trò, vòng focus"],
+  ["primary", "#4767a4", "Nút chính, menu đang chọn, link, tab đang chọn, focus"],
+  ["primary-hover", "#3a5791", "Hover nút chính"],
+  ["primary-soft", "#eef2f9", "Nền nhấn nhẹ, badge vai trò"],
   ["foreground", "#333333", "Chữ chính"],
   ["muted-foreground", "#666666", "Chữ phụ, mô tả"],
-  ["faint", "#8c8c8c", "Gợi ý, placeholder"],
+  ["faint", "#767676", "Gợi ý, placeholder"],
   ["muted", "#f5f6f8", "Thanh tiêu đề, header bảng/card, sidebar"],
   ["accent", "#e9ecf1", "Hover menu, nút phụ"],
-  ["border", "#d5d9df", "Viền ô nhập, card, bảng"],
+  ["border", "#d5d9df", "Viền card, bảng, đường kẻ"],
+  ["input", "#858d9b", "Viền ô nhập, checkbox, radio"],
   ["border-subtle", "#e8eaee", "Kẻ dòng bảng"],
-  ["ring", "#9db7e3", "Viền ô đang chọn (focus)"],
+  ["ring", "#4767a4", "Viền ô đang chọn (focus)"],
   ["background", "#ffffff", "Nền trang"],
 ]
 const semantic: [string, string, string, string][] = [
@@ -46,7 +47,7 @@ function App() {
     <div className="mx-auto grid max-w-[1100px] grid-cols-[minmax(0,1fr)] gap-8 px-4 py-6">
       <header>
         <h1>CBC CMS – Design system</h1>
-        <p className="text-muted-foreground">shadcn/ui + Tailwind v3 · font hệ thống 14px · nút chính #5879B9. Hướng dẫn đầy đủ: DESIGN.md.</p>
+        <p className="text-muted-foreground">shadcn/ui + Tailwind v3 · Public Sans 16px · nút chính #4767a4 · màu đạt WCAG 2.2 AA. Hướng dẫn đầy đủ: DESIGN.md.</p>
       </header>
 
       <Section id="colors" title="1. Màu chủ đạo">
@@ -72,12 +73,12 @@ function App() {
 
       <Section id="type" title="2. Chữ">
         <div className="grid content-start gap-1.5">
-          <div className="text-2xl font-bold">32px · số lớn</div>
-          <div className="text-xl font-bold">26px · text-xl · số KPI</div>
-          <div className="text-lg font-bold">20px · text-lg · h1 tiêu đề trang</div>
-          <div className="text-md font-bold">16px · text-md · h2 tiêu đề card</div>
-          <div className="text-sm"><b>14px · text-sm · nhãn (đậm)</b> và chữ thân (thường) – cỡ mặc định</div>
-          <div className="text-xs text-muted-foreground">12.5px · text-xs · gợi ý, ghi chú, badge</div>
+          <div className="text-2xl font-bold">36px · số lớn</div>
+          <div className="text-xl font-bold">30px · text-xl · số KPI</div>
+          <div className="text-lg font-bold">24px · text-lg · h1 tiêu đề trang</div>
+          <div className="text-md font-bold">18px · text-md · h2 tiêu đề card</div>
+          <div className="text-sm"><b>16px · text-sm · nhãn (đậm)</b> và chữ thân (thường) – cỡ mặc định</div>
+          <div className="text-xs text-muted-foreground">14px · text-xs · gợi ý, ghi chú, badge</div>
         </div>
       </Section>
 
@@ -190,7 +191,7 @@ function App() {
       </Section>
 
       <Section id="layout" title="9. Bố cục màn hình mẫu">
-        <div className="flex h-[400px] overflow-x-auto rounded-lg border">
+        <div className="flex h-[440px] overflow-x-auto rounded-lg border">
           <SidebarNav brand="CMS Cell Broadcast" subtitle="VNPT" activeKey="list" footer="Người soạn thảo"
             groups={[{ title: "Phát tin cảnh báo", items: [{ key: "new", label: "Soạn bản tin", href: "#" }, { key: "list", label: "Danh sách bản tin", href: "#" }, { key: "ap", label: "Chờ duyệt", href: "#", count: 2 }] },
                      { title: "Báo cáo", items: [{ key: "rp", label: "Báo cáo chiến dịch", href: "#" }] }]} />
