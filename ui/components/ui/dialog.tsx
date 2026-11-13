@@ -47,7 +47,7 @@ const DialogBody = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement
   <div className={cn("grid gap-3 p-3.5", className)} {...props} />
 )
 const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("flex justify-end gap-2 border-t px-3.5 py-2.5", className)} {...props} />
+  <div className={cn("flex flex-wrap items-center justify-start gap-2 border-t px-3.5 py-2.5", className)} {...props} />
 )
 
 const DialogTitle = React.forwardRef<

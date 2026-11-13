@@ -19,7 +19,7 @@ const buttonVariants = cva(
         "destructive-solid": "border-destructive bg-destructive text-destructive-foreground hover:bg-destructive/90",
         success: "border-success bg-success text-white hover:bg-success/90",
         ghost: "border-transparent bg-transparent hover:bg-accent",
-        link: "border-transparent bg-transparent px-1 text-primary underline-offset-4 hover:underline",
+        link: "border-transparent bg-transparent px-2 text-primary underline underline-offset-4 hover:text-primary-hover",
       },
       size: {
         default: "h-control px-4",
@@ -36,12 +36,23 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean
+  /** true khi đang gửi: nút bị khoá + aria-busy */
+  loading?: boolean
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, loading = false, disabled, ...props }, ref) => {
     const Comp = asChild ? Slot : "button"
-    return <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />
+    // loading: khoá nút khi đang gửi để tránh bấm 2 lần (GOV.UK: prevent double click)
+    return (
+      <Comp
+        className={cn(buttonVariants({ variant, size, className }), loading && "cursor-progress")}
+        ref={ref}
+        disabled={disabled || loading}
+        aria-busy={loading || undefined}
+        {...props}
+      />
+    )
   }
 )
 Button.displayName = "Button"

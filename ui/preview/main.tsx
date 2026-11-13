@@ -8,7 +8,7 @@ import {
   Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
   Dialog, DialogTrigger, DialogContent, DialogHeader, DialogBody, DialogFooter, DialogTitle, DialogDescription, DialogClose,
   Tabs, TabsList, TabsTrigger, TabsContent, Alert, AlertTitle, AlertDescription, Separator,
-  StatusBadge, STATUS, type MessageStatus, FormField, PageHeader, StatTile, SidebarNav,
+  StatusBadge, STATUS, type MessageStatus, FormField, PageHeader, StatTile, SidebarNav, FormActions, RequiredHint,
 } from "@/components/index"
 
 const colors: [string, string, string][] = [
@@ -100,9 +100,10 @@ function App() {
         </div>
       </Section>
 
-      <Section id="forms" title="4. Ô nhập & biểu mẫu">
-        <Card>
-          <CardContent className="grid gap-3 md:grid-cols-2">
+      <Section id="forms" title="4. Ô nhập & biểu mẫu (1 cột, nút cuối form căn trái)">
+        <Card className="max-w-[720px]">
+          <CardHeader><CardTitle>Thông tin bản tin<RequiredHint /></CardTitle></CardHeader>
+          <CardContent className="grid gap-4">
             <FormField id="f1" label="Tiêu đề" required hint="Hiển thị trên dòng đầu bản tin"><Input placeholder="Nhập tiêu đề" /></FormField>
             <FormField id="f2" label="Mức cảnh báo" required>
               <Select><SelectTrigger id="f2"><SelectValue placeholder="Chọn mức cảnh báo" /></SelectTrigger>
@@ -113,7 +114,7 @@ function App() {
             </FormField>
             <FormField id="f3" label="Mã OTP" required error="Mã OTP không đúng"><Input defaultValue="12345" /></FormField>
             <FormField id="f4" label="Người tạo"><Input readOnly value="Nguyễn Văn A (chỉ đọc)" /></FormField>
-            <FormField id="f5" label="Nội dung" required hint="0/650 ký tự" className="md:col-span-2"><Textarea placeholder="Nhập nội dung bản tin" /></FormField>
+            <FormField id="f5" label="Nội dung" required hint="0/650 ký tự" ><Textarea placeholder="Nhập nội dung bản tin" /></FormField>
             <div className="grid content-start gap-1.5">
               <Label>Thời điểm phát</Label>
               <RadioGroup defaultValue="now" className="flex gap-4">
@@ -125,6 +126,9 @@ function App() {
               <Label>Mạng phát</Label>
               <label className="flex items-center gap-1.5"><Checkbox defaultChecked />4G</label>
             </div>
+            <Separator />
+            <FormActions><Button>Gửi duyệt</Button><Button variant="outline">Lưu nháp</Button><Button variant="link">Huỷ</Button></FormActions>
+            <FormActions><Button loading>Đang gửi…</Button><span className="text-xs text-muted-foreground">loading: khoá nút khi đang gửi</span></FormActions>
           </CardContent>
         </Card>
       </Section>
@@ -150,7 +154,7 @@ function App() {
             <b>Mã bản tin</b><span>BT-2026-0012</span>
             <b>Nơi gửi</b><span>Tỉnh Quảng Bình · 12 xã</span>
           </CardContent>
-          <CardFooter><Button variant="outline">Xem báo cáo</Button><Button variant="destructive">Dừng bản tin</Button></CardFooter>
+          <CardFooter><Button variant="destructive">Dừng bản tin</Button><Button variant="outline">Xem báo cáo</Button></CardFooter>
         </Card>
       </Section>
 
@@ -182,9 +186,9 @@ function App() {
           <Dialog>
             <DialogTrigger asChild><Button variant="destructive">Mở hộp thoại Dừng bản tin</Button></DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>Dừng bản tin BT-0012?</DialogTitle><DialogDescription>Cần nhập OTP để xác nhận.</DialogDescription></DialogHeader>
+              <DialogHeader><DialogTitle>Dừng bản tin BT-0012?<RequiredHint /></DialogTitle><DialogDescription>Cần nhập OTP để xác nhận.</DialogDescription></DialogHeader>
               <DialogBody><FormField id="otp" label="Mã OTP" required><Input placeholder="6 chữ số" /></FormField></DialogBody>
-              <DialogFooter><DialogClose asChild><Button variant="outline">Huỷ</Button></DialogClose><Button variant="destructive-solid">Xác nhận dừng</Button></DialogFooter>
+              <DialogFooter><Button variant="destructive-solid">Xác nhận dừng</Button><DialogClose asChild><Button variant="link">Huỷ</Button></DialogClose></DialogFooter>
             </DialogContent>
           </Dialog>
         </div>

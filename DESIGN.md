@@ -39,7 +39,8 @@ ui/
 │   │   button, input, textarea, label, select, checkbox, radio-group,
 │   │   card, badge, table, dialog, tabs, alert, separator
 │   └── cbc/               ← CBC-specific components
-│       status-badge, form-field, page-header, stat-tile, sidebar-nav
+│       status-badge, form-field, page-header, stat-tile, sidebar-nav,
+│       form-actions, required-hint
 ├── examples/compose-message.tsx  ← sample "Soạn bản tin" screen built from the components
 ├── preview/main.tsx       ← source of the sample page (+ app.js/app.css builds)
 ├── index.html             ← sample page
@@ -124,7 +125,7 @@ Always use `<StatusBadge status="..." />`. Do not build a status badge by hand.
 
 | Component | Variants / notes |
 |---|---|
-| `Button` | `variant`:<br>• `default`: primary button, #4767a4<br>• `outline`: secondary button with white background and border<br>• `secondary`<br>• `destructive`: red outline (Dừng, Từ chối)<br>• `destructive-solid`: solid red, for confirming inside a dialog<br>• `success`<br>• `ghost`<br>• `link`<br>`size`: `default`, `sm`, `lg`, `icon`. Supports `asChild` to wrap `<a>`. |
+| `Button` | `variant`:<br>• `default`: primary button, #4767a4<br>• `outline`: secondary button with white background and border<br>• `secondary`<br>• `destructive`: red outline (Dừng, Từ chối)<br>• `destructive-solid`: solid red, for confirming inside a dialog<br>• `success`<br>• `ghost`<br>• `link`<br>`size`: `default`, `sm`, `lg`, `icon`. Supports `asChild` to wrap `<a>`. `loading` disables the button and sets `aria-busy` while sending. |
 | `Input`, `Textarea` | 1px grey border. Focus gives a light-blue border with a light halo. `readOnly` gives a grey background. `aria-invalid` gives a red border. |
 | `Label` | Bold, 16px. |
 | `Select` | Radix Select. Put the `id` on `SelectTrigger`. |
@@ -145,18 +146,24 @@ Always use `<StatusBadge status="..." />`. Do not build a status badge by hand.
 | `FormField` | Bold label + `*` for a required field + input + hint (grey) or error (red). Sets `id`, `aria-invalid` and `aria-describedby` automatically. |
 | `PageHeader` | Page title + description + action buttons on the right. |
 | `StatTile` | Figure tile for reports and dashboards (`tone`: default, success, warning, destructive). |
+| `FormActions` | Button group at the end of a form or dialog: left-aligned, primary first, Huỷ as a link (§5.5). |
+| `RequiredHint` | ⓘ icon with the "Dấu * đỏ là trường bắt buộc" tooltip on hover, focus and tap (§5.4). |
 | `SidebarNav` | Light left menu: group headings with a primary-colour left bar, the selected item on a #4767a4 background with white text, and a red counter badge. |
 
 ### 4.3 Usage example
 
 ```tsx
-import { Button, Input, FormField, StatusBadge, PageHeader } from "@/components/index"
+import { Button, Input, FormField, FormActions, StatusBadge, PageHeader } from "@/components/index"
 
-<PageHeader title="Soạn bản tin"
-  actions={<><Button variant="outline">Lưu nháp</Button><Button>Gửi duyệt</Button></>} />
+<PageHeader title="Soạn bản tin" requiredHint />
 <FormField id="title" label="Tiêu đề" required hint="Hiển thị trên dòng đầu bản tin">
   <Input placeholder="Nhập tiêu đề" />
 </FormField>
+<FormActions>
+  <Button loading={sending}>Gửi duyệt</Button>
+  <Button variant="outline">Lưu nháp</Button>
+  <Button variant="link">Huỷ</Button>
+</FormActions>
 <StatusBadge status="pending" />
 ```
 
@@ -164,29 +171,49 @@ A fuller example is in `ui/examples/compose-message.tsx`.
 
 ## 5. Layout rules
 
+Settled by anna on 13/11/2026, based on [USWDS Form](https://designsystem.digital.gov/components/form/), [GOV.UK Button](https://design-system.service.gov.uk/components/button/), [GOV.UK Question pages](https://design-system.service.gov.uk/patterns/question-pages), [UK Parliament – Designing forms](https://designsystem.parliament.uk/how-tos/designing-forms/) and [NN/g – OK/Cancel](https://www.nngroup.com/articles/ok-cancel-or-cancel-ok/).
+
 1. **Screen frame:**
    - A 288px left menu (`SidebarNav`).
-   - A 44px title bar on a `bg-muted` background.
+   - A title bar on a `bg-muted` background.
    - Content padded 16–20px.
    - Below 800px the menu is hidden behind a hamburger button.
-2. **Page heading:** `PageHeader` comes first. The primary button goes **last on the right**. Each action area has **at most one** primary button, and the other buttons use `outline`.
-3. **Forms:**
-   - The label goes above the input. A required field has a red `*`.
-   - The hint or error goes below the input.
-   - Use 2 columns on desktop and 1 column below 800px.
-4. **Tables:**
+2. **Forms: one column.**
+   - One field per row, stacked vertically ("Use simple vertical layouts" – USWDS; "You must lay out forms using a single column" – UK Parliament).
+   - Keep the form column to about 720px wide (`max-w-[720px]`) so lines stay readable.
+   - Exception: a filter/search bar above a table may sit on one row. It is a toolbar, not a data-entry form.
+   - The compose screen keeps the **message preview on the right**, because SAFECOM recommends previewing before sending. Only the preview sits on the right; every input stays in the single left column.
+3. **Labels, hints and errors:**
+   - The label goes above the input.
+   - The hint (grey) and the error (red) go directly under the input, aligned with it.
+   - On a failed submit, also show a summary alert at the top of the form naming the fields with errors.
+4. **Required fields:**
+   - Mark each one with a red `*` after the label (USWDS).
+   - Do not write the explanation as a line of text in the form. Put an **ⓘ icon next to the form title** (`<RequiredHint />`, or `<PageHeader requiredHint />`). It shows "Dấu * đỏ là trường bắt buộc" on mouse hover, on keyboard focus (Tab) and on tap (phones have no hover). Esc closes it.
+5. **Buttons at the end of a form or dialog** (`<FormActions>`, `CardFooter`, `DialogFooter`):
+   - Put them **below the last field, aligned left** with the edge of the inputs ("Align the primary action button to the left edge of your form" – GOV.UK; "Do not place buttons to the right of the form" – UK Parliament).
+   - Order them as: **primary button first**, then the secondary button (`outline`), then **Huỷ / Quay lại as a `link`**. Example: `[Gửi duyệt] [Lưu nháp] Huỷ`.
+   - Each action area has **at most one** primary button.
+6. **Page toolbar** (detail and list pages, not forms):
+   - Actions for the whole record, such as Duyệt và phát, Từ chối, Dừng or Tạo bản tin, sit in `PageHeader` on the right.
+   - These are commands on an existing record, not the submit of a form.
+7. **Dangerous actions** (Dừng bản tin, Từ chối, Xoá):
+   - The first button is `destructive` (outline).
+   - It always opens a `Dialog`. The confirm button is `destructive-solid` and its text says exactly what will happen ("Xác nhận dừng"). OTP is entered there when the process requires it.
+   - Do not rely on red alone (GOV.UK).
+8. **Prevent double submission:**
+   - While a request is being sent, the button is `loading` (disabled + `aria-busy`).
+   - The server must also reject duplicates.
+9. **Tables:**
    - The STT column is narrow.
    - Codes (message code, Cell ID) use `font-mono`.
    - Statuses use `StatusBadge`.
    - Row actions use a `link` or `sm` button, aligned right.
-5. **Dangerous actions** (Dừng bản tin, Từ chối, Xoá):
-   - The trigger button is `destructive` (outline).
-   - It always opens a `Dialog`. The confirm button is `destructive-solid`, and OTP is entered there when the process requires it.
-6. **Feedback:** use an inline `Alert` on the screen and a short toast after an action. The text must say exactly what happened, for example "Đã gửi duyệt bản tin."
-7. **Text:**
-   - Write UI text in Vietnamese with full diacritics.
-   - Use the function names exactly as in the URD (for example "Gửi duyệt", "Phát lại bản tin", "Hẹn giờ phát").
-8. **Mobile:** every screen must fit a 390px width with no horizontal page scroll. Wide tables scroll inside their own frame.
+10. **Feedback:** use an inline `Alert` on the screen and a short toast after an action. The text must say exactly what happened, for example "Đã gửi duyệt bản tin."
+11. **Text:**
+    - Write UI text in Vietnamese with full diacritics.
+    - Use the function names exactly as in the URD.
+12. **Mobile:** every screen must fit a 390px width with no horizontal page scroll. Wide tables and tab bars scroll inside their own frame.
 
 ## 6. Accessibility
 

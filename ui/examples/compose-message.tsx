@@ -3,7 +3,7 @@ import {
   Button, Card, CardHeader, CardTitle, CardContent, CardFooter, Input, Textarea,
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
   RadioGroup, RadioGroupItem, Label, Alert, AlertDescription,
-  PageHeader, FormField, StatusBadge,
+  PageHeader, FormField, StatusBadge, FormActions,
 } from "@/components/index"
 
 export default function ComposeMessage() {
@@ -11,15 +11,15 @@ export default function ComposeMessage() {
     <div className="p-5">
       <PageHeader
         title="Soạn bản tin"
+        requiredHint
         description="Chọn mẫu hoặc soạn tự do, chọn nơi gửi theo Tỉnh/Xã."
-        actions={<><Button variant="outline">Lưu nháp</Button><Button>Gửi duyệt</Button></>}
       />
-      <Card>
+      <Card className="max-w-[720px]">
         <CardHeader>
           <CardTitle>Thông tin bản tin</CardTitle>
           <StatusBadge status="draft" />
         </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-2">
+        <CardContent className="grid gap-4">
           <FormField id="title" label="Tiêu đề" required>
             <Input placeholder="Nhập tiêu đề bản tin" />
           </FormField>
@@ -32,7 +32,7 @@ export default function ComposeMessage() {
               </SelectContent>
             </Select>
           </FormField>
-          <FormField id="content" label="Nội dung" required hint="Tối đa 650 ký tự" className="md:col-span-2">
+          <FormField id="content" label="Nội dung" required hint="Tối đa 650 ký tự">
             <Textarea />
           </FormField>
           <div className="grid gap-1.5">
@@ -42,13 +42,16 @@ export default function ComposeMessage() {
               <label className="flex items-center gap-1.5"><RadioGroupItem value="schedule" />Hẹn giờ</label>
             </RadioGroup>
           </div>
-          <Alert variant="warning" className="md:col-span-2">
+          <Alert variant="warning">
             <AlertDescription>Bản tin đã gửi duyệt sẽ không sửa được.</AlertDescription>
           </Alert>
         </CardContent>
         <CardFooter>
-          <Button variant="outline">Huỷ</Button>
-          <Button>Gửi duyệt</Button>
+          <FormActions>
+            <Button>Gửi duyệt</Button>
+            <Button variant="outline">Lưu nháp</Button>
+            <Button variant="link">Huỷ</Button>
+          </FormActions>
         </CardFooter>
       </Card>
     </div>

@@ -181,7 +181,7 @@ h3.sec{margin:2px 0 10px;font-size:13.5px;text-transform:uppercase;letter-spacin
 .modal.wide{max-width:760px}
 .modal .hd{padding:14px 18px;border-bottom:1px solid var(--line2);display:flex;align-items:center}
 .modal .bd{padding:18px;overflow:auto}
-.modal .ft{padding:12px 18px;border-top:1px solid var(--line2);display:flex;justify-content:flex-end;gap:8px}
+.modal .ft{padding:12px 18px;border-top:1px solid var(--line2);display:flex;justify-content:flex-start;align-items:center;gap:8px;flex-wrap:wrap}
 .x{border:0;background:none;font-size:20px;cursor:pointer;margin-left:auto;color:var(--muted)}
 .otp{letter-spacing:.5em;font-size:22px;text-align:center;font-family:Consolas,monospace}
 #toasts{position:fixed;right:18px;top:68px;z-index:60;display:flex;flex-direction:column;gap:8px}
@@ -250,6 +250,22 @@ h3.sec{font-size:16px}
 .b-cancelled{background:#f1f1f1;color:#666}
 .faint,.hint,input::placeholder,textarea::placeholder{color:var(--faint)}
 .btn:focus-visible,.nav a:focus-visible,a:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+/* BỐ CỤC THEO CHUẨN (anna chốt 13/11): form 1 cột; nút cuối form căn trái, nút chính đứng đầu, Huỷ/Quay lại dạng link; ⓘ chú thích dấu *; khoá nút khi đang gửi */
+.grid.g2:has(input,select,textarea),.grid.g3:has(input,select,textarea),.grid.g4:has(input,select,textarea){grid-template-columns:minmax(0,1fr)}
+.modal .grid.g2:has(input,select,textarea),.modal .grid.g3:has(input,select,textarea){grid-template-columns:minmax(0,1fr)}
+input[type=text],input[type=password],input[type=number],input[type=date],input[type=email],input[type=tel],select{height:42px}
+.formacts{border-top:1px solid var(--line);padding:16px 0 8px;margin-top:4px}
+.acts{justify-content:flex-start}
+.btn.link{border-color:transparent;background:none;color:var(--pri);text-decoration:underline;text-underline-offset:3px;padding-left:8px;padding-right:8px}
+.btn.link:hover{background:none;color:var(--pri-d)}
+.btn[aria-busy=true]{opacity:.6;cursor:progress}
+.tipw{position:relative;display:inline-flex;align-items:center;margin-left:6px;vertical-align:middle}
+.tipb{width:22px;height:22px;border-radius:50%;border:1px solid var(--input);background:#fff;color:var(--pri);font:700 13px/1 Georgia,serif;font-style:italic;cursor:help;padding:0;display:inline-grid;place-items:center}
+.tipb:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.tipt{position:absolute;left:50%;top:calc(100% + 8px);transform:translateX(-50%);background:#1b2330;color:#fff;font-size:14px;font-weight:400;line-height:1.4;padding:8px 10px;border-radius:3px;white-space:nowrap;z-index:60;display:none;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.tipt::before{content:"";position:absolute;left:50%;top:-5px;transform:translateX(-50%) rotate(45deg);width:10px;height:10px;background:#1b2330}
+.tipw:hover .tipt,.tipw:focus-within .tipt,.tipw.open .tipt{display:block}
+@media (max-width:800px){.tipt{white-space:normal;width:220px}}
 </style>
 </head>
 <body>
@@ -808,7 +824,7 @@ function viewLogin(){
     <p class="muted">Mã OTP đã gửi qua SMS tới số ${esc(loginStep.u.phone.slice(0,4))}***${esc(loginStep.u.phone.slice(-3))}.</p>
     ${loginStep.err?`<div class="alert err">${esc(loginStep.err)}</div>`:''}
     <form novalidate data-form="loginOtp"><label class="f">Mã OTP <span class="req">*</span></label><input class="otp" name="otp" maxlength="6" inputmode="numeric" autocomplete="one-time-code" autofocus>
-    <div class="row" style="margin-top:14px"><button class="btn" type="button" data-act="loginBack">Quay lại</button><button class="btn link" type="button" data-act="loginResend">Gửi lại mã</button><div class="sp"></div><button class="btn pri">Xác nhận</button></div></form>
+    <div class="row acts" style="margin-top:14px"><button class="btn" type="button" data-act="loginBack">Quay lại</button><button class="btn link" type="button" data-act="loginResend">Gửi lại mã</button><div class="sp"></div><button class="btn pri">Xác nhận</button></div></form>
   </div></div></div></div>`;
   return `<div class="login"><div class="l">${loginLeft()}</div><div class="r"><div class="box"><div class="card"><div class="bd">
     <h1 style="margin-bottom:4px">Đăng nhập</h1><p class="muted" style="margin-top:0">Hệ thống quản lý phát tin Cell Broadcast</p>
@@ -969,13 +985,13 @@ function viewCompose(r){
           <input type="text" data-f="schedAt" autocomplete="off" placeholder="DD/MM/YYYY HH:mm" value="${esc(F.schedAt)}" style="width:170px;${F.sendMode==='schedule'?'':'display:none'}"></div>${er('schedAt')}
         <div class="hint">Hẹn giờ: hệ thống tự gửi lệnh phát đúng thời điểm hẹn sau khi bản tin được duyệt. Nếu duyệt sau giờ hẹn thì phát ngay. Thời hạn phát tính từ lúc phát.</div></div>
     </div></div>
+    <div class="formacts">
+      <div class="small muted mb">Sau khi gửi duyệt, Người phê duyệt (khác người soạn) duyệt và nhập OTP thì hệ thống mới phát.</div>
+      <div class="row acts"><button class="btn pri" data-act="submitMsg">Gửi duyệt</button><button class="btn" data-act="saveDraft">Lưu nháp</button><a class="btn link" href="${r.id?`#/messages/${r.id}`:'#/messages'}">Huỷ</a></div>
+    </div>
   </div>
   <div class="sticky">
     <div class="card mb"><div class="hd"><h2>Xem trước</h2><span class="small muted">mô phỏng gần đúng</span></div><div class="bd" id="preview"></div></div>
-    <div class="card"><div class="bd">
-      <div class="small muted mb">Sau khi gửi duyệt, Người phê duyệt (khác người soạn) duyệt và nhập OTP thì hệ thống mới phát.</div>
-      <div class="row"><a class="btn" href="${r.id?`#/messages/${r.id}`:'#/messages'}">Huỷ</a><div class="sp"></div><button class="btn" data-act="saveDraft">Lưu nháp</button><button class="btn pri" data-act="submitMsg">Gửi duyệt</button></div>
-    </div></div>
   </div></div>`;
 }
 function composeContent(){
@@ -1832,6 +1848,46 @@ setInterval(() => { if (me && now() - lastAct > S.settings.sessionTimeout*60e3){
   migrate(); migrateMap3(); save();
   loadSession(); render();
   setInterval(tick, 500);
+})();
+
+/* ===== Bố cục theo chuẩn (13/11): sắp xếp cụm nút, ⓘ chú thích dấu *, khoá nút khi đang gửi ===== */
+(function(){
+  const PRIMARY = b => b.matches('.pri,.ok,.dangerfill') || (b.matches('.danger') && !b.matches('.sm'));
+  const CANCEL = b => b.dataset.act==='closeModal' || /^(Huỷ|Quay lại)$/.test(b.textContent.trim());
+  function arrange(box){
+    if (box.dataset.arr) return; box.dataset.arr = 1;
+    box.querySelectorAll(':scope > .sp').forEach(x => x.remove());
+    const items = [...box.children];
+    items.filter(CANCEL).forEach(b => { b.classList.add('link'); });
+    const pri = items.filter(b => !CANCEL(b) && PRIMARY(b));
+    const sec = items.filter(b => !CANCEL(b) && !PRIMARY(b) && !b.classList.contains('link'));
+    const lnk = items.filter(b => !pri.includes(b) && !sec.includes(b));
+    [...pri, ...sec, ...lnk].forEach(b => box.appendChild(b));
+  }
+  const REQ_TIP = 'Dấu <span style="color:#ff8a7a">*</span> đỏ là trường bắt buộc';
+  function tip(){ return `<span class="tipw"><button type="button" class="tipb" aria-label="Chú thích: dấu * đỏ là trường bắt buộc" aria-expanded="false" data-tip>i</button><span class="tipt" role="tooltip">${REQ_TIP}</span></span>`; }
+  function addTips(){
+    const r = document.getElementById('root'), mo = document.getElementById('modal');
+    const h1 = r && r.querySelector('.ph h1');
+    if (h1 && r.querySelector('.req') && !h1.parentElement.querySelector('.tipw')) h1.insertAdjacentHTML('afterend', tip());
+    const card = r && [...r.querySelectorAll('.login form, .login .card')].find(c => c.querySelector('.req'));
+    if (card){ const h = card.querySelector('h1,h2'); if (h && !h.querySelector('.tipw') && !(h.nextElementSibling||{}).classList?.contains('tipw')) h.insertAdjacentHTML('beforeend', tip()); }
+    const mh = mo && mo.querySelector('.modal .hd h2');
+    if (mh && mo.querySelector('.req') && !mh.querySelector('.tipw')) mh.insertAdjacentHTML('beforeend', tip());
+  }
+  function sweep(){ document.querySelectorAll('.modal .ft, .acts').forEach(arrange); addTips(); }
+  new MutationObserver(sweep).observe(document.body, {childList:true, subtree:true});
+  document.addEventListener('click', e => {
+    const t = e.target.closest('[data-tip]');
+    document.querySelectorAll('.tipw.open').forEach(w => { if (!t || w !== t.parentElement){ w.classList.remove('open'); w.querySelector('[data-tip]').setAttribute('aria-expanded','false'); } });
+    if (t){ e.preventDefault(); e.stopPropagation(); const w = t.parentElement; const o = w.classList.toggle('open'); t.setAttribute('aria-expanded', o); return; }
+    const b = e.target.closest('button.btn.pri, button.btn.ok, button.btn.dangerfill');
+    if (!b) return;
+    if (b.getAttribute('aria-busy') === 'true'){ e.preventDefault(); e.stopImmediatePropagation(); return; }
+    setTimeout(() => { if (!b.isConnected) return; b.setAttribute('aria-busy','true'); b.disabled = true; setTimeout(() => { b.removeAttribute('aria-busy'); b.disabled = false; }, 1200); }, 0);
+  }, true);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.tipw.open').forEach(w => w.classList.remove('open')); });
+  sweep();
 })();
 </script>
 </body>
