@@ -1168,7 +1168,7 @@ function viewMsg(r){
   if (can('edit',m)) acts.push(`<a class="btn" href="#/messages/${m.id}/edit">Sửa</a>`);
   if (can('cancel',m)) acts.push(`<button class="btn danger" data-act="cancelMsg" data-id="${m.id}">Huỷ bản tin</button>`);
   if (can('recall',m)) acts.push(`<button class="btn" data-act="recallMsg" data-id="${m.id}">Thu hồi</button>`);
-  if (can('pause',m)) acts.push(`<button class="btn" data-act="pauseMsg" data-id="${m.id}">Tạm dừng để sửa</button>`);
+  if (can('pause',m)) acts.push(`<button class="btn" data-act="pauseMsg" data-id="${m.id}">Thu hồi</button>`);
   if (can('submit',m)) acts.push(`<button class="btn pri" data-act="submitExisting" data-id="${m.id}">Gửi duyệt</button>`);
   if (can('approve',m)) acts.push(`<button class="btn danger" data-act="reject" data-id="${m.id}">Từ chối</button><button class="btn ok" data-act="approve" data-id="${m.id}">Duyệt và phát</button>`);
   if (can('update',m)) acts.push(`<button class="btn" data-act="updateMsg" data-id="${m.id}">Cập nhật nội dung</button>`);
@@ -1834,7 +1834,7 @@ const A = {
   recallMsg(el){ const m = S.messages.find(x => x.id===el.dataset.id); if (!can('recall', m)) return;
     reasonModal(`Thu hồi bản tin ${m.code}`, 'Lý do thu hồi', 'Thu hồi', 'pri', r => { m.status='draft'; m.submittedAt=null; m.updatedAt=now(); m.history.push({at:now(), by:me.id, act:'Thu hồi bản tin về Nháp', note:r}); log('Bản tin','Thu hồi bản tin', m.code); save(); toast('Đã thu hồi, bản tin về Nháp. Sửa xong gửi duyệt lại.', 'ok'); render(); }, `<div class="alert info">Bản tin đang chờ duyệt không sửa được. Thu hồi để đưa về Nháp, sửa rồi gửi duyệt lại.</div>`); },
   pauseMsg(el){ const m = S.messages.find(x => x.id===el.dataset.id); if (!can('pause', m)) return;
-    reasonModal(`Tạm dừng để sửa ${m.code}`, 'Lý do sửa', 'Tạm dừng và sửa', 'pri', r => { m.status='draft'; m.approvedBy=null; m.approverUnit=null; m.approvedAt=null; m.submittedAt=null; m.updatedAt=now(); m.history.push({at:now(), by:me.id, act:'Tạm dừng bản tin Chờ phát để sửa (thu hồi phê duyệt)', note:r}); log('Bản tin','Tạm dừng bản tin chờ phát để sửa', m.code, 'Quan trọng'); save(); toast('Đã tạm dừng, bản tin về Nháp. Sửa xong phải gửi duyệt lại.', 'warn'); go(`#/messages/${m.id}/edit`); }, `<div class="alert warn">Bản tin sẽ không tự phát nữa. Sau khi sửa phải gửi duyệt và nhập OTP lại.</div>`); },
+    reasonModal(`Thu hồi bản tin ${m.code}`, 'Lý do thu hồi', 'Thu hồi để sửa', 'pri', r => { m.status='draft'; m.approvedBy=null; m.approverUnit=null; m.approvedAt=null; m.submittedAt=null; m.updatedAt=now(); m.history.push({at:now(), by:me.id, act:'Thu hồi bản tin Chờ phát về Nháp (bỏ phê duyệt)', note:r}); log('Bản tin','Thu hồi bản tin chờ phát', m.code, 'Quan trọng'); save(); toast('Đã thu hồi, bản tin về Nháp. Sửa xong phải gửi duyệt lại.', 'warn'); go(`#/messages/${m.id}/edit`); }, `<div class="alert warn">Bản tin sẽ không tự phát nữa. Sau khi sửa phải gửi duyệt và nhập OTP lại.</div>`); },
   rebroadcastMsg(el){ const m = S.messages.find(x => x.id===el.dataset.id); if (!can('rebroadcast', m)) return;
     otpModal('Phát lại bản tin', `<div class="kv small"><div>Bản tin</div><div class="mono">${m.code}</div><div>Chiến dịch</div><div>${esc(m.campaign)}</div><div>Vùng phát</div><div>${esc(areaText(m.areas,5))} · ${nf(m.cells.length)} cell</div><div>Thời hạn</div><div>${dur(m.duration)}, tính lại từ lúc phát</div></div>
       <div class="alert warn" style="margin:12px 0 0">Bản tin được phát lại với Serial mới để máy đã nhận trước đó vẫn hiển thị lại.</div>`,
