@@ -328,6 +328,7 @@ const nf = n => Number(n||0).toLocaleString('vi-VN');
 const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
 const now = () => Date.now();
 const dur = min => { min=Math.round(min); const h=Math.floor(min/60), m=min%60; return h? (m? `${h} giờ ${m} phút`:`${h} giờ`) : `${m} phút`; };
+const cdText = ts => { const ms = ts - now(); if (ms <= 0) return 'đang gửi lệnh phát'; const s = Math.floor(ms/1000), d = Math.floor(s/86400), h = Math.floor(s%86400/3600), m = Math.floor(s%3600/60), p = n => String(n).padStart(2,'0'); return (d ? d+' ngày ' : '') + `${p(h)}:${p(m)}:${p(s%60)}`; };
 const left = ms => { if(ms<=0) return '0 phút'; const s=Math.floor(ms/1000), h=Math.floor(s/3600), m=Math.floor(s%3600/60), ss=s%60; return h? `${h} giờ ${m} phút` : (m? `${m} phút ${ss} giây` : `${ss} giây`); };
 const noAccent = s => s.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D');
 const vars = s => [...new Set([...(s||'').matchAll(/\{([^{}]+)\}/g)].map(m=>m[1]))];
@@ -952,7 +953,7 @@ function viewMessages(){
   </form></div>
   ${list.length ? `<div style="overflow:auto"><table class="t"><thead><tr><th>Mã</th><th>Tên chiến dịch</th><th>Tiêu đề</th><th>Mức ưu tiên</th><th>Vùng phát</th><th>Trạng thái</th><th>Người soạn</th><th>Cập nhật</th><th></th></tr></thead><tbody>
   ${list.map(m => `<tr class="click" data-act="open" data-id="${m.id}"><td class="mono small">${m.code}</td><td><b>${esc(m.campaign)}</b><div class="small muted">${esc(m.docNo||'')}</div></td><td class="small">${esc(m.header||'')}</td>
-    <td class="small">${m.priority}<div class="muted">${esc(PRI(m.priority).vi)}</div></td><td class="small">${esc(areaText(m.areas,2))}</td><td>${badge(m.status)}${m.pendingAction?`<div class="small" style="color:var(--warn)">${m.pendingAction.type==='update'?'Cập nhật':'Dừng'} chờ duyệt</div>`:''}</td>
+    <td class="small">${m.priority}<div class="muted">${esc(PRI(m.priority).vi)}</div></td><td class="small">${esc(areaText(m.areas,2))}</td><td>${badge(m.status)}${m.status==='scheduled'&&m.schedAt?`<div class="small" style="color:var(--info,#1d4f91)">Phát sau <b class="mono" data-cd="${m.schedAt}">${cdText(m.schedAt)}</b></div>`:''}${m.pendingAction?`<div class="small" style="color:var(--warn)">${m.pendingAction.type==='update'?'Cập nhật':'Dừng'} chờ duyệt</div>`:''}</td>
     <td class="small">${esc(U(m.createdBy).name)}</td><td class="small muted">${fmt(m.updatedAt)}</td>
     <td class="row" style="flex-wrap:nowrap">${can('edit',m)?`<a class="btn sm" href="#/messages/${m.id}/edit" data-stop>Sửa</a>`:''}${can('approve',m)?`<a class="btn sm pri" href="#/messages/${m.id}" data-stop>Duyệt</a>`:''}</td></tr>`).join('')}
   </tbody></table></div>` : `<div class="empty">Không có bản tin phù hợp.</div>`}</div>`;
@@ -1179,6 +1180,7 @@ function viewMsg(r){
   return `<div class="ph"><a href="#/messages" class="btn sm">← Danh sách</a><h1 class="mono">${m.code}</h1>${badge(m.status)}<div class="sp"></div>${acts.join('')}</div>
   ${m.status==='pending' && hp('msg.approve') && m.createdBy===me.id ? `<div class="alert warn">Bạn không được duyệt bản tin do chính mình soạn.</div>`:''}
   ${m.status==='pending' && hp('msg.compose') ? `<div class="alert info">Bản tin đang chờ Người phê duyệt xem xét.</div>`:''}
+  ${m.status==='scheduled' && m.schedAt ? `<div class="alert info">Bản tin đã duyệt, sẽ tự phát lúc <b>${fmtHM(m.schedAt)}</b>. Còn lại: <b class="mono" data-cd="${m.schedAt}" style="font-size:18px">${cdText(m.schedAt)}</b></div>`:''}
   ${m.status==='rejected' ? `<div class="alert err"><b>Bị từ chối</b> bởi ${esc(U(m.rejectedBy).name)} lúc ${fmt(m.rejectedAt)}. Lý do: ${esc(m.rejectReason)}</div>`:''}
   ${pa && live ? `<div class="card mb" style="border-color:#f0d9a8"><div class="hd" style="background:var(--warn-l)"><h2>Yêu cầu ${pa.type==='update'?'cập nhật nội dung':'dừng phát'} đang chờ duyệt</h2><span class="small muted">${esc(U(pa.by).name)} · ${fmt(pa.at)}</span><div class="sp"></div>
       ${can('cancelAction',m)?`<button class="btn sm" data-act="cancelAction" data-id="${m.id}">Rút yêu cầu</button>`:''}
@@ -1190,7 +1192,7 @@ function viewMsg(r){
       <div>Cách soạn</div><div>${m.mode==='template'?`Theo mẫu ${esc(m.templateId)}`:'Soạn tự do'}</div>
       <div>Mức ưu tiên</div><div>${m.priority} – ${esc(PRI(m.priority).vi)}</div>
       <div>Chu kỳ lặp / thời hạn</div><div>${m.repetition} giây · ${dur(m.duration)}</div>
-      <div>Thời điểm phát</div><div>${m.schedAt ? `Hẹn giờ ${fmtHM(m.schedAt)}${m.status==='scheduled' ? ` <span class="muted">(còn ${left(m.schedAt-t)})</span>` : ''}` : 'Phát ngay sau khi duyệt'}</div>
+      <div>Thời điểm phát</div><div>${m.schedAt ? `Hẹn giờ ${fmtHM(m.schedAt)}${m.status==='scheduled' ? ` <span class="muted">(còn <b class="mono" data-cd="${m.schedAt}">${cdText(m.schedAt)}</b>)</span>` : ''}` : 'Phát ngay sau khi duyệt'}</div>
       <div>Người soạn</div><div>${esc(U(m.createdBy).name)} · ${fmt(m.createdAt)}</div>
       <div>Người duyệt</div><div>${m.approvedBy?`${esc(U(m.approvedBy).name)} (${esc(m.approverUnit)}) · ${fmt(m.approvedAt)}`:'–'}</div>
       ${m.startAt?`<div>Thời gian phát</div><div>${fmt(m.startAt)} → ${fmt(m.endAt)}${live?` <span class="muted">(còn ${left(m.endAt-t)})</span>`:''}</div>`:''}
@@ -2070,6 +2072,7 @@ setInterval(() => { if (me && now() - lastAct > S.settings.sessionTimeout*60e3){
   migrate(); migrateMap3(); save();
   loadSession(); render();
   setInterval(tick, 500);
+  setInterval(() => document.querySelectorAll('[data-cd]').forEach(e => { e.textContent = cdText(Number(e.dataset.cd)); }), 1000);
 })();
 
 /* ===== Bố cục theo chuẩn (13/11): sắp xếp cụm nút, ⓘ chú thích dấu *, khoá nút khi đang gửi ===== */
