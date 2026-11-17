@@ -289,7 +289,7 @@ const ROLE = {SO:'Người soạn thảo',PD:'Người phê duyệt',QT:'Quản 
 const PERMS = [
   {g:'Phát tin cảnh báo', items:[['msg.view','Xem danh sách và chi tiết bản tin'],['msg.compose','Soạn, sửa, huỷ bản tin (khi Nháp hoặc Bị từ chối)'],['msg.submit','Gửi duyệt bản tin'],['msg.change','Yêu cầu cập nhật, dừng bản tin đang phát'],['msg.retry','Phát lại: cell lỗi, bản tin đã dừng, gửi lại lệnh huỷ'],['msg.approve','Phê duyệt hoặc từ chối bản tin và yêu cầu cập nhật, dừng (nhập OTP)']]},
   {g:'Theo dõi và báo cáo', items:[['report.view','Xem báo cáo chiến dịch, xuất file']]},
-  {g:'Quản lý danh mục', items:[['tpl.view','Xem thư viện mẫu tin'],['tpl.manage','Thêm, sửa, ngừng dùng mẫu tin'],['cat.manage','Quản lý mức ưu tiên CMAS, Tỉnh/Xã, ánh xạ Xã – Cell ID'],['set.manage','Cấu hình tham số phát mặc định']]},
+  {g:'Quản lý danh mục', items:[['tpl.view','Xem thư viện mẫu tin'],['tpl.manage','Thêm, sửa, ngừng dùng mẫu tin'],['cat.manage','Quản lý mức ưu tiên CMAS, Tỉnh/Xã, dữ liệu Tỉnh – Xã – Trạm – Cell, MME'],['set.manage','Cấu hình tham số phát mặc định']]},
   {g:'Quản trị người dùng', items:[['user.manage','Tạo, sửa, import, khoá/mở khoá tài khoản, đặt lại mật khẩu, gán vai trò cho tài khoản'],['role.manage','Tạo, sửa, xoá vai trò, gán quyền cho vai trò'],['log.view','Xem nhật ký hệ thống']]}];
 const PERM_ALL = PERMS.flatMap(g => g.items.map(i => i[0]));
 const PERM_NAME = Object.fromEntries(PERMS.flatMap(g => g.items));
@@ -421,8 +421,21 @@ const TEMPLATES_50 = [
   ["TMP-48","Cứu nạn & Dân sự","[MẤT LIÊN LẠC VIỄN THÔNG]","Mạng vô tuyến đang được phục hồi qua xe phát sóng cơ động tại {Huyen}. Điểm phát Wi-Fi miễn phí tại UBND Huyện."],
   ["TMP-49","Cứu nạn & Dân sự","[THÔNG BÁO TÌM NGƯỜI LẠC]","Tìm trẻ lạc đi lạc tại Lễ hội {Ten_Le_Hoi}: Cháu {Ten_Chau}, {Tuoi} tuổi, mặc áo {Mau_Ao}. Đưa cháu về lán BTC."],
   ["TMP-50","Cứu nạn & Dân sự","[THỬ NGHIỆM HỆ THỐNG PWS]","[TEST] Bản tin kiểm tra hệ thống cảnh báo khẩn cấp Quốc gia VNPT VinaPhone. Người dân không cần thực hiện hành động nào.",4380]];
-let gnbSeq = 20100;
-function add5G(cells, xaId, r){ const g = ++gnbSeq; for (let c=1; c<=3; c++) cells.push({id:`452-02-${g}-${c}`, enb:g, xaId, tech:'5G', subs: 200 + Math.floor(r()*900)}); }
+/* Danh sách MME theo file LLD (SNOC1, Ericsson, port 29168) */
+const MMES0 = [['MMEE1A','10.204.21.239','10.204.21.240'],['MMEE1B','10.204.20.239','10.204.20.240'],['MMEE1C','10.201.4.149','10.201.4.150'],['MMEE1D','10.201.64.157','10.201.64.158'],['MMEE1E','10.201.72.157','10.201.72.158'],
+  ['MMEE1F','10.201.138.149','10.201.138.150'],['MMEE1G','10.201.136.149','10.201.136.150'],['MMEE1H','10.201.137.149','10.201.137.150'],['MMEE1I','10.201.139.149','10.201.139.150'],['MMEE1K','10.201.140.149','10.201.140.150']]
+  .map(x => ({name:x[0], vendor:'ERICSSON', site:'SNOC1', ip1:x[1], ip2:x[2], port:29168}));
+const VENDORS = ['HUAWEI','ERICSSON','NOKIA','ZTE'];
+const PROV_XY = {HNI:[105.85,21.03], HTH:[105.90,18.34], QTR:[107.10,16.75], HUE:[107.58,16.46], DNG:[108.20,16.05], QNG:[108.80,15.12]};
+/* Tên viết tắt trạm: 3 chữ cái từ tên xã (bỏ "Phường"/"Xã", bỏ dấu) */
+const siteAbbr = n => { const w = noAccent(n.replace(/^(Phường|Xã)\s+/,'')).toUpperCase().replace(/[^A-Z ]/g,'').split(/\s+/).filter(Boolean);
+  let a = w.map(x => x[0]).join(''); const last = w[w.length-1] || 'X'; let i = 1; while (a.length < 3) a += last[i++] || 'X'; return a.slice(0,3); };
+let gnbSeq = 1200000;
+/* Cell theo cấu trúc LLD: khoá = loại mạng + eNodeB/gNodeB ID + Cell ID */
+function mkCell(tech, enb, enbName, cid, cellName, vendor, mme, xaId, lon, lat){ return {id:`${tech}-${enb}-${cid}`, tech, enb, enbName, cid, cellName, vendor, mme, xaId, lon, lat}; }
+function add5G(cells, xa, pcode, r){ const g = ++gnbSeq, ab = siteAbbr(xa.name), nn = String(900 + (g % 100)).padStart(3,'0'), xy = PROV_XY[pcode] || [106,16];
+  const lon = +(xy[0] + (r()-.5)*.2).toFixed(5), lat = +(xy[1] + (r()-.5)*.2).toFixed(5);
+  [11,12,13].forEach(cid => cells.push(mkCell('5G', g, `5G-${ab}${nn}M-${pcode}`, cid, `5G-${ab}${nn}A${cid}-${pcode}`, VENDORS[g % 4], MMES0[g % 10].name, xa.id, lon, lat))); }
 function seed(){
   const r = rng(20261028);
   const provinces = [
@@ -435,20 +448,21 @@ function seed(){
     P04:['Phường Thuận Hóa','Phường Phú Xuân','Phường Hương Thủy','Xã Phú Vang'],
     P05:['Phường Hải Châu','Phường Thanh Khê','Phường Sơn Trà','Phường Ngũ Hành Sơn','Phường Hội An','Phường Tam Kỳ','Xã Hòa Vang'],
     P06:['Phường Cẩm Thành','Phường Trương Quang Trọng','Xã Bình Sơn','Xã Lý Sơn']};
-  const xas = [], cells = []; let enb = 10100, xi = 0;
-  for (const p of provinces){
+  const xas = [], cells = []; let enb = 170100, xi = 0;
+  provinces.forEach((p, pi) => { let site = 0; const xy = PROV_XY[p.code];
     xaNames[p.id].forEach((n,i) => {
-      const id = `X${String(++xi).padStart(3,'0')}`;
-      xas.push({id, code:`${p.code}-${String(i+1).padStart(2,'0')}`, provinceId:p.id, name:n});
+      const id = `X${String(++xi).padStart(3,'0')}`, xa = {id, code:`${p.code}${String(i+1).padStart(3,'0')}`, provinceId:p.id, name:n};
+      xas.push(xa);
       if (n === 'Xã Vĩnh Linh') return; // xã chưa có dữ liệu cell – minh hoạ trường hợp không xác định được cell
-      const nEnb = 2 + Math.floor(r()*8);
+      const nEnb = 2 + Math.floor(r()*8), ab = siteAbbr(n);
       for (let e=0; e<nEnb; e++){
-        enb++;
-        for (let c=1; c<=3; c++) cells.push({id:`452-02-${enb}-${c}`, enb, xaId:id, tech:'4G', subs: 300 + Math.floor(r()*2200)});
+        enb++; const nn = String(++site).padStart(3,'0'), vendor = VENDORS[(pi + e) % 4], mme = MMES0[(pi*2 + e) % 10].name;
+        const lon = +(xy[0] + (r()-.5)*.2).toFixed(5), lat = +(xy[1] + (r()-.5)*.2).toFixed(5);
+        [11,12,13].forEach(cid => cells.push(mkCell('4G', enb, `4G-${ab}${nn}M-${p.code}`, cid, `4G-${ab}${nn}M${cid}-${p.code}`, vendor, mme, id, lon, lat)));
       }
-      if (['P01','P05'].includes(p.id)) add5G(cells, id, r);
+      if (['P01','P05'].includes(p.id)) add5G(cells, xa, p.code, r);
     });
-  }
+  });
   const users = [
     {id:'U1', username:'soanthao1', name:'Nguyễn Văn An', unit:'VNPT-VinaPhone', phone:'0912345101', email:'an.nv@vnpt.vn', role:'SO', status:'active'},
     {id:'U2', username:'soanthao2', name:'Trần Thị Bình', unit:'VNPT-VinaPhone', phone:'0912345102', email:'binh.tt@vnpt.vn', role:'SO', status:'active'},
@@ -461,7 +475,7 @@ function seed(){
     const templates = TEMPLATES_50.map(x => T(...x));
   const settings = {repetition:20, duration:120, priority:4370, maxPages:15, otpTtl:300, otpMaxFail:3, loginOtp:true,
     approveUpdateStop:false, retrySend:3, retryMax:3, simFail:2, logRetentionDays:365, sessionTimeout:30};
-  S = {v:1, provinces, xas, cells, users, priorities, templates, settings, messages:[], logs:[], seq:{}, cellsUpdatedAt:now()};
+  S = {v:1, lld:1, mmes:MMES0.map(x => ({...x})), provinces, xas, cells, users, priorities, templates, settings, messages:[], logs:[], seq:{}, cellsUpdatedAt:now()};
   seedMessages();
   log('Hệ thống','Khởi tạo dữ liệu demo','','Thông tin','SYS');
 }
@@ -523,7 +537,7 @@ function areaStats(areas){
   const set = new Set(areas); const cs = cells4G().filter(c => set.has(c.xaId));
   const enbs = new Set(cs.map(c => c.enb));
   const empty = areas.filter(a => !cs.some(c => c.xaId === a));
-  return {cells:cs.length, enbs:enbs.size, subs:cs.reduce((s,c)=>s+c.subs,0), empty, ms: performance.now()-t0};
+  return {cells:cs.length, enbs:enbs.size, empty, ms: performance.now()-t0};
 }
 function areaText(areas, max=3){
   const byP = {}; areas.forEach(a => { const x = XA(a); if(!x) return; (byP[x.provinceId] = byP[x.provinceId] || []).push(x.name); });
@@ -535,7 +549,7 @@ function resStats(m){
   for (const c of m.cells){ const v = m.results[c]; if (v==='ok') ok++; else if (v==='fail') fail++; }
   return {total, ok, fail, pending: total-ok-fail, rate: total ? ok/total*100 : 0};
 }
-const subsOf = m => S.cells.filter(c => m.cells.includes(c.id)).reduce((s,c)=>s+c.subs,0);
+const CELL = id => S.cells.find(x => x.id===id) || {};
 
 /* ---------- nhật ký (YC031) ---------- */
 function log(group, action, target, level='Thông tin', by){
@@ -726,7 +740,6 @@ function migrate(){
     S.templates.sort((a,b) => a.code.localeCompare(b.code));
     S.templates.forEach(t => { t.active = true; });
     S.priorities.forEach(p => p.active = true);
-    if (!S.cells.some(c => c.tech==='5G')){ const r = rng(5); S.xas.filter(x => ['P01','P05'].includes(x.provinceId) && S.cells.some(c => c.xaId===x.id)).forEach(x => { gnbSeq = Math.max(gnbSeq, ...S.cells.map(c => c.enb)); add5G(S.cells, x.id, r); }); }
   }
   const st = S.settings; if (st.retryMax == null) st.retryMax = 3; if (st.simFail == null) st.simFail = 2;
   if (!S.seedLink){
@@ -790,7 +803,7 @@ const NAV = [
   {p:['tpl.view'], h:'#/templates', n:'templates', t:'Thư viện mẫu tin', ic:'☰', roles:['SO','PD','QT']},
   {p:['cat.manage'], h:'#/catalog/priorities', n:'catalog', tab:'priorities', t:'Mức độ ưu tiên (CMAS)', ic:'!', roles:['QT']},
   {p:['cat.manage'], h:'#/catalog/areas', n:'catalog', tab:'areas', t:'Tỉnh/Xã', ic:'⌖', roles:['QT']},
-  {p:['cat.manage'], h:'#/catalog/cells', n:'catalog', tab:'cells', t:'Ánh xạ Xã – Cell ID', ic:'⇄', roles:['QT']},
+  {p:['cat.manage'], h:'#/catalog/cells', n:'catalog', tab:'cells', t:'Dữ liệu Trạm – Cell', ic:'⇄', roles:['QT']},
   {p:['set.manage'], h:'#/settings', n:'settings', t:'Tham số phát mặc định', ic:'⚙', roles:['QT']},
   {g:'Quản trị người dùng', roles:['QT']},
   {p:['user.manage','role.manage'], h:'#/users', n:'users', t:'Tài khoản & vai trò', ic:'👤', roles:['QT']},
@@ -1214,7 +1227,6 @@ function resultCard(m, s){
   const t = now(), okCells = m.cells.filter(c => m.results[c]==='ok');
   const per = Math.max(1, Math.floor(m.duration*60 / m.repetition));
   const done1 = okCells.length ? Math.max(...okCells.map(c => airCount(m, c) || 0)) : 0;
-  const subsIn = cs => S.cells.filter(c => cs.includes(c.id)).reduce((a,c) => a + c.subs, 0);
   const rounds = m.rounds || [];
   const stateTxt = live ? `<b>${nf(okCells.length)}/${nf(s.total)} cell đang phát</b>${s.pending?` · ${nf(s.pending)} cell chờ phản hồi`:''}${s.fail?` · <span style="color:var(--err)">${nf(s.fail)} cell lỗi</span>`:''}`
     : m.status==='expired' ? `<b>Đã kết thúc</b> · hết thời hạn phát, mạng VNPT Net tự dừng phát (CBC không gửi lệnh huỷ)`
@@ -1239,11 +1251,11 @@ function resultCard(m, s){
     <div class="cmds">${rounds.map(cmd).join('')}</div>
     <details id="cellDet" style="margin-top:14px" ${(window.__detOpen ?? (live && fails.length > 0))?'open':''}><summary style="cursor:pointer"><b>Trạng thái từng cell</b> <span class="small muted">(${nf(s.total)} cell)</span></summary>
       <div class="row small" style="margin:8px 0"><label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" data-act="onlyFail" ${window.__onlyFail?'checked':''}> Chỉ hiện cell có lỗi</label></div>
-      <div style="max-height:320px;overflow:auto"><table class="t"><thead><tr><th>Cell ID</th><th>eNodeB</th><th>Xã/Phường</th><th>Trạng thái</th><th class="num">Số lệnh đã nhận</th><th class="num">Số lần đã phát trên sóng</th><th></th></tr></thead><tbody>
+      <div style="max-height:320px;overflow:auto"><table class="t"><thead><tr><th>Cell name</th><th>eNodeB ID · Cell ID</th><th>Trạm</th><th>Xã/Phường</th><th>Trạng thái</th><th class="num">Số lệnh đã nhận</th><th class="num">Số lần đã phát trên sóng</th><th></th></tr></thead><tbody>
       ${m.cells.filter(c => !window.__onlyFail || m.results[c]==='fail' || (m.kres||{})[c]==='fail').sort((x,y) => (m.results[y]==='fail') - (m.results[x]==='fail')).map(c => { const cc = S.cells.find(x=>x.id===c) || {}; const v = m.results[c], kv = (m.kres||{})[c]; const ci = (m.cinfo||{})[c] || {}; const n = airCount(m, c);
         const st = kv==='ok' ? ['Đã dừng','var(--muted)'] : kv==='fail' ? ['Huỷ lỗi','var(--err)'] : kv==='pending' ? ['Chờ kết quả huỷ','var(--muted)'] : v==='ok' ? [live?'Đang phát':'Đã phát','var(--ok)'] : v==='fail' ? ['Phát lỗi','var(--err)'] : ['Chờ phản hồi','var(--muted)'];
         const canOne = can('retry', m) && v==='fail' && (ci.retries||0) < max;
-        return `<tr><td class="mono small">${c}</td><td class="small">${cc.enb||'–'}</td><td class="small">${esc((XA(cc.xaId)||{}).name||'–')}</td>
+        return `<tr><td class="mono small">${esc(cc.cellName||c)}</td><td class="mono small">${cc.enb||'–'} · ${cc.cid||'–'}</td><td class="mono small">${esc(cc.enbName||'–')}</td><td class="small">${esc((XA(cc.xaId)||{}).name||'–')}</td>
           <td class="small" style="color:${st[1]}">${st[0]}</td><td class="num small">${(ci.sends||0)+(ci.kills||0)}${ci.retries?` <span class="muted">(phát lại ${ci.retries})</span>`:''}</td>
           <td class="num small">${n==null?'–':(ci.count!=null?nf(n):'~'+nf(n))}</td>
           <td style="text-align:right">${canOne?`<button class="btn sm" data-act="retryCell" data-id="${m.id}" data-c="${c}">Thử lại</button>`:''}</td></tr>`; }).join('')}
@@ -1304,16 +1316,16 @@ function repCellState(m, c){ const v = m.results[c]; return v==='ok' ? ['Thành 
 function repCellRows(m){
   const q = noAccent((window.__cellQ||'').toLowerCase().trim()), f = window.__cellSt || '';
   const list = m.cells.filter(c => { const cc = S.cells.find(x => x.id===c) || {}; const v = m.results[c] || 'pending';
-    return (!f || v===f) && (!q || noAccent(`${c} ${cc.enb} ${(XA(cc.xaId)||{}).name||''}`.toLowerCase()).includes(q)); });
+    return (!f || v===f) && (!q || noAccent(`${c} ${cc.cellName||''} ${cc.enbName||''} ${cc.enb} ${(XA(cc.xaId)||{}).name||''}`.toLowerCase()).includes(q)); });
   const rows = list.map((c,i) => { const cc = S.cells.find(x => x.id===c) || {}, ci = (m.cinfo||{})[c] || {}, st = repCellState(m, c);
     const at = ci.respAt || ci.okAt || (m.results[c]==='fail' ? ci.lastAt : null);
-    return `<tr><td class="num small">${i+1}</td><td class="mono small">${c}</td><td class="mono small">${esc(cc.enb||'–')}</td><td class="small">${esc((XA(cc.xaId)||{}).name||'–')}</td><td class="small">${at && m.results[c]!=='pending' ? fmt(at) : '—'}</td><td><span class="sb ${st[1]}">${st[0]}</span></td></tr>`; }).join('');
+    return `<tr><td class="num small">${i+1}</td><td class="mono small">${esc(cc.cellName||c)}</td><td class="mono small">${esc(cc.enb||'–')} · ${esc(cc.cid||'–')}</td><td class="small">${esc((XA(cc.xaId)||{}).name||'–')}</td><td class="small">${at && m.results[c]!=='pending' ? fmt(at) : '—'}</td><td><span class="sb ${st[1]}">${st[0]}</span></td></tr>`; }).join('');
   return {rows: rows || `<tr><td colspan="6" class="empty">Không có cell phù hợp.</td></tr>`, n: list.length};
 }
 /* Số liệu báo cáo chiến dịch (CN5, CN6) – dùng chung cho màn hình và file xuất */
 function repData(m){
   const s = resStats(m), cs = S.cells.filter(c => m.cells.includes(c.id));
-  return {s, enbAll:new Set(cs.map(c => c.enb)).size, enbOk:new Set(cs.filter(c => m.results[c.id]==='ok').map(c => c.enb)).size, reach:subsOf(m),
+  return {s, enbAll:new Set(cs.map(c => c.enb)).size, enbOk:new Set(cs.filter(c => m.results[c.id]==='ok').map(c => c.enb)).size,
     info:[['Tên chiến dịch', m.campaign],['Mã chiến dịch', m.code],['Thời gian khởi tạo', fmt(m.createdAt)],['Tiêu đề bản tin', m.header||'–'],['Đơn vị duyệt', m.approverUnit||'–'],['Số văn bản yêu cầu', m.docNo||'–'],
       ['Vùng phát', areaText(m.areas, 99)],['Thời lượng phát', `${fmt(m.startAt)} – ${fmt(m.endedAt||m.endAt)} (${dur(m.endedAt ? playedMin(m) : m.duration)})`],['Trạng thái', ST[m.status]]]};
 }
@@ -1363,10 +1375,10 @@ function viewReport(m){
       <div class="legend small"><span><i style="background:#1f9d7a"></i>Thành công ${nf(s.ok)}</span><span><i style="background:#f0a63a"></i>Chờ ${nf(s.pending)}</span><span><i style="background:#e0534a"></i>Lỗi ${nf(s.fail)}</span></div>
       <div class="note" style="margin-top:12px">Lệnh phát đầu tiên hoàn thành sau <b>${r0 && r0.doneAt ? ((r0.doneAt-r0.at)/1000).toFixed(1).replace('.', ',')+' giây' : '…'}</b>. Từ lúc duyệt đến khi gửi lệnh tới MME mất <b>${((m.sentAt-m.approvedAt)/1000).toFixed(1).replace('.', ',')} giây</b>.</div></div></div>
   </div>
-  <div class="card" style="margin-top:14px" id="cellCard"><div class="hd"><h2>Danh sách Cell ID</h2><span class="small muted" id="cellCnt">${nf(cr.n)}/${nf(s.total)} cell</span><div class="sp"></div>
+  <div class="card" style="margin-top:14px" id="cellCard"><div class="hd"><h2>Danh sách cell</h2><span class="small muted" id="cellCnt">${nf(cr.n)}/${nf(s.total)} cell</span><div class="sp"></div>
       <select id="cellSt" style="width:auto"><option value="">Tất cả trạng thái</option>${[['ok','Thành công'],['fail','Lỗi'],['pending','Chờ phản hồi']].map(([v,t]) => `<option value="${v}" ${window.__cellSt===v?'selected':''}>${t}</option>`).join('')}</select>
-      <input type="text" id="cellQ" autocomplete="off" placeholder="Tìm Cell ID, trạm, xã…" value="${esc(window.__cellQ||'')}" style="width:220px"></div>
-    <div style="max-height:400px;overflow:auto"><table class="t"><thead><tr><th class="num">STT</th><th>Cell ID</th><th>Trạm (eNodeB)</th><th>Xã/Phường</th><th>Thời điểm phản hồi</th><th>Trạng thái</th></tr></thead><tbody id="cellTb">${cr.rows}</tbody></table></div></div>
+      <input type="text" id="cellQ" autocomplete="off" placeholder="Tìm cell name, trạm, xã…" value="${esc(window.__cellQ||'')}" style="width:220px"></div>
+    <div style="max-height:400px;overflow:auto"><table class="t"><thead><tr><th class="num">STT</th><th>Cell name</th><th>eNodeB ID · Cell ID</th><th>Xã/Phường</th><th>Thời điểm phản hồi</th><th>Trạng thái</th></tr></thead><tbody id="cellTb">${cr.rows}</tbody></table></div></div>
 `;
 }
 function csv(rows){ return '﻿' + rows.map(r => r.map(v => `"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\r\n'); }
@@ -1379,9 +1391,9 @@ function exportOne(m){
   const rows = [['BÁO CÁO CHIẾN DỊCH'], [], ['THÔNG TIN CHIẾN DỊCH'], ...d.info, [],
     ['KẾT QUẢ KÍCH HOẠT'], ['Tỷ lệ kích hoạt trạm (%)', s.rate.toFixed(2).replace('.', ',')], ['Cell phát thành công / chỉ định', `${s.ok}/${s.total}`], ['Cell lỗi', s.fail], ['Cell chờ phản hồi', s.pending],
     ['Trạm phát thành công / tổng', `${d.enbOk}/${d.enbAll}`], [],
-    ['DANH SÁCH CELL ID'], ['STT','Cell ID','Trạm (eNodeB)','Xã/Phường','Thời điểm phản hồi','Trạng thái']];
+    ['DANH SÁCH CELL'], ['STT','Cell name','Loại mạng','eNodeB/gNodeB ID','Cell ID','Tên trạm','MME','Xã/Phường','Thời điểm phản hồi','Trạng thái']];
   m.cells.forEach((c,i) => { const cc = S.cells.find(x=>x.id===c)||{}, ci = (m.cinfo||{})[c]||{}, at = ci.respAt || ci.okAt || (m.results[c]==='fail' ? ci.lastAt : null);
-    rows.push([i+1, c, cc.enb, (XA(cc.xaId)||{}).name, at && m.results[c]!=='pending' ? fmt(at) : '', repCellState(m, c)[0]]); });
+    rows.push([i+1, cc.cellName||c, cc.tech, cc.enb, cc.cid, cc.enbName, cc.mme, (XA(cc.xaId)||{}).name, at && m.results[c]!=='pending' ? fmt(at) : '', repCellState(m, c)[0]]); });
   rows.push([], ['Xuất lúc', fmt(now())], ['Người xuất', me.name]);
   download(`bao-cao-${m.code}.csv`, csv(rows)); log('Báo cáo','Xuất báo cáo chiến dịch', m.code); save(); toast('Đã xuất báo cáo.', 'ok');
 }
@@ -1457,21 +1469,25 @@ function areaListHtml(){
 }
 function viewCatalog(r){
   const tab = r.tab;
-  const title = {priorities:'Mức độ ưu tiên (bảng CMAS)', areas:'Danh mục Tỉnh/Xã', cells:'Dữ liệu ánh xạ Xã – Cell ID'}[tab] || '';
+  const title = {priorities:'Mức độ ưu tiên (bảng CMAS)', areas:'Danh mục Tỉnh/Xã', cells:'Dữ liệu Tỉnh – Xã – Trạm – Cell'}[tab] || '';
   let body = '';
   if (tab==='areas'){
     body = `<div class="small muted mb">Phân cấp 2 cấp Tỉnh – Xã theo mã hành chính. Chỉ tra cứu, không thêm, sửa, xoá trên CBC. <span style="color:#c05000;font-style:italic">[Cần xác nhận] nguồn dữ liệu.</span> Dữ liệu trong demo là dữ liệu mẫu.</div>
     <div class="card mb"><div class="bd"><div class="row"><input type="text" id="areaQ" autocomplete="off" placeholder="Nhập mã hoặc tên Tỉnh/Xã" value="${esc(window.__areaQ||'')}" style="flex:1;min-width:220px"><button class="btn" data-act="areaClear">Xoá tìm kiếm</button></div></div></div>
     <div id="areaList">${areaListHtml()}</div>`;
   } else if (tab==='cells'){
-    const rows = S.xas.map(x => { const cs = S.cells.filter(c => c.xaId===x.id); return {x, c4:cs.filter(c=>c.tech==='4G').length, c5:cs.filter(c=>c.tech==='5G').length, n:cs.length}; });
-    body = `<div class="card mb"><div class="bd"><div class="row"><div><b>Cập nhật dữ liệu ánh xạ từ VNPT Net</b><div class="small muted">File CSV xuất từ CSDL VNPT Net, gồm các cột: <span class="mono">cell_id, enodeb_gnodeb, ma_xa, cong_nghe</span> (cong_nghe = 4G hoặc 5G). Dữ liệu của các xã có trong file sẽ được thay thế.</div>
+    const rows = S.xas.map(x => { const cs = S.cells.filter(c => c.xaId===x.id); return {x, st:new Set(cs.map(c => c.tech+c.enb)).size, c4:cs.filter(c=>c.tech==='4G').length, c5:cs.filter(c=>c.tech==='5G').length, n:cs.length}; });
+    body = `<div class="card mb"><div class="bd"><div class="row"><div><b>Cập nhật dữ liệu Trạm – Cell từ VNPT Net</b><div class="small muted">File CSV theo mẫu LLD "Danh sách nodeB và CellID", gồm các cột: <span class="mono">${CELL_COLS.join(', ')}</span> (loai_mang = 4G hoặc 5G). Khoá duy nhất của cell: loại mạng + eNodeB/gNodeB ID + Cell ID. Dữ liệu của các xã có trong file sẽ được thay thế.</div>
       <div class="small" style="color:#c05000;font-style:italic">[Cần xác nhận] cách lấy dữ liệu từ VNPT Net (file hay kết nối trực tiếp).</div></div><div class="sp"></div>
       <button class="btn" data-act="cellTemplate">Tải file mẫu</button><label class="btn pri" style="margin:0">Chọn file CSV…<input type="file" accept=".csv,text/csv" id="cellFile" hidden></label></div>
-      <div class="small muted" style="margin-top:8px">Tổng ${nf(S.cells.length)} cell (4G: ${nf(S.cells.filter(c=>c.tech==='4G').length)} · 5G: ${nf(S.cells.filter(c=>c.tech==='5G').length)}) · cập nhật gần nhất ${fmt(S.cellsUpdatedAt)}.</div><div id="importRes"></div></div></div>
-    <div class="card"><table class="t"><thead><tr><th>STT</th><th>Tỉnh</th><th>Xã</th><th>Mã hành chính</th><th class="num">Cell 4G</th><th class="num">Cell 5G</th><th></th></tr></thead><tbody>
-      ${rows.map((r,i) => `<tr><td>${i+1}</td><td class="small">${esc(PROV(r.x.provinceId).name)}</td><td>${esc(r.x.name)}</td><td class="mono small">${esc(r.x.code)}</td><td class="num">${nf(r.c4)}</td><td class="num">${nf(r.c5)}</td><td style="text-align:right">${r.n ? `<button class="btn sm" data-act="cellView" data-id="${r.x.id}">Xem Cell ID</button>` : '<span class="small" style="color:var(--err)">Chưa có dữ liệu</span>'}</td></tr>`).join('')}
-    </tbody></table></div>`;
+      <div class="small muted" style="margin-top:8px">Tổng ${nf(new Set(S.cells.map(c => c.tech+c.enb)).size)} trạm · ${nf(S.cells.length)} cell (4G: ${nf(S.cells.filter(c=>c.tech==='4G').length)} · 5G: ${nf(S.cells.filter(c=>c.tech==='5G').length)}) · cập nhật gần nhất ${fmt(S.cellsUpdatedAt)}.</div><div id="importRes"></div></div></div>
+    <div class="card"><table class="t"><thead><tr><th>STT</th><th>Tỉnh</th><th>Xã</th><th>Mã xã</th><th class="num">Trạm</th><th class="num">Cell 4G</th><th class="num">Cell 5G</th><th></th></tr></thead><tbody>
+      ${rows.map((r,i) => `<tr><td>${i+1}</td><td class="small">${esc(PROV(r.x.provinceId).name)}</td><td>${esc(r.x.name)}</td><td class="mono small">${esc(r.x.code)}</td><td class="num">${nf(r.st)}</td><td class="num">${nf(r.c4)}</td><td class="num">${nf(r.c5)}</td><td style="text-align:right">${r.n ? `<button class="btn sm" data-act="cellView" data-id="${r.x.id}">Xem trạm, cell</button>` : '<span class="small" style="color:var(--err)">Chưa có dữ liệu</span>'}</td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="card" style="margin-top:16px"><div class="hd"><h2>Danh sách MME</h2></div><div class="bd"><div class="small muted mb">Theo file LLD (site SNOC1). CBC kết nối SBc-AP tới MME qua SCTP, port 29168. Chỉ tra cứu. <span style="color:#c05000;font-style:italic">[Cần xác nhận] danh sách MME site SNOC2.</span></div>
+    <table class="t"><thead><tr><th>STT</th><th>Tên MME</th><th>Hãng</th><th>Site</th><th>IP 1</th><th>IP 2</th><th class="num">Port</th><th class="num">Số cell</th></tr></thead><tbody>
+      ${(S.mmes||[]).map((x,i) => `<tr><td>${i+1}</td><td class="mono">${esc(x.name)}</td><td class="small">${esc(x.vendor)}</td><td class="small">${esc(x.site)}</td><td class="mono small">${esc(x.ip1)}</td><td class="mono small">${esc(x.ip2)}</td><td class="num small">${x.port}</td><td class="num small">${nf(S.cells.filter(c => c.mme===x.name).length)}</td></tr>`).join('')}
+    </tbody></table></div></div>`;
   } else {
     const yn = v => /^yes$/i.test(v) ? 'Có' : /^no$/i.test(v) ? 'Không' : esc(v||'–');
     body = `<div class="alert info mb">Danh mục khởi tạo sẵn theo Bảng cấu hình cảnh báo CMAS cho Việt Nam (Phụ lục, công văn CVT-PTHT), không thêm, không xoá mức. Âm thanh, rung và cách hiển thị do máy và hệ điều hành thực hiện theo Message ID, nên chỉ để xem. Quản trị hệ thống chỉ sửa tên hiển thị trên CMS và chọn mức được sử dụng.</div>
@@ -1507,24 +1523,30 @@ function importAreas(rows){
   Object.keys(xas).forEach(c => { if (provs[c] || S.provinces.some(p => p.code===c)) err.push(`Mã ${c} vừa là mã tỉnh vừa là mã xã.`); });
   return {provs, xas, err};
 }
+const CELL_COLS = ['stt','vendor_mme','ten_mme','ten_enodeb','cell_name','vendor_enodeb','enodeb_id','cell_id','loai_mang','long','lat','ma_xa','ma_tinh'];
 function importCells(text){
   const lines = text.replace(/^﻿/,'').split(/\r?\n/).filter(l => l.trim());
   if (lines.length < 2) return {err:['File không có dữ liệu.']};
   const hdr = lines[0].split(',').map(s => s.trim().toLowerCase());
-  const need = ['cell_id','enodeb_gnodeb','ma_xa','cong_nghe'];
+  const need = CELL_COLS.filter(n => n !== 'stt');
   const miss = need.filter(n => !hdr.includes(n)); if (miss.length) return {err:[`Thiếu cột: ${miss.join(', ')}`]};
   const idx = Object.fromEntries(need.map(n => [n, hdr.indexOf(n)]));
   const out = [], err = [], seen = new Set();
   lines.slice(1).forEach((l,i) => {
-    const c = l.split(',').map(s => s.trim()); const row = i+2, id = c[idx.cell_id], tech = (c[idx.cong_nghe]||'').toUpperCase();
-    const xa = S.xas.find(x => x.code === c[idx.ma_xa]);
-    if (!/^\d{3}-\d{2}-\d{1,7}-\d{1,3}$/.test(id||'')) return err.push(`Dòng ${row}: Cell ID "${id||''}" không hợp lệ (dạng MCC-MNC-eNodeB/gNodeB-Cell, VD 452-02-10101-1).`);
-    if (seen.has(id)) return err.push(`Dòng ${row}: trùng Cell ID ${id}.`);
-    if (!xa) return err.push(`Dòng ${row}: mã xã "${c[idx.ma_xa]}" không có trong danh mục Tỉnh/Xã.`);
-    if (!['4G','5G'].includes(tech)) return err.push(`Dòng ${row}: công nghệ phải là 4G hoặc 5G.`);
+    const c = l.split(',').map(s => s.trim()), g = k => c[idx[k]] || '', row = i+2, tech = g('loai_mang').toUpperCase();
+    const enb = g('enodeb_id'), cid = g('cell_id'), id = `${tech}-${enb}-${cid}`, lon = Number(g('long')), lat = Number(g('lat'));
+    const xa = S.xas.find(x => x.code === g('ma_xa').toUpperCase());
+    if (!['4G','5G'].includes(tech)) return err.push(`Dòng ${row}: loai_mang phải là 4G hoặc 5G.`);
+    if (!/^\d{1,10}$/.test(enb)) return err.push(`Dòng ${row}: enodeb_id "${enb}" phải là số nguyên.`);
+    if (!/^\d{1,5}$/.test(cid)) return err.push(`Dòng ${row}: cell_id "${cid}" phải là số nguyên.`);
+    if (seen.has(id)) return err.push(`Dòng ${row}: trùng cell (loại mạng ${tech}, eNodeB/gNodeB ${enb}, Cell ID ${cid}).`);
+    if (!g('cell_name') || !g('ten_enodeb')) return err.push(`Dòng ${row}: thiếu cell_name hoặc ten_enodeb.`);
+    if (!xa) return err.push(`Dòng ${row}: mã xã "${g('ma_xa')}" không có trong danh mục Tỉnh/Xã.`);
+    if (PROV(xa.provinceId).code !== g('ma_tinh').toUpperCase()) return err.push(`Dòng ${row}: xã ${xa.code} không thuộc tỉnh "${g('ma_tinh')}".`);
+    if (!(lon >= 102 && lon <= 110 && lat >= 8 && lat <= 24)) return err.push(`Dòng ${row}: toạ độ (${g('long')}, ${g('lat')}) nằm ngoài lãnh thổ Việt Nam.`);
+    if (!(S.mmes||[]).some(m => m.name === g('ten_mme'))) return err.push(`Dòng ${row}: MME "${g('ten_mme')}" không có trong danh sách MME.`);
     seen.add(id);
-    const old = S.cells.find(x => x.id===id);
-    out.push({id, enb:Number(c[idx.enodeb_gnodeb])||0, xaId:xa.id, tech, subs: old ? old.subs : 0});
+    out.push(mkCell(tech, Number(enb), g('ten_enodeb'), Number(cid), g('cell_name'), g('vendor_enodeb').toUpperCase(), g('ten_mme'), xa.id, lon, lat));
   });
   return {rows:out, err};
 }
@@ -1907,8 +1929,10 @@ const A = {
   tplSave(el){ tplSave(el.dataset.id); },
   tplView(el){ tplViewModal(S.templates.find(t => t.id===el.dataset.id)); },
   cellView(el){ const x = XA(el.dataset.id); const cs = S.cells.filter(c => c.xaId===x.id);
-    const grp = t => { const l = cs.filter(c => c.tech===t); return l.length ? `<div class="mb"><b>Cell ${t}</b> <span class="small muted">(${l.length} cell · ${new Set(l.map(c=>c.enb)).size} ${t==='4G'?'eNodeB':'gNodeB'})</span><div class="mono small" style="margin-top:4px;line-height:1.8">${l.map(c=>esc(c.id)).join(' · ')}</div></div>` : ''; };
-    modal(`Cell ID – ${esc(x.name)}, ${esc(PROV(x.provinceId).name)}`, grp('4G') + grp('5G') + '<div class="small muted">Giai đoạn 1 chỉ phát qua cell 4G.</div>', `<button class="btn" data-act="closeModal">Đóng</button>`, true); },
+    const grp = t => { const l = cs.filter(c => c.tech===t); return l.length ? `<div class="mb"><b>Cell ${t}</b> <span class="small muted">(${l.length} cell · ${new Set(l.map(c=>c.enb)).size} ${t==='4G'?'eNodeB':'gNodeB'})</span>
+      <div style="max-height:300px;overflow:auto;margin-top:6px"><table class="t"><thead><tr><th>Tên trạm</th><th>Cell name</th><th class="num">${t==='4G'?'eNodeB':'gNodeB'} ID</th><th class="num">Cell ID</th><th>Hãng</th><th>MME</th><th class="num">Kinh độ</th><th class="num">Vĩ độ</th></tr></thead><tbody>
+      ${l.map(c => `<tr><td class="mono small">${esc(c.enbName)}</td><td class="mono small">${esc(c.cellName)}</td><td class="num small">${c.enb}</td><td class="num small">${c.cid}</td><td class="small">${esc(c.vendor)}</td><td class="mono small">${esc(c.mme)}</td><td class="num small">${c.lon}</td><td class="num small">${c.lat}</td></tr>`).join('')}</tbody></table></div></div>` : ''; };
+    modal(`Trạm, cell – ${esc(x.name)} (${esc(x.code)}), ${esc(PROV(x.provinceId).name)}`, grp('4G') + grp('5G') + '<div class="small muted">Giai đoạn 1 chỉ phát qua cell 4G.</div>', `<button class="btn" data-act="closeModal">Đóng</button>`, true); },
   provDel(el){ const p = PROV(el.dataset.id); if (S.xas.some(x => x.provinceId===p.id)) return toast(`Không xoá được ${p.name}: còn xã trực thuộc. Xoá các xã trước.`, 'err');
     if (!confirm(`Xoá ${p.name}?`)) return; S.provinces = S.provinces.filter(x => x !== p); log('Danh mục','Xoá tỉnh', p.name); save(); render(); },
   xaDel(el){ const x = XA(el.dataset.id); const n = S.cells.filter(c => c.xaId===x.id).length;
@@ -1927,7 +1951,7 @@ const A = {
     if (window.XLSX){ const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'TinhXa'); XLSX.writeFile(wb, 'mau-danh-muc-tinh-xa.xlsx'); }
     else download('mau-danh-muc-tinh-xa.csv', csv(rows)); },
   xaBulk(el){ const pid = el.dataset.p || S.provinces[0].id;
-    const row = () => `<tr><td><input type="text" data-c placeholder="VD: HNI-05"></td><td><input type="text" data-n placeholder="VD: Xã Đông Anh"></td><td><button type="button" class="btn sm" data-act="xaRowDel" aria-label="Bỏ dòng">×</button></td></tr>`;
+    const row = () => `<tr><td><input type="text" data-c placeholder="VD: HNI005"></td><td><input type="text" data-n placeholder="VD: Xã Đông Anh"></td><td><button type="button" class="btn sm" data-act="xaRowDel" aria-label="Bỏ dòng">×</button></td></tr>`;
     window.__xaRow = row;
     modal('Thêm xã', `<form novalidate id="xaBF"><div class="mb" style="max-width:340px"><label class="f">Tỉnh/Thành phố <span class="req">*</span></label><select name="provinceId">${S.provinces.map(p=>`<option value="${p.id}" ${pid===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div>
       <table class="t"><thead><tr><th style="width:35%">Mã hành chính <span class="req">*</span></th><th>Tên xã <span class="req">*</span></th><th style="width:50px"></th></tr></thead><tbody id="xaRows">${row().repeat(5)}</tbody></table>
@@ -1965,7 +1989,8 @@ const A = {
     if (!act && S.templates.some(t => t.mi===p.mi)) return $('#priErr').innerHTML = `<div class="alert err">Không đặt "Không dùng" được: ${S.templates.filter(t => t.mi===p.mi).length} mẫu tin đang dùng mức ${p.mi}.</div>`;
     const ch = []; if (p.vi!==vi) ch.push(`tên: ${p.vi} → ${vi}`); if (p.active!==act) ch.push(act?'Đang dùng':'Không dùng');
     p.vi = vi; p.active = act; log('Danh mục','Sửa mức ưu tiên', `${p.mi} · ${ch.join('; ')||'không thay đổi'}`); save(); closeModal(); render(); },
-  cellTemplate(){ const rows = [['cell_id','enodeb_gnodeb','ma_xa','cong_nghe']]; S.cells.filter(c => c.xaId===S.xas[0].id).slice(0,3).forEach(c => rows.push([c.id, c.enb, S.xas[0].code, c.tech])); download('mau-du-lieu-xa-cell.csv', csv(rows).replace(/"/g,'')); },
+  cellTemplate(){ const rows = [CELL_COLS]; S.cells.filter(c => c.xaId===S.xas[0].id).slice(0,3).forEach((c,i) => { const x = XA(c.xaId), m = (S.mmes||[]).find(z => z.name===c.mme) || {};
+      rows.push([i+1, m.vendor||'', c.mme, c.enbName, c.cellName, c.vendor, c.enb, c.cid, c.tech, c.lon, c.lat, x.code, PROV(x.provinceId).code]); }); download('mau-du-lieu-xa-cell.csv', csv(rows).replace(/"/g,'')); },
   userEdit(el){ userForm(el.dataset.id ? S.users.find(u => u.id===el.dataset.id) : null); },
   userSave(el){ userSave(el.dataset.id); },
   userToggle(el){ lockForm(S.users.find(x => x.id===el.dataset.id)); },
@@ -2044,7 +2069,7 @@ document.addEventListener('change', ev => {
       if (r.err && !r.rows){ box.innerHTML = `<div class="alert err" style="margin-top:10px">${r.err.map(esc).join('<br>')}</div>`; return; }
       if (r.err.length){ box.innerHTML = `<div class="alert err" style="margin-top:10px"><b>File có ${r.err.length} lỗi, chưa nạp dữ liệu nào.</b><ul>${r.err.slice(0,20).map(e=>`<li>${esc(e)}</li>`).join('')}</ul></div>`; return; }
       const xaIds = new Set(r.rows.map(x => x.xaId)); S.cells = S.cells.filter(c => !xaIds.has(c.xaId)).concat(r.rows); S.cellsUpdatedAt = now();
-      log('Danh mục','Cập nhật ánh xạ Xã – Cell ID', `${r.rows.length} cell · ${xaIds.size} xã`, 'Quan trọng'); save(); render(); toast(`Đã nạp ${r.rows.length} cell cho ${xaIds.size} xã.`, 'ok'); };
+      log('Danh mục','Cập nhật dữ liệu Trạm – Cell', `${r.rows.length} cell · ${xaIds.size} xã`, 'Quan trọng'); save(); render(); toast(`Đã nạp ${r.rows.length} cell cho ${xaIds.size} xã.`, 'ok'); };
     rd.readAsText(t.files[0]); return;
   }
   if (!F || route().name !== 'compose') return;
@@ -2068,7 +2093,7 @@ setInterval(() => { if (me && now() - lastAct > S.settings.sessionTimeout*60e3){
 /* ---------- khởi động ---------- */
 (function init(){
   try{ S = JSON.parse(lsGet(LS_KEY) || 'null'); }catch(e){ S = null; }
-  if (!S || S.v !== 1){ seed(); }
+  if (!S || S.v !== 1 || !S.lld){ seed(); }
   migrate(); migrateMap3(); save();
   loadSession(); render();
   setInterval(tick, 500);
