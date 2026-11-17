@@ -285,6 +285,25 @@ input[type=text],input[type=password],input[type=number],input[type=date],input[
 const LS_KEY = 'cbc_demo_data_v1', LS_SES = 'cbc_demo_session_v1';
 const ST = {draft:'Nháp',pending:'Chờ duyệt',rejected:'Bị từ chối',cancelled:'Đã huỷ',scheduled:'Chờ phát',broadcasting:'Đang phát',stopped:'Đã dừng',expired:'Hết hạn'};
 const ROLE = {SO:'Người soạn thảo',PD:'Người phê duyệt',QT:'Quản trị hệ thống'};
+/* Danh mục quyền theo module (17/11): vai trò = tập quyền; mỗi tài khoản gán 1 vai trò */
+const PERMS = [
+  {g:'Phát tin cảnh báo', items:[['msg.view','Xem danh sách và chi tiết bản tin'],['msg.compose','Soạn, sửa, huỷ, gửi duyệt bản tin; yêu cầu cập nhật, dừng, phát lại'],['msg.approve','Phê duyệt hoặc từ chối bản tin và yêu cầu cập nhật, dừng (nhập OTP)']]},
+  {g:'Theo dõi và báo cáo', items:[['report.view','Xem báo cáo chiến dịch, xuất file']]},
+  {g:'Quản lý danh mục', items:[['tpl.view','Xem thư viện mẫu tin'],['tpl.manage','Thêm, sửa, ngừng dùng mẫu tin'],['cat.manage','Quản lý mức ưu tiên CMAS, Tỉnh/Xã, ánh xạ Xã – Cell ID'],['set.manage','Cấu hình tham số phát mặc định']]},
+  {g:'Quản trị người dùng', items:[['user.manage','Tạo, sửa, import, khoá/mở khoá tài khoản, đặt lại mật khẩu, gán vai trò cho tài khoản'],['role.manage','Tạo, sửa, xoá vai trò, gán quyền cho vai trò'],['log.view','Xem nhật ký hệ thống']]}];
+const PERM_ALL = PERMS.flatMap(g => g.items.map(i => i[0]));
+const PERM_NAME = Object.fromEntries(PERMS.flatMap(g => g.items));
+const PERM_DEP = {'msg.compose':['msg.view','tpl.view'], 'msg.approve':['msg.view'], 'tpl.manage':['tpl.view']};
+const ADMIN_LOCK = ['user.manage','role.manage'];
+const ROLES0 = [
+  {id:'SO', name:'Người soạn thảo', desc:'Soạn và gửi duyệt bản tin cảnh báo.', system:true, perms:['msg.view','msg.compose','report.view','tpl.view']},
+  {id:'PD', name:'Người phê duyệt', desc:'Phê duyệt và phát bản tin cảnh báo.', system:true, perms:['msg.view','msg.approve','report.view','tpl.view']},
+  {id:'QT', name:'Quản trị hệ thống', desc:'Quản lý danh mục, tham số, tài khoản và phân quyền.', system:true, perms:['msg.view','report.view','tpl.view','tpl.manage','cat.manage','set.manage','user.manage','role.manage','log.view']}];
+const RO = id => S.roles.find(r => r.id===id);
+const roleName = id => (RO(id)||{}).name || '';
+const roleHas = (id, p) => !!RO(id) && RO(id).perms.includes(p);
+const hp = p => !!me && roleHas(me.role, p);
+const hpAny = ps => ps.some(hp);
 const GSM = "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà";
 const GSM_EXT = "^{}\\[~]|€";
 
@@ -526,7 +545,7 @@ function log(group, action, target, level='Thông tin', by){
 /* ---------- phiên ---------- */
 function loadSession(){ try{ const s = JSON.parse(lsGet(LS_SES)||'null'); if (s && S.users.find(u => u.id===s.uid && u.status==='active')) { me = S.users.find(u => u.id===s.uid); } }catch(e){} }
 function setSession(u){ me = u; if (u) lsSet(LS_SES, JSON.stringify({uid:u.id, at:now()})); else lsDel(LS_SES); }
-const isRole = (...r) => me && r.includes(me.role);
+const isRole = (...r) => me && r.includes(me.role); /* giữ cho tương thích, kiểm tra quyền dùng hp() */
 
 /* ---------- toast, modal, sms ---------- */
 function toast(msg, type=''){
@@ -570,17 +589,17 @@ function can(act, m){
   if (!me) return false;
   const own = m && m.createdBy === me.id;
   switch(act){
-    case 'create': return me.role==='SO';
-    case 'edit': case 'cancel': return me.role==='SO' && own && ['draft','rejected'].includes(m.status);
-    case 'submit': return me.role==='SO' && own && ['draft','rejected'].includes(m.status);
-    case 'approve': return me.role==='PD' && m.status==='pending' && m.createdBy !== me.id;
-    case 'update': case 'stop': return me.role==='SO' && m.status==='broadcasting' && !m.pendingAction;
-    case 'approveAction': return me.role==='PD' && m.pendingAction && m.pendingAction.by !== me.id && m.status==='broadcasting';
+    case 'create': return hp('msg.compose');
+    case 'edit': case 'cancel': return hp('msg.compose') && own && ['draft','rejected'].includes(m.status);
+    case 'submit': return hp('msg.compose') && own && ['draft','rejected'].includes(m.status);
+    case 'approve': return hp('msg.approve') && m.status==='pending' && m.createdBy !== me.id;
+    case 'update': case 'stop': return hp('msg.compose') && m.status==='broadcasting' && !m.pendingAction;
+    case 'approveAction': return hp('msg.approve') && m.pendingAction && m.pendingAction.by !== me.id && m.status==='broadcasting';
     case 'cancelAction': return m.pendingAction && m.pendingAction.by === me.id;
-    case 'retry': return me.role==='SO' && m.status==='broadcasting' && !roundPending(m) && retryable(m).length > 0;
-    case 'rebroadcast': return me.role==='SO' && m.status==='stopped' && !roundPending(m);
-    case 'retryKill': return me.role==='SO' && m.status==='stopped' && !roundPending(m) && killRetryable(m).length > 0;
-    case 'admin': return me.role==='QT';
+    case 'retry': return hp('msg.compose') && m.status==='broadcasting' && !roundPending(m) && retryable(m).length > 0;
+    case 'rebroadcast': return hp('msg.compose') && m.status==='stopped' && !roundPending(m);
+    case 'retryKill': return hp('msg.compose') && m.status==='stopped' && !roundPending(m) && killRetryable(m).length > 0;
+    case 'admin': return hp('tpl.manage');
   }
   return false;
 }
@@ -694,6 +713,7 @@ function tick(){
 }
 /* chuyển dữ liệu demo cũ (chưa có lượt gửi) sang cấu trúc mới */
 function migrate(){
+  if (!S.roles){ S.roles = JSON.parse(JSON.stringify(ROLES0)); S.users.forEach(u => { if (!u.email) u.email = ''; }); }
   if (!S.seed31){ S.seed31 = 1; S.settings.approveUpdateStop = false; }
   if (!S.seedCmas){ S.seedCmas = 1; S.priorities = CMAS.map(x => ({...x, active:true})); S.templates.forEach(t => { delete t.sound; if (!S.priorities.some(p => p.mi===t.mi)) t.mi = 4370; }); }
   if (!S.seed33){ S.seed33 = 1;
@@ -750,6 +770,7 @@ function route(){
   if (h[0]==='messages' && h[1] && h[2]==='edit') return {name:'compose', id:h[1]};
   if (h[0]==='messages' && h[1]) return {name:'msg', id:h[1]};
   if (h[0]==='catalog') return {name:'catalog', tab:h[1]||'priorities'};
+  if (h[0]==='users') return {name:'users', tab:h[1]||''};
   return {name: h[0] || 'dashboard'};
 }
 const go = h => { if (location.hash === h) render(); else location.hash = h; };
@@ -757,18 +778,20 @@ const go = h => { if (location.hash === h) render(); else location.hash = h; };
 const NAV = [
   {h:'#/dashboard', n:'dashboard', t:'Tổng quan', ic:'▦', roles:['SO','PD','QT']},
   {g:'Phát tin cảnh báo', roles:['SO','PD','QT']},
-  {h:'#/messages', n:'messages', t:'Bản tin cảnh báo', ic:'✉', roles:['SO','PD','QT'], also:['msg','compose','approvals'], cnt:true},
+  {p:['msg.view'], h:'#/messages', n:'messages', t:'Bản tin cảnh báo', ic:'✉', roles:['SO','PD','QT'], also:['msg','compose','approvals'], cnt:true},
   {g:'Theo dõi và báo cáo', roles:['SO','PD','QT']},
-  {h:'#/reports', n:'reports', t:'Báo cáo chiến dịch', ic:'▤', roles:['SO','PD','QT']},
+  {p:['report.view'], h:'#/reports', n:'reports', t:'Báo cáo chiến dịch', ic:'▤', roles:['SO','PD','QT']},
   {g:'Quản lý danh mục', roles:['SO','PD','QT']},
-  {h:'#/templates', n:'templates', t:'Thư viện mẫu tin', ic:'☰', roles:['SO','PD','QT']},
-  {h:'#/catalog/priorities', n:'catalog', tab:'priorities', t:'Mức độ ưu tiên (CMAS)', ic:'!', roles:['QT']},
-  {h:'#/catalog/areas', n:'catalog', tab:'areas', t:'Tỉnh/Xã', ic:'⌖', roles:['QT']},
-  {h:'#/catalog/cells', n:'catalog', tab:'cells', t:'Ánh xạ Xã – Cell ID', ic:'⇄', roles:['QT']},
-  {h:'#/settings', n:'settings', t:'Tham số phát mặc định', ic:'⚙', roles:['QT']},
+  {p:['tpl.view'], h:'#/templates', n:'templates', t:'Thư viện mẫu tin', ic:'☰', roles:['SO','PD','QT']},
+  {p:['cat.manage'], h:'#/catalog/priorities', n:'catalog', tab:'priorities', t:'Mức độ ưu tiên (CMAS)', ic:'!', roles:['QT']},
+  {p:['cat.manage'], h:'#/catalog/areas', n:'catalog', tab:'areas', t:'Tỉnh/Xã', ic:'⌖', roles:['QT']},
+  {p:['cat.manage'], h:'#/catalog/cells', n:'catalog', tab:'cells', t:'Ánh xạ Xã – Cell ID', ic:'⇄', roles:['QT']},
+  {p:['set.manage'], h:'#/settings', n:'settings', t:'Tham số phát mặc định', ic:'⚙', roles:['QT']},
   {g:'Quản trị người dùng', roles:['QT']},
-  {h:'#/users', n:'users', t:'Tài khoản & phân quyền', ic:'👤', roles:['QT']},
-  {h:'#/logs', n:'logs', t:'Nhật ký hệ thống', ic:'≡', roles:['QT']}];
+  {p:['user.manage','role.manage'], h:'#/users', n:'users', t:'Tài khoản & vai trò', ic:'👤', roles:['QT']},
+  {p:['log.view'], h:'#/logs', n:'logs', t:'Nhật ký hệ thống', ic:'≡', roles:['QT']}];
+const navOk = i => !i.p || hpAny(i.p);
+function navList(){ const v = NAV.filter(i => i.g || navOk(i)); return v.filter((i,k) => !i.g || (v[k+1] && !v[k+1].g)); }
 const navOn = (i, r) => r.name===i.n ? (!i.tab || i.tab===r.tab) : (i.also||[]).includes(r.name);
 function crumb(r){ let g = ''; for (const i of NAV){ if (i.g) g = i.g; else if (navOn(i, r)) return g ? `<div class="small muted" style="margin-bottom:6px">${esc(g)} › ${esc(i.t)}</div>` : ''; } return ''; }
 
@@ -777,21 +800,21 @@ function renderNavCounts(){ const el = document.querySelector('[data-cnt]'); if 
 
 function shell(inner){
   const r = route();
-  const nav = NAV.filter(i => i.roles.includes(me.role)).map(i => i.g ? `<div class="grp">${i.g}</div>` :
-    `<a href="${i.h}" class="${navOn(i, r) ? 'on':''}" style="padding-left:18px"><span>${i.ic}</span>${i.t}${i.cnt && isRole('PD')?`<span class="cnt" data-cnt>${pendingCount()}</span>`:''}</a>`).join('');
+  const nav = navList().map(i => i.g ? `<div class="grp">${i.g}</div>` :
+    `<a href="${i.h}" class="${navOn(i, r) ? 'on':''}" style="padding-left:18px"><span>${i.ic}</span>${i.t}${i.cnt && hp('msg.approve')?`<span class="cnt" data-cnt>${pendingCount()}</span>`:''}</a>`).join('');
   const others = S.users.filter(u => u.status==='active' && u.role && u.id!==me.id);
   return `<div id="app">
     <aside class="side"><div class="brand"><b>CMS Cell Broadcast</b><span>VNPT · Cảnh báo khẩn cấp</span></div>
       <nav class="nav">${nav}</nav><div class="foot">Bản demo GĐ1 · dữ liệu lưu trên trình duyệt</div></aside>
     <div class="main">
       <header class="top"><button class="btn sm hamb" data-act="toggleNav" aria-label="Menu">☰ Menu</button><div class="sp"></div>
-        ${isRole('SO') ? `<a class="btn pri" href="#/messages/new">+ Tạo bản tin</a>` : ''}
+        ${hp('msg.compose') ? `<a class="btn pri" href="#/messages/new">+ Tạo bản tin</a>` : ''}
         <div class="who" data-act="toggleMenu"><div class="av">${esc(me.name.split(' ').pop()[0])}</div>
-          <div><div style="font-weight:600;line-height:1.2">${esc(me.name)}</div><div class="small muted">${ROLE[me.role]}</div></div>
+          <div><div style="font-weight:600;line-height:1.2">${esc(me.name)}</div><div class="small muted">${roleName(me.role)}</div></div>
           <div class="menu" id="umenu">
             <div class="small muted" style="padding:6px 10px">${esc(me.username)} · ${esc(me.unit)}</div><hr>
             <div class="small muted" style="padding:2px 10px">Chuyển tài khoản (demo, bỏ qua OTP)</div>
-            ${others.map(u => `<button data-act="switchUser" data-id="${u.id}">${esc(u.name)} <span class="small muted">· ${ROLE[u.role]}</span></button>`).join('')}
+            ${others.map(u => `<button data-act="switchUser" data-id="${u.id}">${esc(u.name)} <span class="small muted">· ${roleName(u.role)}</span></button>`).join('')}
             <hr><button data-act="resetDemo">Đặt lại dữ liệu demo</button><button data-act="logout">Đăng xuất</button>
           </div></div>
       </header>
@@ -806,7 +829,7 @@ function render(){
     templates:viewTemplates, catalog:viewCatalog, settings:viewSettings, users:viewUsers, logs:viewLogs};
   const allowed = NAV.find(n => n.n===r.name || (n.also||[]).includes(r.name));
   let html;
-  if (!views[r.name] || (allowed && !allowed.roles.includes(me.role))) html = `<div class="card"><div class="empty">Không có quyền truy cập chức năng này hoặc trang không tồn tại. <a href="#/dashboard">Về Tổng quan</a></div></div>`;
+  if (!views[r.name] || (allowed && !navOk(allowed))) html = `<div class="card"><div class="empty">Không có quyền truy cập chức năng này hoặc trang không tồn tại. <a href="#/dashboard">Về Tổng quan</a></div></div>`;
   else html = views[r.name](r);
   $('#root').innerHTML = shell(html);
   const key = location.hash; if (key !== lastRoute){ window.scrollTo(0,0); lastRoute = key; }
@@ -835,7 +858,7 @@ function viewLogin(){
       <button class="btn pri" style="width:100%;justify-content:center">Đăng nhập</button>
     </form></div></div>
     <div class="demo-acc"><div class="small muted" style="margin-bottom:6px">Tài khoản demo (mật khẩu <b class="mono">Demo@123</b>) – bấm để điền:</div>
-      ${acc.map(u => `<button data-act="fillLogin" data-u="${esc(u.username)}"><b class="mono">${esc(u.username)}</b><span class="sp"></span><span class="badge b-role">${ROLE[u.role]}</span></button>`).join('')}
+      ${acc.map(u => `<button data-act="fillLogin" data-u="${esc(u.username)}"><b class="mono">${esc(u.username)}</b><span class="sp"></span><span class="badge b-role">${roleName(u.role)}</span></button>`).join('')}
     </div></div></div></div>`;
 }
 function loginLeft(){
@@ -849,13 +872,13 @@ function doLogin(fd){
   const u = S.users.find(x => x.username === un);
   if (!u || u.password !== pw){ loginStep.err = 'Tên đăng nhập hoặc mật khẩu không đúng.'; return render(); }
   if (u.status !== 'active'){ loginStep.err = 'Tài khoản đã bị khoá. Liên hệ Quản trị hệ thống.'; return render(); }
-  if (!u.role){ loginStep.err = 'Tài khoản chưa được phân quyền. Liên hệ Quản trị hệ thống.'; return render(); }
+  if (!u.role || !RO(u.role)){ loginStep.err = 'Tài khoản chưa được phân quyền. Liên hệ Quản trị hệ thống.'; return render(); }
   if (!S.settings.loginOtp) return finishLogin(u);
   loginStep = {u, err:''}; otpStart(u, 'dang nhap CMS'); render();
 }
 function finishLogin(u){
   loginStep = {u:null, err:''}; setSession(u); log('Đăng nhập','Đăng nhập thành công', u.username); save();
-  toast(`Xin chào ${u.name}`, 'ok'); location.hash = '#/dashboard'; render();
+  toast(`Xin chào ${u.name}`, 'ok'); location.hash = '#/dashboard'; render(); if (u.mustChange) pwChangeForm();
 }
 
 /* =========================================================================
@@ -871,7 +894,7 @@ function viewDashboard(){
   return `<div class="ph"><h1>Tổng quan</h1><span class="sub">${fmt(t)}</span></div>
   <div class="kpis">${kpi(live.length,'Bản tin đang phát','#/messages?st=broadcasting')}${kpi(pend.length,'Bản tin chờ duyệt', '#/messages?st=pending')}
     ${kpi(mine.length,'Nháp / bị từ chối của tôi','#/messages?mine=1')}${kpi(d24.length,'Kết thúc trong 24 giờ','#/reports')}</div>
-  ${pend.length && isRole('PD') ? `<div class="alert warn">Có <b>${pendingCount()}</b> yêu cầu đang chờ bạn phê duyệt. <a href="#/messages?st=pending">Xem ngay</a></div>`:''}
+  ${pend.length && hp('msg.approve') ? `<div class="alert warn">Có <b>${pendingCount()}</b> yêu cầu đang chờ bạn phê duyệt. <a href="#/messages?st=pending">Xem ngay</a></div>`:''}
   <div class="card mb"><div class="hd"><h2>Bản tin đang phát</h2><div class="sp"></div><span class="small muted">Cập nhật lúc ${fmt(t)}</span><button class="btn sm" data-act="refresh">Làm mới</button></div>
   ${live.length ? `<table class="t"><thead><tr><th>Mã</th><th>Chiến dịch / tiêu đề</th><th>Vùng phát</th><th style="width:220px">Kết quả phát</th><th>Còn lại</th></tr></thead><tbody>
     ${live.map(m => { const s = resStats(m); return `<tr class="click" data-act="open" data-id="${m.id}"><td class="mono">${m.code}</td><td><b>${esc(m.campaign)}</b><div class="small muted">${esc(m.header||'')}</div>${m.pendingAction?`<span class="badge b-pending">Có yêu cầu ${m.pendingAction.type==='update'?'cập nhật':'dừng'} chờ duyệt</span>`:''}</td>
@@ -912,7 +935,7 @@ function viewMessages(){
   if (f.q){ const k = noAccent(f.q.toLowerCase()); base = base.filter(m => noAccent(`${m.code} ${m.campaign} ${m.docNo} ${m.header} ${m.body} ${areaText(m.areas,99)}`.toLowerCase()).includes(k)); }
   const TABS = [['','Tất cả',()=>true],['draft','Nháp',m=>['draft','rejected'].includes(m.status)],['pending','Chờ duyệt',m=>m.status==='pending'],['scheduled','Chờ phát',m=>m.status==='scheduled'],['broadcasting','Đang phát',m=>m.status==='broadcasting'],['ended','Đã kết thúc',m=>['stopped','expired','cancelled'].includes(m.status)]];
   const tab = TABS.find(t => t[0]===f.st) || TABS[0]; const list = base.filter(tab[2]);
-  const creators = S.users.filter(u => u.role==='SO');
+  const creators = S.users.filter(u => roleHas(u.role,'msg.compose'));
   return `<div class="ph"><h1>Bản tin cảnh báo</h1><span class="sub">${list.length} bản tin</span></div>
   <div class="tabs">${TABS.map(t => { const n = base.filter(t[2]).length; return `<a href="#/messages?st=${t[0]}" class="${t===tab?'on':''}">${t[1]} <span class="small muted">(${n})</span></a>`; }).join('')}</div>
   <div class="card"><div class="bd" style="padding-bottom:0"><form novalidate class="filters" data-form="msgFilter"><input type="hidden" name="st" value="${esc(f.st)}">
@@ -1148,8 +1171,8 @@ function viewMsg(r){
   if (['broadcasting','stopped','expired'].includes(m.status)) acts.push(`<a class="btn" href="#/reports?id=${m.id}">Xem báo cáo</a>`);
   const pa = m.pendingAction;
   return `<div class="ph"><a href="#/messages" class="btn sm">← Danh sách</a><h1 class="mono">${m.code}</h1>${badge(m.status)}<div class="sp"></div>${acts.join('')}</div>
-  ${m.status==='pending' && me.role==='PD' && m.createdBy===me.id ? `<div class="alert warn">Bạn không được duyệt bản tin do chính mình soạn.</div>`:''}
-  ${m.status==='pending' && me.role==='SO' ? `<div class="alert info">Bản tin đang chờ Người phê duyệt xem xét.</div>`:''}
+  ${m.status==='pending' && hp('msg.approve') && m.createdBy===me.id ? `<div class="alert warn">Bạn không được duyệt bản tin do chính mình soạn.</div>`:''}
+  ${m.status==='pending' && hp('msg.compose') ? `<div class="alert info">Bản tin đang chờ Người phê duyệt xem xét.</div>`:''}
   ${m.status==='rejected' ? `<div class="alert err"><b>Bị từ chối</b> bởi ${esc(U(m.rejectedBy).name)} lúc ${fmt(m.rejectedAt)}. Lý do: ${esc(m.rejectReason)}</div>`:''}
   ${pa && live ? `<div class="card mb" style="border-color:#f0d9a8"><div class="hd" style="background:var(--warn-l)"><h2>Yêu cầu ${pa.type==='update'?'cập nhật nội dung':'dừng phát'} đang chờ duyệt</h2><span class="small muted">${esc(U(pa.by).name)} · ${fmt(pa.at)}</span><div class="sp"></div>
       ${can('cancelAction',m)?`<button class="btn sm" data-act="cancelAction" data-id="${m.id}">Rút yêu cầu</button>`:''}
@@ -1360,7 +1383,7 @@ function exportOne(m){
    ========================================================================= */
 let tplFilter = {g:'', q:'', st:'active'};
 function viewTemplates(){
-  const admin = isRole('QT');
+  const admin = hp('tpl.manage');
   let list = S.templates.slice();
   if (tplFilter.g) list = list.filter(t => t.group===tplFilter.g);
   if (tplFilter.q){ const k = noAccent(tplFilter.q.toLowerCase()); list = list.filter(t => noAccent(`${t.code} ${t.header} ${t.body}`.toLowerCase()).includes(k)); }
@@ -1522,46 +1545,223 @@ function saveSettings(fd){
   Object.keys(rules).forEach(k => S.settings[k] = Number(fd.get(k)));
   log('Tham số','Cập nhật tham số phát mặc định', ch.join('; ') || 'Không thay đổi'); save(); toast('Đã lưu tham số.', 'ok'); render();
 }
-function viewUsers(){
-  const st = u => u.status==='active' ? '<span class="badge b-broadcasting">Hoạt động</span>' : '<span class="badge b-rejected">Khoá</span>';
-  return `<div class="ph"><h1>Tài khoản & phân quyền</h1><span class="sub">${S.users.length} tài khoản</span><div class="sp"></div><button class="btn pri" data-act="userEdit">+ Thêm tài khoản</button></div>
-  <div class="card mb"><table class="t"><thead><tr><th>STT</th><th>Tên đăng nhập</th><th>Họ tên</th><th>Đơn vị</th><th>Vai trò</th><th>Số điện thoại nhận OTP</th><th>Trạng thái</th><th>Ngày tạo</th><th></th></tr></thead><tbody>
-  ${S.users.map((u,i) => `<tr><td>${i+1}</td><td class="mono small">${esc(u.username)}</td><td><b>${esc(u.name)}</b></td><td class="small">${esc(u.unit)}</td><td>${u.role?`<span class="badge b-role">${ROLE[u.role]}</span>`:'<span class="small muted">Chưa phân quyền</span>'}</td><td class="small">${esc(u.phone)}</td>
-    <td>${st(u)}</td><td class="small">${fmtD(u.createdAt)}</td>
-    <td class="row" style="flex-wrap:nowrap;justify-content:flex-end"><button class="btn sm" data-act="userEdit" data-id="${u.id}">Sửa</button>${u.role!=='QT'?`<button class="btn sm" data-act="userRole" data-id="${u.id}">Phân quyền</button>`:''}${u.id!==me.id?`<button class="btn sm ${u.status==='active'?'danger':''}" data-act="userToggle" data-id="${u.id}">${u.status==='active'?'Khoá':'Mở khoá'}</button>`:''}</td></tr>`).join('')}
-  </tbody></table><div class="bd small muted">Không xoá tài khoản, chỉ khoá. Tài khoản bị khoá không đăng nhập được.</div></div>
-  <div class="card"><div class="hd"><h2>Vai trò</h2></div><table class="t"><thead><tr><th>Vai trò</th><th>Quyền</th></tr></thead><tbody>
-    <tr><td><b>Người soạn thảo</b></td><td>Soạn bản tin.</td></tr>
-    <tr><td><b>Người phê duyệt</b></td><td>Duyệt và phát bản tin.</td></tr>
-  </tbody></table><div class="bd small muted">Người phê duyệt không được duyệt bản tin do chính mình soạn.</div></div>`;
+/* ---------- Quản trị người dùng: tài khoản, vai trò, quyền (17/11) ---------- */
+let userFilter = {q:'', role:'', st:''};
+const USER_COLS = ['ten_dang_nhap','ho_ten','don_vi','so_dien_thoai','email','vai_tro'];
+const errBox = (id, e) => { $(id).innerHTML = `<div class="alert err"><ul>${e.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`; };
+const PW_RULE = 'Ít nhất 8 ký tự, có chữ hoa, chữ thường, chữ số và ký tự đặc biệt.';
+const pwOk = v => v.length >= 8 && /[A-Z]/.test(v) && /[a-z]/.test(v) && /\d/.test(v) && /[^A-Za-z0-9]/.test(v);
+const tmpPw = () => 'Cb@' + Math.random().toString().slice(2,7) + 'x';
+function userTabs(tab){
+  const t = [];
+  if (hp('user.manage')) t.push(['', 'Tài khoản', S.users.length]);
+  if (hp('role.manage')) t.push(['roles', 'Vai trò và quyền', S.roles.length]);
+  return `<div class="tabs">${t.map(x => `<a href="#/users${x[0]?'/'+x[0]:''}" class="${x[0]===tab?'on':''}">${x[1]} <span class="small muted">(${x[2]})</span></a>`).join('')}</div>`;
 }
+function viewUsers(r){
+  let tab = r.tab || '';
+  if (tab==='' && !hp('user.manage')) tab = 'roles';
+  if (tab==='roles' && !hp('role.manage')) tab = '';
+  return tab==='roles' ? viewRoles() : viewAccounts();
+}
+function viewAccounts(){
+  const f = userFilter; let list = S.users;
+  if (f.role) list = list.filter(u => f.role==='_none' ? !RO(u.role) : u.role===f.role);
+  if (f.st) list = list.filter(u => u.status===f.st);
+  if (f.q){ const k = noAccent(f.q.toLowerCase()); list = list.filter(u => noAccent(`${u.username} ${u.name} ${u.phone} ${u.email||''} ${u.unit}`.toLowerCase()).includes(k)); }
+  const st = u => u.status==='active' ? '<span class="badge b-broadcasting">Hoạt động</span>' : `<span class="badge b-rejected">Đã khoá</span>${u.lockReason?`<div class="small muted" style="max-width:180px">${esc(u.lockReason)}</div>`:''}`;
+  return `<div class="ph"><h1>Quản trị người dùng</h1><div class="sp"></div><div class="acts"><button class="btn pri" data-act="userEdit">+ Thêm tài khoản</button><button class="btn" data-act="userImport">Import tài khoản</button></div></div>
+  ${userTabs('')}
+  <div class="card mb"><div class="bd" style="padding-bottom:0"><form novalidate class="filters" data-form="userFilter">
+    <div style="flex:2;min-width:220px"><label class="f">Tìm kiếm</label><input type="text" name="q" value="${esc(f.q)}" placeholder="Tên đăng nhập, họ tên, số điện thoại, email"></div>
+    <div><label class="f">Vai trò</label><select name="role"><option value="">Tất cả</option>${S.roles.map(x => `<option value="${x.id}" ${f.role===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}<option value="_none" ${f.role==='_none'?'selected':''}>Chưa phân quyền</option></select></div>
+    <div><label class="f">Trạng thái</label><select name="st"><option value="">Tất cả</option><option value="active" ${f.st==='active'?'selected':''}>Hoạt động</option><option value="locked" ${f.st==='locked'?'selected':''}>Đã khoá</option></select></div>
+    <div style="min-width:auto"><button class="btn pri">Lọc</button></div></form></div>
+  ${list.length ? `<div style="overflow-x:auto"><table class="t"><thead><tr><th>STT</th><th>Họ tên · Tên đăng nhập</th><th>Đơn vị</th><th>Vai trò</th><th>SĐT nhận OTP · Email</th><th>Trạng thái</th><th>Ngày tạo</th><th></th></tr></thead><tbody>
+  ${list.map((u,i) => `<tr><td>${i+1}</td><td><b>${esc(u.name)}</b>${u.id===me.id?' <span class="small muted">(bạn)</span>':''}<div class="mono small muted">${esc(u.username)}</div></td><td class="small">${esc(u.unit)}</td>
+    <td>${RO(u.role)?`<span class="badge b-role">${esc(roleName(u.role))}</span>`:'<span class="small" style="color:#c05000">Chưa phân quyền</span>'}</td><td class="small">${esc(u.phone)}<div class="muted">${esc(u.email||'–')}</div></td>
+    <td>${st(u)}</td><td class="small">${fmtD(u.createdAt)}</td>
+    <td class="row" style="flex-wrap:nowrap;justify-content:flex-end"><button class="btn sm" data-act="userEdit" data-id="${u.id}">Sửa</button><button class="btn sm" data-act="userReset" data-id="${u.id}">Đặt lại MK</button>${u.id!==me.id?`<button class="btn sm ${u.status==='active'?'danger':''}" data-act="userToggle" data-id="${u.id}">${u.status==='active'?'Khoá':'Mở khoá'}</button>`:''}</td></tr>`).join('')}
+  </tbody></table></div>` : '<div class="empty">Không có tài khoản phù hợp.</div>'}
+  <div class="bd small muted">Không xoá tài khoản, chỉ khoá để giữ lịch sử thao tác. Tài khoản bị khoá hoặc chưa phân quyền không đăng nhập được. Bạn không tự khoá, không tự đổi vai trò của chính mình.</div></div>`;
+}
+function roleOptions(sel){ return `<option value="">Chưa phân quyền</option>${S.roles.map(x => `<option value="${x.id}" ${sel===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}`; }
 function userForm(u){
-  u = u || {name:'', username:'', unit:'VNPT-VinaPhone', phone:''};
-  modal(u.id?'Sửa tài khoản':'Thêm tài khoản', `<form novalidate id="userF" class="grid g2">
-    <div><label class="f">Tên đăng nhập <span class="req">*</span></label><input type="text" name="username" value="${esc(u.username)}" ${u.id?'readonly':''}></div>
+  const isNew = !u; u = u || {name:'', username:'', unit:'VNPT-VinaPhone', phone:'', email:'', role:''};
+  const self = u.id===me.id;
+  modal(isNew?'Thêm tài khoản':'Sửa tài khoản', `<form novalidate id="userF" class="grid g2">
+    <div><label class="f">Tên đăng nhập <span class="req">*</span></label><input type="text" name="username" value="${esc(u.username)}" ${isNew?'':'readonly'}></div>
     <div><label class="f">Họ tên <span class="req">*</span></label><input type="text" name="name" value="${esc(u.name)}"></div>
     <div><label class="f">Đơn vị <span class="req">*</span></label><input type="text" name="unit" value="${esc(u.unit)}"></div>
     <div><label class="f">Số điện thoại nhận OTP <span class="req">*</span></label><input type="tel" name="phone" value="${esc(u.phone)}" placeholder="09xxxxxxxx"></div>
-    ${u.id?'':'<div class="hint" style="grid-column:1/-1">Mật khẩu ban đầu (demo): Demo@123. Sau khi tạo, bấm Phân quyền để gán vai trò.</div>'}<div style="grid-column:1/-1" id="userErr"></div></form>`,
+    <div><label class="f">Email</label><input type="email" name="email" value="${esc(u.email||'')}" placeholder="ten@vnpt.vn"></div>
+    <div><label class="f">Vai trò</label><select name="role" ${self?'disabled':''}>${roleOptions(u.role)}</select>${self?'<div class="hint">Không tự đổi vai trò của chính mình.</div>':'<div class="hint">Để trống: tài khoản ở trạng thái Chưa phân quyền, chưa đăng nhập được.</div>'}</div>
+    ${isNew?'<div class="hint" style="grid-column:1/-1">Hệ thống tạo mật khẩu tạm thời, gửi SMS tới số điện thoại trên. Người dùng phải đổi mật khẩu ở lần đăng nhập đầu tiên.</div>':''}<div style="grid-column:1/-1" id="userErr"></div></form>`,
     `<button class="btn" data-act="closeModal">Huỷ</button><button class="btn pri" data-act="userSave" data-id="${u.id||''}">Lưu</button>`, true);
 }
-function userSave(id){
-  const d = Object.fromEntries(new FormData($('#userF'))); Object.keys(d).forEach(k => d[k] = d[k].trim()); const e = [];
-  if (!id && !/^[a-z0-9._]{3,30}$/.test(d.username)) e.push('Tên đăng nhập 3–30 ký tự: chữ thường, số, dấu chấm, gạch dưới.');
-  if (!id && S.users.some(u => u.username===d.username)) e.push('Tên đăng nhập đã tồn tại.');
+function userCheck(d, isNew, skipU){
+  const e = [];
+  if (isNew && !/^[a-z0-9._]{3,30}$/.test(d.username)) e.push('Tên đăng nhập 3–30 ký tự: chữ thường, số, dấu chấm, gạch dưới.');
+  if (isNew && S.users.some(u => u.username===d.username)) e.push('Tên đăng nhập đã tồn tại.');
   if (!d.name) e.push('Nhập họ tên.'); if (!d.unit) e.push('Nhập đơn vị.');
   if (!/^0\d{9}$/.test(d.phone)) e.push('Số điện thoại phải gồm 10 chữ số, bắt đầu bằng 0 (dùng nhận OTP).');
-  if (e.length){ $('#userErr').innerHTML = `<div class="alert err"><ul>${e.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`; return; }
-  if (id){ const u = S.users.find(x => x.id===id); Object.assign(u, {name:d.name, unit:d.unit, phone:d.phone}); log('Người dùng','Sửa tài khoản', u.username); }
-  else { S.users.push({id:uid('U'), username:d.username, name:d.name, unit:d.unit, phone:d.phone, role:'', status:'active', password:'Demo@123', createdAt:now()}); log('Người dùng','Tạo tài khoản', d.username); }
+  if (d.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)) e.push('Email không đúng định dạng.');
+  if (d.email && S.users.some(u => u.id!==skipU && (u.email||'').toLowerCase()===d.email.toLowerCase())) e.push('Email đã được dùng cho tài khoản khác.');
+  return e;
+}
+function userSave(id){
+  const d = Object.fromEntries(new FormData($('#userF'))); Object.keys(d).forEach(k => d[k] = String(d[k]).trim());
+  const e = userCheck(d, !id, id); if (e.length) return errBox('#userErr', e);
+  if (id){ const u = S.users.find(x => x.id===id); const old = u.role;
+    Object.assign(u, {name:d.name, unit:d.unit, phone:d.phone, email:d.email}); if (u.id!==me.id) u.role = d.role || '';
+    log('Người dùng','Sửa tài khoản', u.username);
+    if (old !== u.role) log('Người dùng','Gán vai trò cho tài khoản', `${u.username} · ${roleName(old)||'Chưa phân quyền'} → ${roleName(u.role)||'Chưa phân quyền'}`, 'Quan trọng'); }
+  else { const pw = tmpPw(); S.users.push({id:uid('U'), username:d.username, name:d.name, unit:d.unit, phone:d.phone, email:d.email, role:d.role||'', status:'active', password:pw, mustChange:true, createdAt:now()});
+    log('Người dùng','Tạo tài khoản', `${d.username} · ${roleName(d.role)||'Chưa phân quyền'}`); smsShow(d.phone, `CBC VNPT: Tai khoan ${d.username} da duoc tao. Mat khau tam thoi: ${pw}. Doi mat khau khi dang nhap lan dau.`); }
   save(); closeModal(); toast('Đã lưu tài khoản.', 'ok'); render();
 }
-function roleForm(u){
-  modal('Phân quyền', `<p>Tài khoản <b class="mono">${esc(u.username)}</b> · ${esc(u.name)}</p>
-    <label class="f">Vai trò <span class="req">*</span></label>
-    ${['SO','PD'].map(k => `<label style="display:block;margin:6px 0"><input type="radio" name="role" value="${k}" ${u.role===k?'checked':''}> ${ROLE[k]}</label>`).join('')}
-    <div id="roleErr"></div>`,
-    `<button class="btn" data-act="closeModal">Huỷ</button><button class="btn pri" data-act="roleSave" data-id="${u.id}">Lưu</button>`);
+function lockForm(u){
+  if (u.status==='active') modal('Khoá tài khoản', `<p>Khoá tài khoản <b class="mono">${esc(u.username)}</b> · ${esc(u.name)}. Người dùng bị đăng xuất và không đăng nhập được cho tới khi được mở khoá.</p>
+    <label class="f">Lý do khoá <span class="req">*</span></label><textarea id="lockWhy" rows="3" maxlength="200" placeholder="VD: Nghỉ việc, chuyển công tác, nghi lộ mật khẩu"></textarea><div id="lockErr"></div>`,
+    `<button class="btn" data-act="closeModal">Huỷ</button><button class="btn dangerfill" data-act="userLockSave" data-id="${u.id}">Khoá tài khoản</button>`);
+  else modal('Mở khoá tài khoản', `<p>Mở khoá tài khoản <b class="mono">${esc(u.username)}</b> · ${esc(u.name)}?</p>${u.lockReason?`<p class="small muted">Lý do đã khoá: ${esc(u.lockReason)}</p>`:''}<div class="hint">Số lần đăng nhập sai được đặt lại về 0.</div>`,
+    `<button class="btn" data-act="closeModal">Huỷ</button><button class="btn pri" data-act="userLockSave" data-id="${u.id}">Mở khoá</button>`);
+}
+function lockSave(id){
+  const u = S.users.find(x => x.id===id);
+  if (u.status==='active'){ const why = ($('#lockWhy').value||'').trim(); if (!why) return errBox('#lockErr', ['Nhập lý do khoá.']);
+    u.status = 'locked'; u.lockReason = why; log('Người dùng','Khoá tài khoản', `${u.username} · ${why}`, 'Quan trọng'); toast('Đã khoá tài khoản.', 'ok'); }
+  else { u.status = 'active'; u.lockReason = ''; u.failLogin = 0; log('Người dùng','Mở khoá tài khoản', u.username, 'Quan trọng'); toast('Đã mở khoá tài khoản.', 'ok'); }
+  save(); closeModal(); render();
+}
+function resetForm(u){
+  modal('Đặt lại mật khẩu', `<p>Đặt lại mật khẩu cho <b class="mono">${esc(u.username)}</b> · ${esc(u.name)}?</p>
+    <ul class="small" style="padding-left:18px"><li>Hệ thống tạo mật khẩu tạm thời và gửi SMS tới số ${esc(u.phone.slice(0,4))}***${esc(u.phone.slice(-3))}.</li><li>Mật khẩu cũ hết hiệu lực ngay.</li><li>Người dùng phải đổi mật khẩu ở lần đăng nhập tiếp theo.</li></ul>`,
+    `<button class="btn" data-act="closeModal">Huỷ</button><button class="btn pri" data-act="userResetSave" data-id="${u.id}">Đặt lại mật khẩu</button>`);
+}
+function resetSave(id){
+  const u = S.users.find(x => x.id===id), pw = tmpPw(); u.password = pw; u.mustChange = true; u.failLogin = 0;
+  log('Người dùng','Đặt lại mật khẩu', u.username, 'Quan trọng'); save(); closeModal(); toast('Đã đặt lại mật khẩu và gửi SMS.', 'ok');
+  smsShow(u.phone, `CBC VNPT: Mat khau tam thoi cua tai khoan ${u.username}: ${pw}. Doi mat khau khi dang nhap.`);
+}
+function pwChangeForm(){
+  modal('Đổi mật khẩu', `<div class="alert info">Bạn đang dùng mật khẩu tạm thời. Đổi mật khẩu để tiếp tục.</div>
+    <form novalidate id="pwF"><label class="f">Mật khẩu mới <span class="req">*</span></label><input type="password" name="p1" autocomplete="new-password"><div class="hint">${PW_RULE}</div>
+    <label class="f" style="margin-top:10px">Nhập lại mật khẩu mới <span class="req">*</span></label><input type="password" name="p2" autocomplete="new-password"><div id="pwErr"></div></form>`,
+    `<button class="btn pri" data-act="pwSave">Đổi mật khẩu</button>`);
+  const x = $('#modal .x'); if (x) x.remove();
+}
+function pwSave(){
+  const f = $('#pwF'), p1 = f.p1.value, p2 = f.p2.value, e = [];
+  if (!pwOk(p1)) e.push('Mật khẩu chưa đạt: ' + PW_RULE); if (p1 !== p2) e.push('Hai lần nhập không khớp.'); if (p1 === me.password) e.push('Mật khẩu mới phải khác mật khẩu tạm thời.');
+  if (e.length) return errBox('#pwErr', e);
+  me.password = p1; me.mustChange = false; log('Người dùng','Đổi mật khẩu', me.username); save(); closeModal(); toast('Đã đổi mật khẩu.', 'ok');
+}
+/* import */
+let IMP = null;
+function importForm(){
+  IMP = null;
+  modal('Import tài khoản', `<ol class="small" style="padding-left:18px;margin-top:0"><li>Tải file mẫu, điền mỗi tài khoản 1 dòng. Cột: <span class="mono">${USER_COLS.join(', ')}</span>. Cột <span class="mono">email</span>, <span class="mono">vai_tro</span> có thể để trống; <span class="mono">vai_tro</span> ghi đúng tên vai trò trên hệ thống.</li>
+    <li>Chọn file CSV hoặc Excel, hệ thống kiểm tra từng dòng.</li><li>Xem kết quả kiểm tra, bấm Nhập để tạo các dòng hợp lệ. Dòng lỗi được bỏ qua.</li></ol>
+    <div class="row"><button class="btn" data-act="userImportTpl">Tải file mẫu</button><label class="btn" style="margin:0">Chọn file…<input type="file" accept=".csv,.xlsx,.xls" id="userFile" hidden></label></div>
+    <div id="impRes" style="margin-top:12px"></div>`,
+    `<button class="btn" data-act="closeModal">Huỷ</button><button class="btn pri" data-act="userImportSave" disabled id="impBtn">Nhập tài khoản</button>`, true);
+}
+function importPreview(rows, e0){
+  const box = $('#impRes'), btn = $('#impBtn'); IMP = null; btn.disabled = true;
+  if (e0) return box.innerHTML = `<div class="alert err">${esc(e0)}</div>`;
+  if (!rows || rows.length < 2) return box.innerHTML = '<div class="alert err">File không có dữ liệu.</div>';
+  const hdr = rows[0].map(x => String(x).trim().toLowerCase()); const miss = USER_COLS.slice(0,4).filter(c => !hdr.includes(c));
+  if (miss.length) return box.innerHTML = `<div class="alert err">Thiếu cột: ${esc(miss.join(', '))}. Dùng đúng file mẫu.</div>`;
+  const ix = Object.fromEntries(USER_COLS.map(c => [c, hdr.indexOf(c)])); const seen = {}, out = [];
+  rows.slice(1).forEach((r,i) => { if (!r.some(v => String(v).trim())) return;
+    const g = c => ix[c] < 0 ? '' : String(r[ix[c]]||'').trim();
+    const d = {username:g('ten_dang_nhap').toLowerCase(), name:g('ho_ten'), unit:g('don_vi'), phone:g('so_dien_thoai'), email:g('email')}; const rn = g('vai_tro');
+    const e = userCheck(d, true);
+    const ro = rn ? S.roles.find(x => x.name.toLowerCase()===rn.toLowerCase()) : null; if (rn && !ro) e.push(`Vai trò "${rn}" không có trên hệ thống.`);
+    if (seen[d.username]) e.push(`Trùng tên đăng nhập với dòng ${seen[d.username]}.`); else seen[d.username] = i+2;
+    out.push({row:i+2, d:{...d, role:ro?ro.id:''}, e}); });
+  const ok = out.filter(x => !x.e.length), bad = out.filter(x => x.e.length);
+  IMP = ok.map(x => x.d); btn.disabled = !ok.length; btn.textContent = `Nhập ${ok.length} tài khoản hợp lệ`;
+  box.innerHTML = `<div class="alert ${bad.length?'warn':'ok'}">Đã kiểm tra ${out.length} dòng: <b>${ok.length}</b> hợp lệ, <b>${bad.length}</b> lỗi.</div>
+    <div style="max-height:300px;overflow:auto"><table class="t"><thead><tr><th>Dòng</th><th>Tên đăng nhập</th><th>Họ tên</th><th>Vai trò</th><th>Kết quả kiểm tra</th></tr></thead><tbody>
+    ${out.map(x => `<tr><td>${x.row}</td><td class="mono small">${esc(x.d.username)}</td><td>${esc(x.d.name)}</td><td class="small">${esc(roleName(x.d.role)||'Chưa phân quyền')}</td><td class="small">${x.e.length?`<span style="color:var(--err)">${x.e.map(esc).join('<br>')}</span>`:'<span class="badge b-broadcasting">Hợp lệ</span>'}</td></tr>`).join('')}
+    </tbody></table></div>`;
+}
+function importSave(){
+  if (!IMP || !IMP.length) return;
+  IMP.forEach(d => S.users.push({id:uid('U'), ...d, status:'active', password:tmpPw(), mustChange:true, createdAt:now()}));
+  log('Người dùng','Import tài khoản', `${IMP.length} tài khoản`, 'Quan trọng'); save(); closeModal();
+  toast(`Đã tạo ${IMP.length} tài khoản. Mật khẩu tạm thời được gửi SMS tới từng người.`, 'ok'); IMP = null; render();
+}
+/* vai trò */
+function viewRoles(){
+  const cnt = id => S.users.filter(u => u.role===id).length;
+  return `<div class="ph"><h1>Quản trị người dùng</h1><div class="sp"></div><div class="acts"><button class="btn pri" data-act="roleEdit">+ Thêm vai trò</button></div></div>
+  ${userTabs('roles')}
+  <div class="card mb"><div style="overflow-x:auto"><table class="t"><thead><tr><th>STT</th><th>Vai trò</th><th>Mô tả</th><th>Quyền</th><th class="num">Số tài khoản</th><th>Loại</th><th></th></tr></thead><tbody>
+  ${S.roles.map((x,i) => `<tr><td>${i+1}</td><td><b>${esc(x.name)}</b></td><td class="small">${esc(x.desc||'')}</td>
+    <td class="small">${x.perms.length}/${PERM_ALL.length} quyền<div class="muted" style="max-width:320px">${x.perms.map(p => esc(PERM_NAME[p])).slice(0,3).join('; ')}${x.perms.length>3?'; …':''}</div></td>
+    <td class="num">${cnt(x.id)}</td><td>${x.system?'<span class="badge b-role">Mặc định</span>':'<span class="badge b-draft">Tự tạo</span>'}</td>
+    <td class="row" style="flex-wrap:nowrap;justify-content:flex-end"><button class="btn sm" data-act="rolePerm" data-id="${x.id}">Gán quyền</button><button class="btn sm" data-act="roleEdit" data-id="${x.id}">Sửa</button>${x.system?'':`<button class="btn sm danger" data-act="roleDel" data-id="${x.id}">Xoá</button>`}</td></tr>`).join('')}
+  </tbody></table></div>
+  <div class="bd small muted">Mỗi tài khoản gán 1 vai trò. Đổi quyền của vai trò áp dụng ngay cho mọi tài khoản thuộc vai trò đó. Vai trò mặc định không xoá được. Người phê duyệt không được duyệt bản tin do chính mình soạn, kể cả khi vai trò có cả 2 quyền.</div></div>
+  <div class="card"><div class="hd"><h2>Ma trận quyền</h2></div><div style="overflow-x:auto"><table class="t"><thead><tr><th>Nhóm</th><th>Quyền</th>${S.roles.map(x => `<th style="text-align:center">${esc(x.name)}</th>`).join('')}</tr></thead><tbody>
+  ${PERMS.map(g => g.items.map((it,k) => `<tr>${k?'':`<td rowspan="${g.items.length}" class="small"><b>${esc(g.g)}</b></td>`}<td class="small">${esc(it[1])}</td>${S.roles.map(x => `<td style="text-align:center">${x.perms.includes(it[0])?'<span style="color:var(--ok);font-weight:700" aria-label="Có">✓</span>':'<span class="muted" aria-label="Không">–</span>'}</td>`).join('')}</tr>`).join('')).join('')}
+  </tbody></table></div></div>`;
+}
+function roleEditForm(x){
+  const isNew = !x; x = x || {name:'', desc:''};
+  modal(isNew?'Thêm vai trò':'Sửa vai trò', `<form novalidate id="roleF">
+    <label class="f">Tên vai trò <span class="req">*</span></label><input type="text" name="name" maxlength="50" value="${esc(x.name)}" ${x.system?'readonly':''}>${x.system?'<div class="hint">Vai trò mặc định không đổi tên.</div>':''}
+    <label class="f" style="margin-top:10px">Mô tả</label><textarea name="desc" rows="2" maxlength="200">${esc(x.desc||'')}</textarea>
+    ${isNew?'<div class="hint">Sau khi lưu, hệ thống mở bước Gán quyền cho vai trò.</div>':''}<div id="roleErr"></div></form>`,
+    `<button class="btn" data-act="closeModal">Huỷ</button><button class="btn pri" data-act="roleEditSave" data-id="${x.id||''}">${isNew?'Lưu và gán quyền':'Lưu'}</button>`);
+}
+function roleEditSave(id){
+  const fd = new FormData($('#roleF')), name = String(fd.get('name')).trim(), desc = String(fd.get('desc')).trim(), e = [];
+  if (!name) e.push('Nhập tên vai trò.');
+  if (S.roles.some(x => x.id!==id && x.name.toLowerCase()===name.toLowerCase())) e.push('Tên vai trò đã tồn tại.');
+  if (e.length) return errBox('#roleErr', e);
+  if (id){ const x = RO(id); if (!x.system) x.name = name; x.desc = desc; log('Phân quyền','Sửa vai trò', x.name); save(); closeModal(); toast('Đã lưu vai trò.', 'ok'); render(); }
+  else { const x = {id:uid('R'), name, desc, system:false, perms:[]}; S.roles.push(x); log('Phân quyền','Tạo vai trò', name); save(); render(); permForm(x); }
+}
+function permForm(x){
+  const locked = p => x.id==='QT' && ADMIN_LOCK.includes(p);
+  modal(`Gán quyền: ${esc(x.name)}`, `<p class="small muted" style="margin-top:0">Chọn quyền cho vai trò. Áp dụng ngay cho ${S.users.filter(u => u.role===x.id).length} tài khoản đang thuộc vai trò này. Quyền phụ thuộc (VD Soạn bản tin cần Xem bản tin) được hệ thống tự thêm.</p>
+    ${PERMS.map((g,gi) => { const all = g.items.every(it => x.perms.includes(it[0]));
+      return `<fieldset style="border:1px solid var(--line);border-radius:3px;padding:8px 12px;margin:0 0 10px"><legend style="padding:0 4px"><label><input type="checkbox" data-pg="${gi}" ${all?'checked':''}> <b>${esc(g.g)}</b></label></legend>
+      ${g.items.map(it => `<label style="display:flex;gap:8px;align-items:flex-start;margin:6px 0"><input type="checkbox" data-p="${it[0]}" data-gi="${gi}" ${x.perms.includes(it[0])?'checked':''} ${locked(it[0])?'disabled':''} style="margin-top:4px"><span>${esc(it[1])}${locked(it[0])?' <span class="small muted">(luôn có, để không mất quyền quản trị)</span>':''}</span></label>`).join('')}</fieldset>`; }).join('')}
+    <div id="permWarn"></div><div id="permErr"></div>`,
+    `<button class="btn" data-act="closeModal">Huỷ</button><button class="btn pri" data-act="rolePermSave" data-id="${x.id}">Lưu quyền</button>`, true);
+  permWarn();
+}
+function permChecked(){ return [...document.querySelectorAll('#modal input[data-p]')].filter(c => c.checked).map(c => c.dataset.p); }
+function permWarn(){
+  const b = $('#permWarn'); if (!b) return; const ps = permChecked();
+  document.querySelectorAll('#modal input[data-pg]').forEach(g => { g.checked = [...document.querySelectorAll(`#modal input[data-p][data-gi="${g.dataset.pg}"]`)].every(c => c.checked); });
+  b.innerHTML = ps.includes('msg.compose') && ps.includes('msg.approve') ? '<div class="alert warn">Vai trò có cả quyền Soạn và Phê duyệt bản tin. Nên tách cho 2 vai trò khác nhau (nguyên tắc 2 người). Hệ thống vẫn chặn người dùng tự duyệt bản tin của mình.</div>' : '';
+}
+function permSave(id){
+  const x = RO(id); let ps = permChecked();
+  if (!ps.length) return errBox('#permErr', ['Chọn ít nhất 1 quyền.']);
+  ps.forEach(p => (PERM_DEP[p]||[]).forEach(d => { if (!ps.includes(d)) ps.push(d); }));
+  if (id==='QT') ADMIN_LOCK.forEach(p => { if (!ps.includes(p)) ps.push(p); });
+  ps = PERM_ALL.filter(p => ps.includes(p));
+  const add = ps.filter(p => !x.perms.includes(p)), del = x.perms.filter(p => !ps.includes(p)); x.perms = ps;
+  log('Phân quyền','Gán quyền cho vai trò', `${x.name} · thêm ${add.length}, bỏ ${del.length}${add.length?' · +'+add.map(p=>PERM_NAME[p]).join('; +'):''}${del.length?' · −'+del.map(p=>PERM_NAME[p]).join('; −'):''}`, 'Quan trọng');
+  save(); closeModal(); toast('Đã lưu quyền cho vai trò.', 'ok'); render();
+}
+function roleDelForm(x){
+  const n = S.users.filter(u => u.role===x.id).length;
+  if (n) return modal('Không xoá được vai trò', `<p>Vai trò <b>${esc(x.name)}</b> đang gán cho <b>${n}</b> tài khoản. Chuyển các tài khoản sang vai trò khác trước khi xoá.</p>`,
+    `<button class="btn" data-act="closeModal">Đóng</button>`);
+  modal('Xoá vai trò', `<p>Xoá vai trò <b>${esc(x.name)}</b>? Thao tác không hoàn tác được.</p>`,
+    `<button class="btn" data-act="closeModal">Huỷ</button><button class="btn dangerfill" data-act="roleDelSave" data-id="${x.id}">Xoá vai trò</button>`);
+}
+function roleDelSave(id){
+  const x = RO(id); if (!x || x.system || S.users.some(u => u.role===id)) return closeModal();
+  S.roles = S.roles.filter(r => r.id!==id); log('Phân quyền','Xoá vai trò', x.name, 'Quan trọng'); save(); closeModal(); toast('Đã xoá vai trò.', 'ok'); render();
 }
 let logFilter = {q:'', by:'', from:'', to:''};
 function viewLogs(){
@@ -1605,7 +1805,7 @@ const A = {
   loginBack(){ loginStep = {u:null, err:''}; otpCtx = null; smsHide(); render(); },
   loginResend(){ otpStart(loginStep.u, 'dang nhap CMS'); loginStep.err = ''; render(); toast('Đã gửi lại mã OTP.'); },
   toggleMenu(el, ev){ if (ev.target.closest('.menu')) return; $('#umenu').classList.toggle('open'); },
-  switchUser(el){ const u = S.users.find(x => x.id===el.dataset.id); log('Đăng nhập','Đăng xuất', me.username); setSession(u); log('Đăng nhập','Chuyển tài khoản (demo)', u.username); save(); F = null; toast(`Đang dùng tài khoản ${u.name} – ${ROLE[u.role]}`, 'ok'); go('#/dashboard'); },
+  switchUser(el){ const u = S.users.find(x => x.id===el.dataset.id); log('Đăng nhập','Đăng xuất', me.username); setSession(u); log('Đăng nhập','Chuyển tài khoản (demo)', u.username); save(); F = null; toast(`Đang dùng tài khoản ${u.name} – ${roleName(u.role)}`, 'ok'); go('#/dashboard'); },
   logout(){ log('Đăng nhập','Đăng xuất', me.username); save(); setSession(null); F = null; location.hash = ''; render(); },
   resetDemo(){ if (!confirm('Xoá toàn bộ dữ liệu demo và khởi tạo lại?')) return; lsDel(LS_KEY); lsDel(LS_SES); seed(); save(); me = null; F = null; location.hash = ''; render(); toast('Đã khởi tạo lại dữ liệu demo.', 'ok'); },
   open(el){ go(`#/messages/${el.dataset.id}`); },
@@ -1756,12 +1956,20 @@ const A = {
   cellTemplate(){ const rows = [['cell_id','enodeb_gnodeb','ma_xa','cong_nghe']]; S.cells.filter(c => c.xaId===S.xas[0].id).slice(0,3).forEach(c => rows.push([c.id, c.enb, S.xas[0].code, c.tech])); download('mau-du-lieu-xa-cell.csv', csv(rows).replace(/"/g,'')); },
   userEdit(el){ userForm(el.dataset.id ? S.users.find(u => u.id===el.dataset.id) : null); },
   userSave(el){ userSave(el.dataset.id); },
-  userToggle(el){ const u = S.users.find(x => x.id===el.dataset.id); u.status = u.status==='active' ? 'locked' : 'active'; u.failLogin = 0; log('Người dùng', u.status==='active'?'Mở khoá tài khoản':'Khoá tài khoản', u.username); save(); render(); },
-  userRole(el){ roleForm(S.users.find(u => u.id===el.dataset.id)); },
-  roleSave(el){ const u = S.users.find(x => x.id===el.dataset.id); const r = (document.querySelector('#modal input[name=role]:checked')||{}).value;
-    if (!r){ $('#roleErr').innerHTML = '<div class="alert err">Chọn vai trò.</div>'; return; }
-    const old = u.role; u.role = r; log('Người dùng','Phân quyền', `${u.username} · ${old?ROLE[old]+' → ':''}${ROLE[r]}`); save(); closeModal(); toast('Đã lưu vai trò.', 'ok'); render(); },
-  userReset(el){ const u = S.users.find(x => x.id===el.dataset.id); if (!confirm(`Đặt lại mật khẩu của ${u.username} về Demo@123?`)) return; u.password = 'Demo@123'; u.failLogin = 0; log('Người dùng','Đặt lại mật khẩu', u.username, 'Quan trọng'); save(); toast('Đã đặt lại mật khẩu.', 'ok'); },
+  userToggle(el){ lockForm(S.users.find(x => x.id===el.dataset.id)); },
+  userLockSave(el){ lockSave(el.dataset.id); },
+  userReset(el){ resetForm(S.users.find(x => x.id===el.dataset.id)); },
+  userResetSave(el){ resetSave(el.dataset.id); },
+  userImport(){ importForm(); },
+  userImportTpl(){ download('mau_import_tai_khoan.csv', csv([USER_COLS, ['soanthao3','Nguyễn Thị Mai','VNPT-VinaPhone','0912345106','mai.nt@vnpt.vn','Người soạn thảo']])); },
+  userImportSave(){ importSave(); },
+  roleEdit(el){ roleEditForm(el.dataset.id ? RO(el.dataset.id) : null); },
+  roleEditSave(el){ roleEditSave(el.dataset.id); },
+  rolePerm(el){ permForm(RO(el.dataset.id)); },
+  rolePermSave(el){ permSave(el.dataset.id); },
+  roleDel(el){ roleDelForm(RO(el.dataset.id)); },
+  roleDelSave(el){ roleDelSave(el.dataset.id); },
+  pwSave(){ pwSave(); },
 };
 
 document.addEventListener('click', ev => {
@@ -1780,8 +1988,9 @@ document.addEventListener('submit', ev => {
     loginStep.err = r.msg; if (r.locked){ log('Đăng nhập','Nhập sai OTP quá số lần', loginStep.u.username, 'Cảnh báo', loginStep.u.id); save(); loginStep = {u:null, err:r.msg + ' Đăng nhập lại.'}; } return render(); }
   if (k==='msgFilter'){ msgFilter = Object.fromEntries(fd); return go('#/messages?st=' + (msgFilter.st||'')); }
   if (k==='repFilter'){ repFilter = Object.fromEntries(fd); return render(); }
-  if (k==='tplFilter'){ tplFilter = Object.fromEntries(fd); if (!isRole('QT')) tplFilter.st = 'active'; return render(); }
+  if (k==='tplFilter'){ tplFilter = Object.fromEntries(fd); if (!hp('tpl.manage')) tplFilter.st = 'active'; return render(); }
   if (k==='logFilter'){ logFilter = Object.fromEntries(fd); return render(); }
+  if (k==='userFilter'){ userFilter = Object.fromEntries(fd); return render(); }
   if (k==='settings') return saveSettings(fd);
 });
 document.addEventListener('compositionend', ev => ev.target.dispatchEvent(new Event('input', {bubbles:true})));
@@ -1815,6 +2024,9 @@ document.addEventListener('change', ev => {
       const msg = `Thêm ${np} tỉnh, ${nx} xã; cập nhật ${up} tỉnh, ${ux} xã.`; log('Danh mục','Nhập danh mục Tỉnh/Xã từ file', msg); save(); render(); toast(msg, 'ok'); });
     return;
   }
+  if (t.id === 'userFile' && t.files[0]){ readRows(t.files[0], (rows, e0) => { t.value = ''; importPreview(rows, e0); }); return; }
+  if (t.dataset.pg){ document.querySelectorAll(`#modal input[data-p][data-gi="${t.dataset.pg}"]:not(:disabled)`).forEach(c => c.checked = t.checked); permWarn(); return; }
+  if (t.dataset.p){ permWarn(); return; }
   if (t.id === 'cellFile' && t.files[0]){
     const rd = new FileReader(); rd.onload = () => { const r = importCells(String(rd.result)); const box = $('#importRes');
       if (r.err && !r.rows){ box.innerHTML = `<div class="alert err" style="margin-top:10px">${r.err.map(esc).join('<br>')}</div>`; return; }
@@ -1834,7 +2046,7 @@ document.addEventListener('change', ev => {
 });
 document.addEventListener('toggle', ev => { if (ev.target.id === 'cellDet') window.__detOpen = ev.target.open; }, true);
 window.addEventListener('hashchange', () => { if (route().name !== 'compose') F = null; render(); });
-document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && $('#modal').innerHTML) A.closeModal(); if (ev.key === 'Enter' && ev.target.id === 'otpIn'){ ev.preventDefault(); A.otpConfirm(); } });
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && $('#modal').innerHTML && !$('#pwF')) A.closeModal(); if (ev.key === 'Enter' && ev.target.id === 'otpIn'){ ev.preventDefault(); A.otpConfirm(); } });
 
 /* hết phiên khi không thao tác (NF11) */
 let lastAct = now();
