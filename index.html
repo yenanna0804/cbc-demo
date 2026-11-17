@@ -287,16 +287,16 @@ const ST = {draft:'Nháp',pending:'Chờ duyệt',rejected:'Bị từ chối',ca
 const ROLE = {SO:'Người soạn thảo',PD:'Người phê duyệt',QT:'Quản trị hệ thống'};
 /* Danh mục quyền theo module (17/11): vai trò = tập quyền; mỗi tài khoản gán 1 vai trò */
 const PERMS = [
-  {g:'Phát tin cảnh báo', items:[['msg.view','Xem danh sách và chi tiết bản tin'],['msg.compose','Soạn, sửa, huỷ, gửi duyệt bản tin; yêu cầu cập nhật, dừng, phát lại'],['msg.approve','Phê duyệt hoặc từ chối bản tin và yêu cầu cập nhật, dừng (nhập OTP)']]},
+  {g:'Phát tin cảnh báo', items:[['msg.view','Xem danh sách và chi tiết bản tin'],['msg.compose','Soạn, sửa, huỷ bản tin (khi Nháp hoặc Bị từ chối)'],['msg.submit','Gửi duyệt bản tin'],['msg.change','Yêu cầu cập nhật, dừng bản tin đang phát'],['msg.retry','Phát lại: cell lỗi, bản tin đã dừng, gửi lại lệnh huỷ'],['msg.approve','Phê duyệt hoặc từ chối bản tin và yêu cầu cập nhật, dừng (nhập OTP)']]},
   {g:'Theo dõi và báo cáo', items:[['report.view','Xem báo cáo chiến dịch, xuất file']]},
   {g:'Quản lý danh mục', items:[['tpl.view','Xem thư viện mẫu tin'],['tpl.manage','Thêm, sửa, ngừng dùng mẫu tin'],['cat.manage','Quản lý mức ưu tiên CMAS, Tỉnh/Xã, ánh xạ Xã – Cell ID'],['set.manage','Cấu hình tham số phát mặc định']]},
   {g:'Quản trị người dùng', items:[['user.manage','Tạo, sửa, import, khoá/mở khoá tài khoản, đặt lại mật khẩu, gán vai trò cho tài khoản'],['role.manage','Tạo, sửa, xoá vai trò, gán quyền cho vai trò'],['log.view','Xem nhật ký hệ thống']]}];
 const PERM_ALL = PERMS.flatMap(g => g.items.map(i => i[0]));
 const PERM_NAME = Object.fromEntries(PERMS.flatMap(g => g.items));
-const PERM_DEP = {'msg.compose':['msg.view','tpl.view'], 'msg.approve':['msg.view'], 'tpl.manage':['tpl.view']};
+const PERM_DEP = {'msg.compose':['msg.view','tpl.view'], 'msg.submit':['msg.compose'], 'msg.change':['msg.view'], 'msg.retry':['msg.view'], 'msg.approve':['msg.view'], 'tpl.manage':['tpl.view']};
 const ADMIN_LOCK = ['user.manage','role.manage'];
 const ROLES0 = [
-  {id:'SO', name:'Người soạn thảo', desc:'Soạn và gửi duyệt bản tin cảnh báo.', system:true, perms:['msg.view','msg.compose','report.view','tpl.view']},
+  {id:'SO', name:'Người soạn thảo', desc:'Soạn và gửi duyệt bản tin cảnh báo.', system:true, perms:['msg.view','msg.compose','msg.submit','msg.change','msg.retry','report.view','tpl.view']},
   {id:'PD', name:'Người phê duyệt', desc:'Phê duyệt và phát bản tin cảnh báo.', system:true, perms:['msg.view','msg.approve','report.view','tpl.view']},
   {id:'QT', name:'Quản trị hệ thống', desc:'Quản lý danh mục, tham số, tài khoản và phân quyền.', system:true, perms:['msg.view','report.view','tpl.view','tpl.manage','cat.manage','set.manage','user.manage','role.manage','log.view']}];
 const RO = id => S.roles.find(r => r.id===id);
@@ -591,14 +591,14 @@ function can(act, m){
   switch(act){
     case 'create': return hp('msg.compose');
     case 'edit': case 'cancel': return hp('msg.compose') && own && ['draft','rejected'].includes(m.status);
-    case 'submit': return hp('msg.compose') && own && ['draft','rejected'].includes(m.status);
+    case 'submit': return hp('msg.submit') && own && ['draft','rejected'].includes(m.status);
     case 'approve': return hp('msg.approve') && m.status==='pending' && m.createdBy !== me.id;
-    case 'update': case 'stop': return hp('msg.compose') && m.status==='broadcasting' && !m.pendingAction;
+    case 'update': case 'stop': return hp('msg.change') && m.status==='broadcasting' && !m.pendingAction;
     case 'approveAction': return hp('msg.approve') && m.pendingAction && m.pendingAction.by !== me.id && m.status==='broadcasting';
     case 'cancelAction': return m.pendingAction && m.pendingAction.by === me.id;
-    case 'retry': return hp('msg.compose') && m.status==='broadcasting' && !roundPending(m) && retryable(m).length > 0;
-    case 'rebroadcast': return hp('msg.compose') && m.status==='stopped' && !roundPending(m);
-    case 'retryKill': return hp('msg.compose') && m.status==='stopped' && !roundPending(m) && killRetryable(m).length > 0;
+    case 'retry': return hp('msg.retry') && m.status==='broadcasting' && !roundPending(m) && retryable(m).length > 0;
+    case 'rebroadcast': return hp('msg.retry') && m.status==='stopped' && !roundPending(m);
+    case 'retryKill': return hp('msg.retry') && m.status==='stopped' && !roundPending(m) && killRetryable(m).length > 0;
     case 'admin': return hp('tpl.manage');
   }
   return false;
@@ -714,6 +714,7 @@ function tick(){
 /* chuyển dữ liệu demo cũ (chưa có lượt gửi) sang cấu trúc mới */
 function migrate(){
   if (!S.roles){ S.roles = JSON.parse(JSON.stringify(ROLES0)); S.users.forEach(u => { if (!u.email) u.email = ''; }); }
+  if (!S.permSplit){ S.permSplit = 1; S.roles.forEach(r => { if (r.perms.includes('msg.compose')) r.perms = PERM_ALL.filter(p => r.perms.includes(p) || ['msg.submit','msg.change','msg.retry'].includes(p)); }); }
   if (!S.seed31){ S.seed31 = 1; S.settings.approveUpdateStop = false; }
   if (!S.seedCmas){ S.seedCmas = 1; S.priorities = CMAS.map(x => ({...x, active:true})); S.templates.forEach(t => { delete t.sound; if (!S.priorities.some(p => p.mi===t.mi)) t.mi = 4370; }); }
   if (!S.seed33){ S.seed33 = 1;
@@ -1010,7 +1011,7 @@ function viewCompose(r){
     </div></div>
     <div class="formacts">
       <div class="small muted mb">Sau khi gửi duyệt, Người phê duyệt (khác người soạn) duyệt và nhập OTP thì hệ thống mới phát.</div>
-      <div class="row acts"><button class="btn pri" data-act="submitMsg">Gửi duyệt</button><button class="btn" data-act="saveDraft">Lưu nháp</button><a class="btn link" href="${r.id?`#/messages/${r.id}`:'#/messages'}">Huỷ</a></div>
+      <div class="row acts">${hp('msg.submit')?'<button class="btn pri" data-act="submitMsg">Gửi duyệt</button>':''}<button class="btn" data-act="saveDraft">Lưu nháp</button><a class="btn link" href="${r.id?`#/messages/${r.id}`:'#/messages'}">Huỷ</a></div>
     </div>
   </div>
   <div class="sticky">
@@ -1740,7 +1741,7 @@ function permChecked(){ return [...document.querySelectorAll('#modal input[data-
 function permWarn(){
   const b = $('#permWarn'); if (!b) return; const ps = permChecked();
   document.querySelectorAll('#modal input[data-pg]').forEach(g => { g.checked = [...document.querySelectorAll(`#modal input[data-p][data-gi="${g.dataset.pg}"]`)].every(c => c.checked); });
-  b.innerHTML = ps.includes('msg.compose') && ps.includes('msg.approve') ? '<div class="alert warn">Vai trò có cả quyền Soạn và Phê duyệt bản tin. Nên tách cho 2 vai trò khác nhau (nguyên tắc 2 người). Hệ thống vẫn chặn người dùng tự duyệt bản tin của mình.</div>' : '';
+  b.innerHTML = ps.some(p => ['msg.compose','msg.submit'].includes(p)) && ps.includes('msg.approve') ? '<div class="alert warn">Vai trò có cả quyền Soạn và Phê duyệt bản tin. Nên tách cho 2 vai trò khác nhau (nguyên tắc 2 người). Hệ thống vẫn chặn người dùng tự duyệt bản tin của mình.</div>' : '';
 }
 function permSave(id){
   const x = RO(id); let ps = permChecked();
