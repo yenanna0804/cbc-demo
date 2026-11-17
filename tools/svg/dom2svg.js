@@ -73,7 +73,10 @@ window.dom2svg = function () {
     }
     const ov = cs.overflow !== 'visible' && cs.overflowX !== 'visible' && r.w > 0 && r.h > 0 && tag !== 'body' && tag !== 'html';
     let kids = '';
-    for (const n of el.childNodes) { if (n.nodeType === 3) kids += textNode(n, cs, ''); else if (n.nodeType === 1) kids += walk(n); }
+    // vẽ theo z-index (phần tử position có z-index số được xếp sau, ổn định theo thứ tự DOM)
+    const parts = [];
+    for (const n of el.childNodes) { if (n.nodeType === 3) parts.push([0, textNode(n, cs, '')]); else if (n.nodeType === 1) { const c2 = getComputedStyle(n); const z = c2.position !== 'static' && c2.zIndex !== 'auto' ? +c2.zIndex : 0; parts.push([z, walk(n)]); } }
+    parts.map((p, i) => [p[0], i, p[1]]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).forEach(p => { kids += p[2]; });
     if (ov && kids) { const id = 'c' + (++uid); kids = `<clipPath id="${id}"><rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}"/></clipPath><g clip-path="url(#${id})">${kids}</g>`; }
     out += kids; if (!out) return '';
     return `<g id="${idOf(nameOf(el))}"${op}>${out}</g>`;
