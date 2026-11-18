@@ -50,6 +50,8 @@ window.dom2svg = function () {
     const cs = getComputedStyle(el); if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity === 0) return '';
     const rect = el.getBoundingClientRect(); const r = R(rect); const tag = el.tagName.toLowerCase();
     if (tag === 'script' || tag === 'style' || tag === 'head') return '';
+    if (tag === 'svg') { if (!(r.w > 0 && r.h > 0)) return ''; const vb = el.getAttribute('viewBox'); // hình minh hoạ SVG: nhúng nguyên
+      return `<svg id="${nameOf(el)}" x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}"${vb ? ` viewBox="${vb}"` : ''}>${el.innerHTML}</svg>`; }
     let out = '';
     const op = +cs.opacity < 1 ? ` opacity="${cs.opacity}"` : '';
     if (r.w > 0 && r.h > 0) {

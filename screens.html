@@ -187,10 +187,19 @@ h3.sec{margin:2px 0 10px;font-size:13.5px;text-transform:uppercase;letter-spacin
 
 /* login */
 .login{min-height:100vh;display:grid;grid-template-columns:1fr 1fr}
-.login .l{background:linear-gradient(160deg,#14243a,#1f5fae);color:#dfe8f4;padding:48px;display:flex;flex-direction:column;justify-content:center}
-.login .l h1{color:#fff;font-size:28px;margin-bottom:10px}
-.login .r{display:grid;place-items:center;padding:24px}
-.login .box{width:100%;max-width:380px}
+.login .l{background:linear-gradient(160deg,#14243a,#1f5fae);color:#dfe8f4;padding:56px 64px 40px;display:flex;flex-direction:column}
+.login .l .lt{margin-top:auto}
+.login .l h1{color:#fff;font-size:34px;margin-bottom:12px}
+.login .l .lead{max-width:520px;font-size:18px;line-height:1.6;color:#e3ebf6;margin:0}
+.login .l .bar{width:60px;height:4px;border-radius:2px;background:#fff;margin:22px 0 8px}
+.login .l .ill{width:100%;max-width:560px;height:auto;margin:8px 0 auto}
+.login .l .lnote{font-size:14px;color:#c9d6ea;margin:24px 0 0;max-width:560px}
+.login .r{display:grid;place-items:center;padding:32px}
+.login .box{width:100%;max-width:480px}
+.login .box .bd{padding:28px 32px}
+.login .box h1{font-size:30px}
+.login .box input:not(.otp){height:48px}
+.login .box .btn.pri{height:48px;font-size:18px}
 .demo-acc{margin-top:18px}
 .demo-acc button{display:flex;width:100%;text-align:left;gap:8px;border:1px solid var(--line);background:#fff;border-radius:6px;padding:8px 10px;margin-bottom:6px;cursor:pointer}
 .demo-acc button:hover,.demo-acc button.st-hover{background:#f7f9fc}
@@ -278,14 +287,35 @@ html,body{background:#e9ecf1}
 .sb-t{border-collapse:collapse}.sb-t th,.sb-t td{border:1px solid #e1e4e8;padding:12px 14px;text-align:left;vertical-align:middle}.sb-t th{background:#f5f6f8;font-size:14px}
 </style></head><body>
 <div class="cover"><h1>Tất cả màn hình CMS Cell Broadcast</h1>
-<div class="muted">Trang tổng hợp để nhập vào Figma bằng plugin html.to.design: mỗi khung là một màn hình, popup hoặc trạng thái, đã mở sẵn. Kích thước khung 1440 px. Sinh tự động từ bản demo ngày 13/11/2026.</div>
+<div class="muted">Trang tổng hợp để nhập vào Figma bằng plugin html.to.design: mỗi khung là một màn hình, popup hoặc trạng thái, đã mở sẵn. Kích thước khung 1440 px. Sinh tự động từ bản demo ngày 18/11/2026.</div>
 <table><tr><th>STT</th><th>Nhóm</th><th>Khung</th><th>Loại</th><th>Vai trò</th></tr><tr><td>1</td><td>1. Đăng nhập</td><td><a href="#f1">Đăng nhập</a></td><td>Màn hình</td><td></td></tr><tr><td>2</td><td>1. Đăng nhập</td><td><a href="#f2">Đăng nhập – lỗi khi bấm Đăng nhập để trống</a></td><td>Trạng thái</td><td></td></tr><tr><td>3</td><td>1. Đăng nhập</td><td><a href="#f3">Xác thực OTP khi đăng nhập (kèm SMS mô phỏng)</a></td><td>Màn hình</td><td></td></tr><tr><td>4</td><td>2. Tổng quan</td><td><a href="#f4">Tổng quan</a></td><td>Màn hình</td><td>Người soạn thảo</td></tr><tr><td>5</td><td>2. Tổng quan</td><td><a href="#f5">Tổng quan – có yêu cầu chờ phê duyệt</a></td><td>Màn hình</td><td>Người phê duyệt</td></tr><tr><td>6</td><td>2. Tổng quan</td><td><a href="#f6">Menu tài khoản (góc phải trên) đang mở</a></td><td>Trạng thái</td><td>Người soạn thảo</td></tr><tr><td>7</td><td>3. Bản tin cảnh báo: danh sách và soạn tin</td><td><a href="#f7">Danh sách bản tin</a></td><td>Màn hình</td><td>Người soạn thảo</td></tr><tr><td>8</td><td>3. Bản tin cảnh báo: danh sách và soạn tin</td><td><a href="#f8">Danh sách bản tin – có số yêu cầu chờ duyệt ở menu</a></td><td>Màn hình</td><td>Người phê duyệt</td></tr><tr><td>9</td><td>3. Bản tin cảnh báo: danh sách và soạn tin</td><td><a href="#f9">Tạo bản tin – chọn từ thư viện mẫu</a></td><td>Màn hình</td><td>Người soạn thảo</td></tr><tr><td>10</td><td>3. Bản tin cảnh báo: danh sách và soạn tin</td><td><a href="#f10">Tạo bản tin – soạn tự do</a></td><td>Trạng thái</td><td>Người soạn thảo</td></tr><tr><td>11</td><td>3. Bản tin cảnh báo: danh sách và soạn tin</td><td><a href="#f11">Tạo bản tin – đã chọn khu vực (chọn cả tỉnh)</a></td><td>Trạng thái</td><td>Người soạn thảo</td></tr><tr><td>12</td><td>3. Bản tin cảnh báo: danh sách và soạn tin</td><td><a href="#f12">Tạo bản tin – lỗi khi gửi duyệt còn thiếu thông tin</a></td><td>Trạng thái</td><td>Người soạn thảo</td></tr><tr><td>13</td><td>3. Bản tin cảnh báo: danh sách và soạn tin</td><td><a href="#f13">Sửa bản tin bị từ chối</a></td><td>Màn hình</td><td>Người soạn thảo</td></tr><tr><td>14</td><td>3. Bản tin cảnh báo: danh sách và soạn tin</td><td><a href="#f14">Popup Chèn link</a></td><td>Popup</td><td>Người soạn thảo</td></tr><tr><td>15</td><td>4. Chi tiết bản tin theo trạng thái</td><td><a href="#f15">Nháp</a></td><td>Màn hình</td><td>Người soạn thảo</td></tr><tr><td>16</td><td>4. Chi tiết bản tin theo trạng thái</td><td><a href="#f16">Popup Huỷ bản tin</a></td><td>Popup</td><td>Người soạn thảo</td></tr><tr><td>17</td><td>4. Chi tiết bản tin theo trạng thái</td><td><a href="#f17">Chờ duyệt – màn hình người soạn thảo</a></td><td>Màn hình</td><td>Người soạn thảo</td></tr><tr><td>18</td><td>4. Chi tiết bản tin theo trạng thái</td><td><a href="#f18">Chờ duyệt – màn hình người phê duyệt</a></td><td>Màn hình</td><td>Người phê duyệt</td></tr><tr><td>19</td><td>4. Chi tiết bản tin theo trạng thái</td><td><a href="#f19">Popup Duyệt và phát bản tin (nhập OTP)</a></td><td>Popup</td><td>Người phê duyệt</td></tr><tr><td>20</td><td>4. Chi tiết bản tin theo trạng thái</td><td><a href="#f20">Popup Từ chối bản tin</a></td><td>Popup</td><td>Người phê duyệt</td></tr><tr><td>21</td><td>4. Chi tiết bản tin theo trạng thái</td><td><a href="#f21">Bị từ chối</a></td><td>Màn hình</td><td>Người soạn thảo</td></tr><tr><td>22</td><td>4. Chi tiết bản tin theo trạng thái</td><td><a href="#f22">Chờ phát (hẹn giờ)</a></td><td>Màn hình</td><td>Người soạn thảo</td></tr><tr><td>23</td><td>4. Chi tiết bản tin theo trạng thái</td><td><a href="#f23">Đang phát</a></td><td>Màn hình</td><td>Người soạn thảo</td></tr><tr><td>24</td><td>4. Chi tiết bản tin theo trạng thái</td><td><a href="#f24">Đang phát – lọc chỉ cell lỗi</a></td><td>Trạng thái</td><td>Người soạn thảo</td></tr><tr><td>25</td><td>4. Chi tiết bản tin theo trạng thái</td><td><a href="#f25">Popup Cập nhật bản tin</a></td><td>Popup</td><td>Người soạn thảo</td></tr><tr><td>26</td><td>4. Chi tiết bản tin theo trạng thái</td><td><a href="#f26">Popup Dừng phát</a></td><td>Popup</td><td>Người soạn thảo</td></tr><tr><td>27</td><td>4. Chi tiết bản tin theo trạng thái</td><td><a href="#f27">Popup Phát lại các cell lỗi</a></td><td>Popup</td><td>Người soạn thảo</td></tr><tr><td>28</td><td>4. Chi tiết bản tin theo trạng thái</td><td><a href="#f28">Popup Phát lại 1 cell</a></td><td>Popup</td><td>Người soạn thảo</td></tr><tr><td>29</td><td>4. Chi tiết bản tin theo trạng thái</td><td><a href="#f29">Đang phát – có yêu cầu cập nhật chờ duyệt (người soạn thảo)</a></td><td>Màn hình</td><td>Người soạn thảo</td></tr><tr><td>30</td><td>4. Chi tiết bản tin theo trạng thái</td><td><a href="#f30">Đang phát – có yêu cầu cập nhật chờ duyệt (người phê duyệt)</a></td><td>Màn hình</td><td>Người phê duyệt</td></tr><tr><td>31</td><td>4. Chi tiết bản tin theo trạng thái</td><td><a href="#f31">Popup Duyệt cập nhật bản tin (nhập OTP)</a></td><td>Popup</td><td>Người phê duyệt</td></tr><tr><td>32</td><td>4. Chi tiết bản tin theo trạng thái</td><td><a href="#f32">Popup Từ chối yêu cầu</a></td><td>Popup</td><td>Người phê duyệt</td></tr><tr><td>33</td><td>4. Chi tiết bản tin theo trạng thái</td><td><a href="#f33">Đang phát – có yêu cầu dừng chờ duyệt (người soạn thảo)</a></td><td>Màn hình</td><td>Người soạn thảo</td></tr><tr><td>34</td><td>4. Chi tiết bản tin theo trạng thái</td><td><a href="#f34">Đang phát – có yêu cầu dừng chờ duyệt (người phê duyệt)</a></td><td>Màn hình</td><td>Người phê duyệt</td></tr><tr><td>35</td><td>4. Chi tiết bản tin theo trạng thái</td><td><a href="#f35">Popup Duyệt dừng phát (nhập OTP)</a></td><td>Popup</td><td>Người phê duyệt</td></tr><tr><td>36</td><td>4. Chi tiết bản tin theo trạng thái</td><td><a href="#f36">Đã dừng</a></td><td>Màn hình</td><td>Người soạn thảo</td></tr><tr><td>37</td><td>4. Chi tiết bản tin theo trạng thái</td><td><a href="#f37">Popup Phát lại bản tin</a></td><td>Popup</td><td>Người soạn thảo</td></tr><tr><td>38</td><td>4. Chi tiết bản tin theo trạng thái</td><td><a href="#f38">Hết hạn</a></td><td>Màn hình</td><td>Người soạn thảo</td></tr><tr><td>39</td><td>4. Chi tiết bản tin theo trạng thái</td><td><a href="#f39">Đã huỷ</a></td><td>Màn hình</td><td>Người soạn thảo</td></tr><tr><td>40</td><td>5. Báo cáo chiến dịch</td><td><a href="#f40">Danh sách báo cáo chiến dịch</a></td><td>Màn hình</td><td>Người soạn thảo</td></tr><tr><td>41</td><td>5. Báo cáo chiến dịch</td><td><a href="#f41">Báo cáo chiến dịch – đang phát</a></td><td>Màn hình</td><td>Người phê duyệt</td></tr><tr><td>42</td><td>5. Báo cáo chiến dịch</td><td><a href="#f42">Báo cáo chiến dịch – đã kết thúc</a></td><td>Màn hình</td><td>Người soạn thảo</td></tr><tr><td>43</td><td>6. Quản lý danh mục</td><td><a href="#f43">Thư viện mẫu tin (người soạn thảo, chỉ xem)</a></td><td>Màn hình</td><td>Người soạn thảo</td></tr><tr><td>44</td><td>6. Quản lý danh mục</td><td><a href="#f44">Thư viện mẫu tin (quản trị)</a></td><td>Màn hình</td><td>Quản trị hệ thống</td></tr><tr><td>45</td><td>6. Quản lý danh mục</td><td><a href="#f45">Popup Xem mẫu tin</a></td><td>Popup</td><td>Người soạn thảo</td></tr><tr><td>46</td><td>6. Quản lý danh mục</td><td><a href="#f46">Popup Thêm / sửa mẫu tin</a></td><td>Popup</td><td>Quản trị hệ thống</td></tr><tr><td>47</td><td>6. Quản lý danh mục</td><td><a href="#f47">Mức độ ưu tiên (CMAS)</a></td><td>Màn hình</td><td>Quản trị hệ thống</td></tr><tr><td>48</td><td>6. Quản lý danh mục</td><td><a href="#f48">Popup Sửa mức ưu tiên</a></td><td>Popup</td><td>Quản trị hệ thống</td></tr><tr><td>49</td><td>6. Quản lý danh mục</td><td><a href="#f49">Danh mục Tỉnh/Xã</a></td><td>Màn hình</td><td>Quản trị hệ thống</td></tr><tr><td>50</td><td>6. Quản lý danh mục</td><td><a href="#f50">Ánh xạ Xã – Cell ID</a></td><td>Màn hình</td><td>Quản trị hệ thống</td></tr><tr><td>51</td><td>6. Quản lý danh mục</td><td><a href="#f51">Popup Danh sách Cell ID của xã</a></td><td>Popup</td><td>Quản trị hệ thống</td></tr><tr><td>52</td><td>6. Quản lý danh mục</td><td><a href="#f52">Tham số phát mặc định</a></td><td>Màn hình</td><td>Quản trị hệ thống</td></tr><tr><td>53</td><td>7. Quản trị người dùng</td><td><a href="#f53">Tài khoản và phân quyền</a></td><td>Màn hình</td><td>Quản trị hệ thống</td></tr><tr><td>54</td><td>7. Quản trị người dùng</td><td><a href="#f54">Popup Thêm / sửa tài khoản</a></td><td>Popup</td><td>Quản trị hệ thống</td></tr><tr><td>55</td><td>7. Quản trị người dùng</td><td><a href="#f55">Popup Phân quyền</a></td><td>Popup</td><td>Quản trị hệ thống</td></tr><tr><td>56</td><td>7. Quản trị người dùng</td><td><a href="#f56">Nhật ký hệ thống</a></td><td>Màn hình</td><td>Quản trị hệ thống</td></tr><tr><td>57</td><td>Thành phần giao diện</td><td><a href="#f57">Bảng trạng thái: nút, ô nhập, tooltip, nhãn, thông báo, tab</a></td><td>Bảng trạng thái</td><td></td></tr></table></div>
 <h2 class="g-h">1. Đăng nhập</h2>
 <section class="fr" id="f1"><div class="fr-t"><span class="fr-no">1</span>Đăng nhập<span class="fr-k">Màn hình</span></div>
 <div class="vp " style="height:900px">
-<div id="root"><div class="login"><div class="l"><h1>CMS Cell Broadcast VNPT</h1><p style="max-width:460px">Soạn, phê duyệt và phát bản tin cảnh báo khẩn cấp tới mọi thiết bị di động trong vùng ảnh hưởng.</p>
-  <ul style="max-width:460px;padding-left:18px;color:#c3d2e6"><li>Chọn vùng phát theo Tỉnh/Xã, hệ thống tự xác định trạm và cell.</li><li>Soạn từ thư viện mẫu hoặc soạn tự do.</li><li>Phê duyệt 2 người, xác thực OTP trước khi phát.</li><li>Theo dõi kết quả phát theo từng cell.</li></ul>
-  <p class="small" style="color:#8fa1b8;margin-top:30px">Bản demo GĐ1 theo Tài liệu yêu cầu tính năng người dùng (URD) v1.0. Kết nối mạng (MME) và SMS là mô phỏng; dữ liệu lưu trên trình duyệt.</p></div><div class="r"><div class="box"><div class="card"><div class="bd">
+<div id="root"><div class="login"><div class="l"><div class="lt"><h1>CMS Cell Broadcast VNPT</h1><p class="lead">Soạn, phê duyệt và phát bản tin cảnh báo khẩn cấp tới mọi thiết bị di động trong vùng ảnh hưởng.</p><div class="bar"></div></div>
+  <svg class="ill" viewBox="0 0 560 340" role="img" aria-label="Trạm phát sóng gửi cảnh báo tới điện thoại">
+  <defs><linearGradient id="lgPh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fb0e6"></stop><stop offset="1" stop-color="#5c82c7"></stop></linearGradient></defs>
+  <g fill="none" stroke="#fff" stroke-opacity=".18" stroke-width="2"><circle cx="300" cy="150" r="70"></circle><circle cx="300" cy="150" r="105"></circle><circle cx="300" cy="150" r="140" stroke-opacity=".1"></circle></g>
+  <path d="M0 300 C70 255 130 235 200 262 C250 280 300 285 360 262 C420 238 480 245 560 300 Z" fill="#fff" fill-opacity=".12"></path>
+  <ellipse cx="300" cy="312" rx="120" ry="14" fill="#fff" fill-opacity=".1"></ellipse>
+  <g stroke="#e6eefb" stroke-width="5" stroke-linecap="round" fill="none">
+    <path d="M110 130 L90 270 M110 130 L130 270 M97 220 L123 220 M93 250 L127 250 M101 190 L119 190 M97 220 L119 190 M123 220 L101 190 M93 250 L123 220 M127 250 L97 220"></path>
+    <path d="M88 108 a28 28 0 0 0 0 40 M132 108 a28 28 0 0 1 0 40 M76 96 a46 46 0 0 0 0 64 M144 96 a46 46 0 0 1 0 64" stroke-width="4"></path>
+  </g>
+  <circle cx="110" cy="128" r="8" fill="#fff"></circle>
+  <g transform="rotate(8 300 185)">
+    <rect x="240" y="65" width="125" height="240" rx="20" fill="#fff" fill-opacity=".95"></rect>
+    <rect x="249" y="74" width="107" height="222" rx="14" fill="url(#lgPh)"></rect>
+    <rect x="285" y="80" width="35" height="7" rx="3.5" fill="#fff" fill-opacity=".9"></rect>
+    <path d="M302 120 L336 180 L268 180 Z" fill="#fff" stroke="#fff" stroke-width="8" stroke-linejoin="round"></path>
+    <rect x="298.5" y="138" width="7" height="24" rx="3.5" fill="#3b5fa3"></rect><circle cx="302" cy="170" r="4.5" fill="#3b5fa3"></circle>
+    <rect x="266" y="200" width="72" height="12" rx="6" fill="#fff" fill-opacity=".85"></rect>
+    <rect x="266" y="222" width="50" height="12" rx="6" fill="#fff" fill-opacity=".6"></rect>
+  </g>
+  <path d="M470 180 c-17 0 -28 13 -28 28 c0 20 28 48 28 48 s28 -28 28 -48 c0 -15 -11 -28 -28 -28 z" fill="#c9d8f2"></path>
+  <circle cx="470" cy="207" r="10" fill="#4767a4"></circle>
+</svg>
+  <p class="lnote">Bản demo GĐ1 theo Tài liệu yêu cầu tính năng người dùng (URD) v1.0.<br>Kết nối mạng (MME) và SMS là mô phỏng; dữ liệu lưu trên trình duyệt.</p></div><div class="r"><div class="box"><div class="card"><div class="bd">
     <h1 style="margin-bottom:4px">Đăng nhập<span class="tipw"><button type="button" class="tipb" aria-label="Chú thích: dấu * đỏ là trường bắt buộc" aria-expanded="false" data-tip="">i</button><span class="tipt" role="tooltip">Dấu <span style="color:#ff8a7a">*</span> đỏ là trường bắt buộc</span></span></h1><p class="muted" style="margin-top:0">Hệ thống quản lý phát tin Cell Broadcast</p>
     
     <form novalidate="" data-form="login">
@@ -307,9 +337,30 @@ html,body{background:#e9ecf1}
 </div></section>
 <section class="fr" id="f2"><div class="fr-t"><span class="fr-no">2</span>Đăng nhập – lỗi khi bấm Đăng nhập để trống<span class="fr-k">Trạng thái</span></div>
 <div class="vp " style="height:900px">
-<div id="root"><div class="login"><div class="l"><h1>CMS Cell Broadcast VNPT</h1><p style="max-width:460px">Soạn, phê duyệt và phát bản tin cảnh báo khẩn cấp tới mọi thiết bị di động trong vùng ảnh hưởng.</p>
-  <ul style="max-width:460px;padding-left:18px;color:#c3d2e6"><li>Chọn vùng phát theo Tỉnh/Xã, hệ thống tự xác định trạm và cell.</li><li>Soạn từ thư viện mẫu hoặc soạn tự do.</li><li>Phê duyệt 2 người, xác thực OTP trước khi phát.</li><li>Theo dõi kết quả phát theo từng cell.</li></ul>
-  <p class="small" style="color:#8fa1b8;margin-top:30px">Bản demo GĐ1 theo Tài liệu yêu cầu tính năng người dùng (URD) v1.0. Kết nối mạng (MME) và SMS là mô phỏng; dữ liệu lưu trên trình duyệt.</p></div><div class="r"><div class="box"><div class="card"><div class="bd">
+<div id="root"><div class="login"><div class="l"><div class="lt"><h1>CMS Cell Broadcast VNPT</h1><p class="lead">Soạn, phê duyệt và phát bản tin cảnh báo khẩn cấp tới mọi thiết bị di động trong vùng ảnh hưởng.</p><div class="bar"></div></div>
+  <svg class="ill" viewBox="0 0 560 340" role="img" aria-label="Trạm phát sóng gửi cảnh báo tới điện thoại">
+  <defs><linearGradient id="lgPh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fb0e6"></stop><stop offset="1" stop-color="#5c82c7"></stop></linearGradient></defs>
+  <g fill="none" stroke="#fff" stroke-opacity=".18" stroke-width="2"><circle cx="300" cy="150" r="70"></circle><circle cx="300" cy="150" r="105"></circle><circle cx="300" cy="150" r="140" stroke-opacity=".1"></circle></g>
+  <path d="M0 300 C70 255 130 235 200 262 C250 280 300 285 360 262 C420 238 480 245 560 300 Z" fill="#fff" fill-opacity=".12"></path>
+  <ellipse cx="300" cy="312" rx="120" ry="14" fill="#fff" fill-opacity=".1"></ellipse>
+  <g stroke="#e6eefb" stroke-width="5" stroke-linecap="round" fill="none">
+    <path d="M110 130 L90 270 M110 130 L130 270 M97 220 L123 220 M93 250 L127 250 M101 190 L119 190 M97 220 L119 190 M123 220 L101 190 M93 250 L123 220 M127 250 L97 220"></path>
+    <path d="M88 108 a28 28 0 0 0 0 40 M132 108 a28 28 0 0 1 0 40 M76 96 a46 46 0 0 0 0 64 M144 96 a46 46 0 0 1 0 64" stroke-width="4"></path>
+  </g>
+  <circle cx="110" cy="128" r="8" fill="#fff"></circle>
+  <g transform="rotate(8 300 185)">
+    <rect x="240" y="65" width="125" height="240" rx="20" fill="#fff" fill-opacity=".95"></rect>
+    <rect x="249" y="74" width="107" height="222" rx="14" fill="url(#lgPh)"></rect>
+    <rect x="285" y="80" width="35" height="7" rx="3.5" fill="#fff" fill-opacity=".9"></rect>
+    <path d="M302 120 L336 180 L268 180 Z" fill="#fff" stroke="#fff" stroke-width="8" stroke-linejoin="round"></path>
+    <rect x="298.5" y="138" width="7" height="24" rx="3.5" fill="#3b5fa3"></rect><circle cx="302" cy="170" r="4.5" fill="#3b5fa3"></circle>
+    <rect x="266" y="200" width="72" height="12" rx="6" fill="#fff" fill-opacity=".85"></rect>
+    <rect x="266" y="222" width="50" height="12" rx="6" fill="#fff" fill-opacity=".6"></rect>
+  </g>
+  <path d="M470 180 c-17 0 -28 13 -28 28 c0 20 28 48 28 48 s28 -28 28 -48 c0 -15 -11 -28 -28 -28 z" fill="#c9d8f2"></path>
+  <circle cx="470" cy="207" r="10" fill="#4767a4"></circle>
+</svg>
+  <p class="lnote">Bản demo GĐ1 theo Tài liệu yêu cầu tính năng người dùng (URD) v1.0.<br>Kết nối mạng (MME) và SMS là mô phỏng; dữ liệu lưu trên trình duyệt.</p></div><div class="r"><div class="box"><div class="card"><div class="bd">
     <h1 style="margin-bottom:4px">Đăng nhập<span class="tipw"><button type="button" class="tipb" aria-label="Chú thích: dấu * đỏ là trường bắt buộc" aria-expanded="false" data-tip="">i</button><span class="tipt" role="tooltip">Dấu <span style="color:#ff8a7a">*</span> đỏ là trường bắt buộc</span></span></h1><p class="muted" style="margin-top:0">Hệ thống quản lý phát tin Cell Broadcast</p>
     <div class="alert err">Nhập tên đăng nhập và mật khẩu.</div>
     <form novalidate="" data-form="login">
@@ -331,9 +382,30 @@ html,body{background:#e9ecf1}
 </div></section>
 <section class="fr" id="f3"><div class="fr-t"><span class="fr-no">3</span>Xác thực OTP khi đăng nhập (kèm SMS mô phỏng)<span class="fr-k">Màn hình</span></div>
 <div class="vp " style="height:900px">
-<div id="root"><div class="login"><div class="l"><h1>CMS Cell Broadcast VNPT</h1><p style="max-width:460px">Soạn, phê duyệt và phát bản tin cảnh báo khẩn cấp tới mọi thiết bị di động trong vùng ảnh hưởng.</p>
-  <ul style="max-width:460px;padding-left:18px;color:#c3d2e6"><li>Chọn vùng phát theo Tỉnh/Xã, hệ thống tự xác định trạm và cell.</li><li>Soạn từ thư viện mẫu hoặc soạn tự do.</li><li>Phê duyệt 2 người, xác thực OTP trước khi phát.</li><li>Theo dõi kết quả phát theo từng cell.</li></ul>
-  <p class="small" style="color:#8fa1b8;margin-top:30px">Bản demo GĐ1 theo Tài liệu yêu cầu tính năng người dùng (URD) v1.0. Kết nối mạng (MME) và SMS là mô phỏng; dữ liệu lưu trên trình duyệt.</p></div><div class="r"><div class="box card"><div class="bd">
+<div id="root"><div class="login"><div class="l"><div class="lt"><h1>CMS Cell Broadcast VNPT</h1><p class="lead">Soạn, phê duyệt và phát bản tin cảnh báo khẩn cấp tới mọi thiết bị di động trong vùng ảnh hưởng.</p><div class="bar"></div></div>
+  <svg class="ill" viewBox="0 0 560 340" role="img" aria-label="Trạm phát sóng gửi cảnh báo tới điện thoại">
+  <defs><linearGradient id="lgPh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fb0e6"></stop><stop offset="1" stop-color="#5c82c7"></stop></linearGradient></defs>
+  <g fill="none" stroke="#fff" stroke-opacity=".18" stroke-width="2"><circle cx="300" cy="150" r="70"></circle><circle cx="300" cy="150" r="105"></circle><circle cx="300" cy="150" r="140" stroke-opacity=".1"></circle></g>
+  <path d="M0 300 C70 255 130 235 200 262 C250 280 300 285 360 262 C420 238 480 245 560 300 Z" fill="#fff" fill-opacity=".12"></path>
+  <ellipse cx="300" cy="312" rx="120" ry="14" fill="#fff" fill-opacity=".1"></ellipse>
+  <g stroke="#e6eefb" stroke-width="5" stroke-linecap="round" fill="none">
+    <path d="M110 130 L90 270 M110 130 L130 270 M97 220 L123 220 M93 250 L127 250 M101 190 L119 190 M97 220 L119 190 M123 220 L101 190 M93 250 L123 220 M127 250 L97 220"></path>
+    <path d="M88 108 a28 28 0 0 0 0 40 M132 108 a28 28 0 0 1 0 40 M76 96 a46 46 0 0 0 0 64 M144 96 a46 46 0 0 1 0 64" stroke-width="4"></path>
+  </g>
+  <circle cx="110" cy="128" r="8" fill="#fff"></circle>
+  <g transform="rotate(8 300 185)">
+    <rect x="240" y="65" width="125" height="240" rx="20" fill="#fff" fill-opacity=".95"></rect>
+    <rect x="249" y="74" width="107" height="222" rx="14" fill="url(#lgPh)"></rect>
+    <rect x="285" y="80" width="35" height="7" rx="3.5" fill="#fff" fill-opacity=".9"></rect>
+    <path d="M302 120 L336 180 L268 180 Z" fill="#fff" stroke="#fff" stroke-width="8" stroke-linejoin="round"></path>
+    <rect x="298.5" y="138" width="7" height="24" rx="3.5" fill="#3b5fa3"></rect><circle cx="302" cy="170" r="4.5" fill="#3b5fa3"></circle>
+    <rect x="266" y="200" width="72" height="12" rx="6" fill="#fff" fill-opacity=".85"></rect>
+    <rect x="266" y="222" width="50" height="12" rx="6" fill="#fff" fill-opacity=".6"></rect>
+  </g>
+  <path d="M470 180 c-17 0 -28 13 -28 28 c0 20 28 48 28 48 s28 -28 28 -48 c0 -15 -11 -28 -28 -28 z" fill="#c9d8f2"></path>
+  <circle cx="470" cy="207" r="10" fill="#4767a4"></circle>
+</svg>
+  <p class="lnote">Bản demo GĐ1 theo Tài liệu yêu cầu tính năng người dùng (URD) v1.0.<br>Kết nối mạng (MME) và SMS là mô phỏng; dữ liệu lưu trên trình duyệt.</p></div><div class="r"><div class="box card"><div class="bd">
     <h1 style="margin-bottom:6px">Xác thực OTP<span class="tipw"><button type="button" class="tipb" aria-label="Chú thích: dấu * đỏ là trường bắt buộc" aria-expanded="false" data-tip="">i</button><span class="tipt" role="tooltip">Dấu <span style="color:#ff8a7a">*</span> đỏ là trường bắt buộc</span></span></h1>
     <p class="muted">Mã OTP đã gửi qua SMS tới số 0912***101.</p>
     
@@ -342,7 +414,7 @@ html,body{background:#e9ecf1}
   </div></div></div></div></div>
 <div id="toasts"></div>
 <div id="sms" style="display: block;"><div class="card"><div class="hd"><b>📱 SMS mô phỏng</b><span class="small muted">tới 0912***101</span><button class="x" data-act="smsClose">×</button></div>
-    <div class="bd">Ma OTP CBC VNPT: 187848. Dung de dang nhap CMS. Hieu luc 5 phut. Khong cung cap ma cho nguoi khac.<div class="hint">Demo: hệ thống thật gửi SMS tới điện thoại người dùng.</div></div></div></div>
+    <div class="bd">Ma OTP CBC VNPT: 800138. Dung de dang nhap CMS. Hieu luc 5 phut. Khong cung cap ma cho nguoi khac.<div class="hint">Demo: hệ thống thật gửi SMS tới điện thoại người dùng.</div></div></div></div>
 <div id="modal"></div>
 
 

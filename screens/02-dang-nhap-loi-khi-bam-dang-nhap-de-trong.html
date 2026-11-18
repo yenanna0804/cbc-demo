@@ -186,10 +186,19 @@ h3.sec{margin:2px 0 10px;font-size:13.5px;text-transform:uppercase;letter-spacin
 
 /* login */
 .login{min-height:100vh;display:grid;grid-template-columns:1fr 1fr}
-.login .l{background:linear-gradient(160deg,#14243a,#1f5fae);color:#dfe8f4;padding:48px;display:flex;flex-direction:column;justify-content:center}
-.login .l h1{color:#fff;font-size:28px;margin-bottom:10px}
-.login .r{display:grid;place-items:center;padding:24px}
-.login .box{width:100%;max-width:380px}
+.login .l{background:linear-gradient(160deg,#14243a,#1f5fae);color:#dfe8f4;padding:56px 64px 40px;display:flex;flex-direction:column}
+.login .l .lt{margin-top:auto}
+.login .l h1{color:#fff;font-size:34px;margin-bottom:12px}
+.login .l .lead{max-width:520px;font-size:18px;line-height:1.6;color:#e3ebf6;margin:0}
+.login .l .bar{width:60px;height:4px;border-radius:2px;background:#fff;margin:22px 0 8px}
+.login .l .ill{width:100%;max-width:560px;height:auto;margin:8px 0 auto}
+.login .l .lnote{font-size:14px;color:#c9d6ea;margin:24px 0 0;max-width:560px}
+.login .r{display:grid;place-items:center;padding:32px}
+.login .box{width:100%;max-width:480px}
+.login .box .bd{padding:28px 32px}
+.login .box h1{font-size:30px}
+.login .box input:not(.otp){height:48px}
+.login .box .btn.pri{height:48px;font-size:18px}
 .demo-acc{margin-top:18px}
 .demo-acc button{display:flex;width:100%;text-align:left;gap:8px;border:1px solid var(--line);background:#fff;border-radius:6px;padding:8px 10px;margin-bottom:6px;cursor:pointer}
 .demo-acc button:hover,.demo-acc button.st-hover{background:#f7f9fc}
@@ -264,9 +273,30 @@ input[type=text],input[type=password],input[type=number],input[type=date],input[
 .sb-h{font-size:20px;margin:28px 0 12px}.sb-h:first-child{margin-top:0}.sb-s{font-size:16px;margin:18px 0 8px}
 .sb-t{border-collapse:collapse}.sb-t th,.sb-t td{border:1px solid #e1e4e8;padding:12px 14px;text-align:left;vertical-align:middle}.sb-t th{background:#f5f6f8;font-size:14px}
 html,body{min-width:1440px}</style></head><body class="" style="min-height:900px">
-<div id="root"><div class="login"><div class="l"><h1>CMS Cell Broadcast VNPT</h1><p style="max-width:460px">Soạn, phê duyệt và phát bản tin cảnh báo khẩn cấp tới mọi thiết bị di động trong vùng ảnh hưởng.</p>
-  <ul style="max-width:460px;padding-left:18px;color:#c3d2e6"><li>Chọn vùng phát theo Tỉnh/Xã, hệ thống tự xác định trạm và cell.</li><li>Soạn từ thư viện mẫu hoặc soạn tự do.</li><li>Phê duyệt 2 người, xác thực OTP trước khi phát.</li><li>Theo dõi kết quả phát theo từng cell.</li></ul>
-  <p class="small" style="color:#8fa1b8;margin-top:30px">Bản demo GĐ1 theo Tài liệu yêu cầu tính năng người dùng (URD) v1.0. Kết nối mạng (MME) và SMS là mô phỏng; dữ liệu lưu trên trình duyệt.</p></div><div class="r"><div class="box"><div class="card"><div class="bd">
+<div id="root"><div class="login"><div class="l"><div class="lt"><h1>CMS Cell Broadcast VNPT</h1><p class="lead">Soạn, phê duyệt và phát bản tin cảnh báo khẩn cấp tới mọi thiết bị di động trong vùng ảnh hưởng.</p><div class="bar"></div></div>
+  <svg class="ill" viewBox="0 0 560 340" role="img" aria-label="Trạm phát sóng gửi cảnh báo tới điện thoại">
+  <defs><linearGradient id="lgPh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fb0e6"></stop><stop offset="1" stop-color="#5c82c7"></stop></linearGradient></defs>
+  <g fill="none" stroke="#fff" stroke-opacity=".18" stroke-width="2"><circle cx="300" cy="150" r="70"></circle><circle cx="300" cy="150" r="105"></circle><circle cx="300" cy="150" r="140" stroke-opacity=".1"></circle></g>
+  <path d="M0 300 C70 255 130 235 200 262 C250 280 300 285 360 262 C420 238 480 245 560 300 Z" fill="#fff" fill-opacity=".12"></path>
+  <ellipse cx="300" cy="312" rx="120" ry="14" fill="#fff" fill-opacity=".1"></ellipse>
+  <g stroke="#e6eefb" stroke-width="5" stroke-linecap="round" fill="none">
+    <path d="M110 130 L90 270 M110 130 L130 270 M97 220 L123 220 M93 250 L127 250 M101 190 L119 190 M97 220 L119 190 M123 220 L101 190 M93 250 L123 220 M127 250 L97 220"></path>
+    <path d="M88 108 a28 28 0 0 0 0 40 M132 108 a28 28 0 0 1 0 40 M76 96 a46 46 0 0 0 0 64 M144 96 a46 46 0 0 1 0 64" stroke-width="4"></path>
+  </g>
+  <circle cx="110" cy="128" r="8" fill="#fff"></circle>
+  <g transform="rotate(8 300 185)">
+    <rect x="240" y="65" width="125" height="240" rx="20" fill="#fff" fill-opacity=".95"></rect>
+    <rect x="249" y="74" width="107" height="222" rx="14" fill="url(#lgPh)"></rect>
+    <rect x="285" y="80" width="35" height="7" rx="3.5" fill="#fff" fill-opacity=".9"></rect>
+    <path d="M302 120 L336 180 L268 180 Z" fill="#fff" stroke="#fff" stroke-width="8" stroke-linejoin="round"></path>
+    <rect x="298.5" y="138" width="7" height="24" rx="3.5" fill="#3b5fa3"></rect><circle cx="302" cy="170" r="4.5" fill="#3b5fa3"></circle>
+    <rect x="266" y="200" width="72" height="12" rx="6" fill="#fff" fill-opacity=".85"></rect>
+    <rect x="266" y="222" width="50" height="12" rx="6" fill="#fff" fill-opacity=".6"></rect>
+  </g>
+  <path d="M470 180 c-17 0 -28 13 -28 28 c0 20 28 48 28 48 s28 -28 28 -48 c0 -15 -11 -28 -28 -28 z" fill="#c9d8f2"></path>
+  <circle cx="470" cy="207" r="10" fill="#4767a4"></circle>
+</svg>
+  <p class="lnote">Bản demo GĐ1 theo Tài liệu yêu cầu tính năng người dùng (URD) v1.0.<br>Kết nối mạng (MME) và SMS là mô phỏng; dữ liệu lưu trên trình duyệt.</p></div><div class="r"><div class="box"><div class="card"><div class="bd">
     <h1 style="margin-bottom:4px">Đăng nhập<span class="tipw"><button type="button" class="tipb" aria-label="Chú thích: dấu * đỏ là trường bắt buộc" aria-expanded="false" data-tip="">i</button><span class="tipt" role="tooltip">Dấu <span style="color:#ff8a7a">*</span> đỏ là trường bắt buộc</span></span></h1><p class="muted" style="margin-top:0">Hệ thống quản lý phát tin Cell Broadcast</p>
     <div class="alert err">Nhập tên đăng nhập và mật khẩu.</div>
     <form novalidate="" data-form="login">
